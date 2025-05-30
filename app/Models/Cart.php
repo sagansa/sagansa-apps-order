@@ -25,17 +25,4 @@ class Cart extends Model
     {
         return $this->belongsTo(Product::class);
     }
-
-    // protected static function boot()
-    // {
-    //     parent::boot();
-
-    //     static::creating(function ($cart) {
-    //         $cart->total_price = $cart->price * $cart->quantity;
-    //     });
-
-    //     static::updating(function ($cart) {
-    //         $cart->total_price = $cart->price * $cart->quantity;
-    //     });
-    // }
 }

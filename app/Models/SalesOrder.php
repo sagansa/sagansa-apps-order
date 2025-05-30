@@ -9,7 +9,25 @@ class SalesOrder extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'for',
+        'delivery_date',
+        'delivery_service_id',
+        'delivery_address_id',
+        'transfer_to_account_id',
+        'image_payment',
+        'payment_status',
+        'delivery_status',
+        'shipping_cost',
+        'store_id',
+        'receipt_no',
+        'image_delivery',
+        'order_by_id',
+        'assigned_by_id',
+        'notes',
+        'total_price',
+        'received_by',
+    ];
 
     public function deliveryService()
     {

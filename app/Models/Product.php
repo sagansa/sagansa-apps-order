@@ -61,11 +61,17 @@ class Product extends Model
 
     public function getProductNameAttribute()
     {
-        return $this->name . ' - ' . $this->unit->unit;
+        $unitName = $this->unit ? $this->unit->unit : '';
+        return $this->name . ($unitName ? ' - ' . $unitName : '');
     }
 
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('order');
+    }
+
+    public function priceTiers()
+    {
+        return $this->hasMany(PriceTier::class)->orderBy('min_quantity');
     }
 }

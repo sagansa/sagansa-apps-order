@@ -1,11 +1,52 @@
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CustomerLayout from '@/Layouts/GuestLayout';
-import { useState, useEffect } from 'react';
-import { Carousel } from 'react-responsive-carousel';
-import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { ShareIcon, MinusIcon, PlusIcon, ShoppingCartIcon, TruckIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import {
+    Box,
+    Card,
+    CardContent,
+    CardMedia,
+    Typography,
+    Button,
+    IconButton,
+    Stack,
+    TextField,
+    InputAdornment,
+    Divider,
+    Grid,
+    Paper,
+    Tooltip,
+    Chip,
+} from '@mui/material';
+import {
+    Add as AddIcon,
+    Remove as RemoveIcon,
+    ShoppingCart as ShoppingCartIcon,
+    Share as ShareIcon,
+    LocalShipping as LocalShippingIcon,
+    Security as SecurityIcon,
+} from '@mui/icons-material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+const darkTheme = createTheme({
+    palette: {
+        mode: 'dark',
+        primary: {
+            main: '#90caf9',
+        },
+        secondary: {
+            main: '#f48fb1',
+        },
+        background: {
+            default: '#121212',
+            paper: '#1e1e1e',
+        },
+    },
+});
+
 export default function ProductDetail({ auth, product }) {
     const [quantity, setQuantity] = useState(1);
 
@@ -21,7 +62,6 @@ export default function ProductDetail({ auth, product }) {
                 console.error('Error sharing:', error);
             }
         } else {
-            // Fallback untuk browser yang tidak mendukung Web Share API
             toast.error('Sharing tidak didukung di browser ini');
         }
     };
@@ -38,19 +78,24 @@ export default function ProductDetail({ auth, product }) {
             user_id: auth.user.id
         };
 
-        console.log('Data yang akan dikirim ke server:', cartData);
-
         router.post(route('cart.store'), cartData, {
             preserveScroll: true,
-            onSuccess: (response) => {
-                console.log('Respons sukses dari server:', response);
+            onSuccess: () => {
                 toast.success(`${quantity} ${product.name} ditambahkan ke keranjang`);
             },
             onError: (errors) => {
-                console.error('Data lengkap error dari server:', errors);
                 toast.error(errors.message || 'Gagal menambahkan ke keranjang');
             }
         });
+    };
+
+    const handleQuantityChange = (change) => {
+        setQuantity(prev => Math.max(1, prev + change));
+    };
+
+    const handleQuantityInput = (value) => {
+        const newValue = parseInt(value) || 1;
+        setQuantity(Math.max(1, newValue));
     };
 
     const images = product.images && product.images.length > 0
@@ -60,111 +105,132 @@ export default function ProductDetail({ auth, product }) {
     const Layout = auth?.user ? AuthenticatedLayout : CustomerLayout;
 
     return (
-        <Layout
-            auth={auth}
-            header={
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">Product Detail</h2>
-                </div>
-            }
-        >
-            <Head title={product.name} />
+        <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
+            <Layout
+                user={auth?.user}
+                header={<Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
+                    Detail Produk
+                </Typography>}
+            >
+                <Head title={product.name} />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800 transition-all duration-300 hover:scale-[1.01]">
-                        <div className="p-6">
-                            <div className="flex flex-col gap-6 md:flex-row">
-                                <div className="w-full md:w-1/2">
-                                    <div className="overflow-hidden w-full bg-gray-200 rounded-lg shadow-lg">
-                                        <div className="transition-all duration-300 hover:scale-105">
-                                            <Carousel
-                                                showArrows={true}
-                                                showStatus={false}
-                                                showThumbs={true}
-                                                infiniteLoop={true}
-                                                className="product-carousel"
-                                            >
-                                                {images.map((image, index) => (
-                                                    <div key={index} className="aspect-square">
-                                                        <img
-                                                            src={image}
-                                                            alt={`${product.name} - ${index + 1}`}
-                                                            className="object-cover object-center w-full h-full"
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </Carousel>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="w-full md:w-1/2">
-                                    <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white animate-fade-in">
-                                        {product.name}
-                                    </h2>
+                <Box sx={{ py: 4, px: 2 }}>
+                    <Card>
+                        <CardContent>
+                            <Grid container spacing={4}>
+                                <Grid sx={{ width: { xs: '100%', md: '50%' } }}>
+                                    <CardMedia
+                                        component="img"
+                                        image={images[0]}
+                                        alt={product.name}
+                                        sx={{
+                                            height: 400,
+                                            objectFit: 'cover',
+                                            borderRadius: 1,
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid sx={{ width: { xs: '100%', md: '50%' } }}>
+                                    <Stack spacing={3}>
+                                        <Typography variant="h4" component="h1" gutterBottom>
+                                            {product.name}
+                                        </Typography>
 
-                                    <div className="flex flex-wrap gap-4 items-center mt-6">
-                                        <div className="flex gap-2 items-center p-2 bg-gray-100 rounded-lg dark:bg-gray-700">
-                                            <button
-                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                                className="p-1 text-gray-600 hover:text-primary"
-                                            >
-                                                <MinusIcon className="w-5 h-5" />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                min="1"
+                                        <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                                            <Stack spacing={2}>
+                                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                                                    <Typography variant="h4" color="primary">
+                                                        Rp {(product?.online_price || 0).toLocaleString()}
+                                                    </Typography>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        /{product?.unit?.unit || 'pcs'}
+                                                    </Typography>
+                                                </Box>
+                                                <Typography variant="body1" color="text.secondary">
+                                                    Total: <Typography component="span" variant="h6" color="primary">
+                                                        Rp {((product?.online_price || 0) * quantity).toLocaleString()}
+                                                    </Typography>
+                                                </Typography>
+                                            </Stack>
+                                        </Paper>
+
+                                        <Stack direction="row" spacing={2} alignItems="center">
+                                            <TextField
                                                 value={quantity}
-                                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                                className="w-16 text-center bg-transparent border-none focus:ring-0"
+                                                onChange={(e) => handleQuantityInput(e.target.value)}
+                                                type="number"
+                                                size="small"
+                                                inputProps={{
+                                                    min: 1,
+                                                    style: { textAlign: 'center', width: '80px' }
+                                                }}
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleQuantityChange(-1)}
+                                                            >
+                                                                <RemoveIcon />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ),
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleQuantityChange(1)}
+                                                            >
+                                                                <AddIcon />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
                                             />
-                                            <button
-                                                onClick={() => setQuantity(quantity + 1)}
-                                                className="p-1 text-gray-600 hover:text-primary"
+                                            <Button
+                                                variant="contained"
+                                                startIcon={<ShoppingCartIcon />}
+                                                onClick={handleAddToCart}
+                                                size="large"
                                             >
-                                                <PlusIcon className="w-5 h-5" />
-                                            </button>
-                                        </div>
+                                                Tambah ke Keranjang
+                                            </Button>
+                                            <Tooltip title="Bagikan">
+                                                <IconButton onClick={handleShare}>
+                                                    <ShareIcon />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
 
-                                        <div className="p-4 mb-4 bg-gray-50 rounded-lg dark:bg-gray-700 animate-scale-in">
-                                            <div className="mb-2">
-                                                <span className="text-3xl font-bold text-primary">
-                                                    Rp {(product?.online_price || 0).toLocaleString()}
-                                                </span>
-                                                <span className="text-lg text-gray-600 dark:text-gray-400">/{product?.unit?.unit || 'pcs'}</span>
-                                            </div>
-                                            <div className="text-gray-600 dark:text-gray-400">
-                                                Total: <span className="text-2xl font-bold text-primary">Rp {((product?.online_price || 0) * quantity).toLocaleString()}</span>
-                                            </div>
-                                        </div>
+                                        <Divider />
 
-                                        <button
-                                            onClick={handleAddToCart}
-                                            className="flex gap-2 items-center px-6 py-2 text-white rounded-lg transition-all duration-300 transform bg-primary hover:bg-primary/90 hover:scale-105"
-                                        >
-                                            <ShoppingCartIcon className="w-5 h-5" />
-                                            Add to Cart
-                                        </button>
+                                        <Stack spacing={2}>
+                                            <Typography variant="h6">Deskripsi Produk</Typography>
+                                            <Typography variant="body1" color="text.secondary">
+                                                {product.description}
+                                            </Typography>
+                                        </Stack>
 
-                                        <button
-                                            onClick={handleShare}
-                                            className="p-2 text-gray-600 bg-gray-100 rounded-lg transition-all duration-300 transform hover:text-primary hover:bg-gray-200 hover:scale-105 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
-                                        >
-                                            <ShareIcon className="w-5 h-5" />
-                                        </button>
-
-
-                                    </div>
-                                    <div className="p-4 mt-6 bg-gray-50 rounded-lg dark:bg-gray-700">
-                                        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Deskripsi Produk</h3>
-                                        <p className="leading-relaxed text-gray-600 dark:text-gray-400">{product.description}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Layout>
+                                        <Stack direction="row" spacing={2}>
+                                            <Chip
+                                                icon={<LocalShippingIcon />}
+                                                label="Pengiriman Cepat"
+                                                variant="outlined"
+                                            />
+                                            <Chip
+                                                icon={<SecurityIcon />}
+                                                label="Garansi 100%"
+                                                variant="outlined"
+                                            />
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
+                </Box>
+            </Layout>
+        </ThemeProvider>
     );
 }

@@ -3,42 +3,98 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { foodPrimaryBrown, foodSecondaryBrown } from '@/constants/colors';
 import Footer from '@/Components/Footer';
+import { Container, Typography, Grid, Card, CardContent, Button, Box } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 export default function WelcomeFood({ auth, products = [], categories = [] }) {
     const filteredProducts = products?.filter(product => product.online_category_id !== 4) || [];
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
 
+    const theme = createTheme({
+        palette: {
+            primary: {
+                main: foodPrimaryBrown,
+            },
+            secondary: {
+                main: foodSecondaryBrown,
+            },
+        },
+    });
+
     return (
-        <Layout
-            auth={auth}
-            header={
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">Sagansa Food</h2>
-                </div>
-            }
-        >
+        <ThemeProvider theme={theme}>
+            <Layout
+                auth={auth}
+                header={
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="h5" fontWeight="600" color="text.primary">
+                            Sagansa Food
+                        </Typography>
+                    </Box>
+                }
+            >
             <Head title="Sagansa Food" />
             {/* Hero Section */}
-            <section className="overflow-hidden relative px-4 py-24 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
-                <div className="absolute inset-0 opacity-10 bg-pattern"></div>
-                <div className="relative mx-auto">
-                    <div className="text-center">
-                        <h1 style={{ color: foodPrimaryBrown }} className="mb-6 text-4xl font-bold md:text-6xl">
+            <Box
+                sx={{
+                    position: 'relative',
+                    py: 12,
+                    bgcolor: 'background.paper',
+                    overflow: 'hidden',
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0.1,
+                        bgcolor: 'background.paper',
+                    }}
+                    className="bg-pattern"
+                />
+                <Container maxWidth="lg">
+                    <Box textAlign="center">
+                        <Typography
+                            variant="h1"
+                            component="h1"
+                            sx={{
+                                mb: 3,
+                                fontSize: { xs: '2.5rem', md: '4rem' },
+                                fontWeight: 'bold',
+                                color: 'primary.main',
+                            }}
+                        >
                             Supplier Makanan Terpercaya untuk Bisnis Anda
-                        </h1>
-                        <p style={{ color: foodPrimaryBrown }} className="mb-8 text-xl opacity-90">
+                        </Typography>
+                        <Typography
+                            variant="h4"
+                            sx={{
+                                mb: 4,
+                                color: 'primary.main',
+                                opacity: 0.9,
+                            }}
+                        >
                             Menyediakan bahan makanan berkualitas tinggi untuk restoran, hotel, dan katering
-                        </p>
-                        <Link
+                        </Typography>
+                        <Button
+                            component={Link}
                             href="/order"
-                            style={{ backgroundColor: foodPrimaryBrown }}
-                            className="px-8 py-3 font-semibold text-white rounded-lg transition duration-300 hover:opacity-90"
+                            variant="contained"
+                            size="large"
+                            sx={{
+                                px: 4,
+                                py: 1.5,
+                                fontSize: '1.1rem',
+                                '&:hover': {
+                                    opacity: 0.9,
+                                },
+                            }}
                         >
                             Order Now
-                        </Link>
-                    </div>
-                </div>
-            </section>
+                        </Button>
+                    </Box>
+                </Container>
+            </Box>
 
             {/* Featured Section */}
             <section className="px-4 py-16 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
@@ -126,5 +182,6 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
             </section>
             <Footer />
         </Layout>
+        </ThemeProvider>
     );
 }

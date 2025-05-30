@@ -9,7 +9,11 @@ class TransferToAccount extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'number',
+        'bank_id',
+    ];
 
     public function bank()
     {

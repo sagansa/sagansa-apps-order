@@ -5,129 +5,75 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Cart;
-use App\Models\Product;
+use App\Models\DeliveryService;
+use App\Models\DeliveryAddress;
 
 class CartController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cartItems = Cart::where('user_id', auth()->id())
-            ->with('product')
+        $cartItems = Cart::with(['product.priceTiers', 'product.unit'])
+            ->where('user_id', $request->user()->id)
+            ->get();
+
+        $deliveryServices = DeliveryService::all();
+
+        $deliveryAddresses = DeliveryAddress::with(['province', 'city', 'district', 'subdistrict', 'postalCode'])
+            ->where('user_id', $request->user()->id)
             ->get();
 
         return Inertia::render('Cart', [
-            'cart_items' => $cartItems
+            'cartItems' => $cartItems,
+            'deliveryServices' => $deliveryServices,
+            'deliveryAddresses' => $deliveryAddresses
         ]);
+    }
+
+    public function update(Request $request, Cart $cart)
+    {
+        $request->validate([
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        $cart->update([
+            'quantity' => $request->quantity
+        ]);
+
+        return back();
+    }
+
+    public function destroy(Cart $cart)
+    {
+        $cart->delete();
+        return back();
     }
 
     public function store(Request $request)
     {
-        try {
-            $request->validate([
-                'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer|min:1',
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        // Cek apakah produk sudah ada di keranjang
+        $existingCart = Cart::where('user_id', $request->user()->id)
+            ->where('product_id', $request->product_id)
+            ->first();
+
+        if ($existingCart) {
+            // Update quantity jika produk sudah ada
+            $existingCart->update([
+                'quantity' => $existingCart->quantity + $request->quantity
             ]);
-
-            if ($request->quantity < 1) {
-                if ($request->wantsJson()) {
-                    return response()->json(['error' => 'Jumlah produk tidak valid'], 422);
-                }
-                return back()->with('error', 'Invalid product quantity');
-            }
-
-            if (!auth()->check()) {
-                if ($request->wantsJson()) {
-                    return response()->json(['error' => 'Silakan login terlebih dahulu'], 401);
-                }
-                return Inertia::location(route('login'));
-            }
-
-            $product = Product::findOrFail($request->product_id);
-
-            $cart = Cart::updateOrCreate(
-                [
-                    'user_id' => auth()->id(),
-                    'product_id' => $request->product_id
-                ],
-                [
-                    'quantity' => $request->quantity,
-                ]
-            );
-
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Produk berhasil ditambahkan ke keranjang']);
-            }
-
-            return redirect()->route('cart.index')->with('success', 'Produk berhasil ditambahkan ke keranjang');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => $e->getMessage()], 422);
-            }
-            return back()->withErrors($e->errors());
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Produk tidak ditemukan'], 404);
-            }
-            return back()->with('error', 'Product not found');
-        } catch (\Exception $e) {
-            \Log::error('Cart addition failed: ' . $e->getMessage());
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Gagal menambahkan produk ke keranjang'], 500);
-            }
-            return back()->with('error', 'Failed to add product to cart');
-        }
-    }
-
-    public function update(Request $request, $id)
-    {
-        try {
-            $request->validate([
-                'quantity' => 'required|integer|min:1',
-            ]);
-
-            $cart = Cart::findOrFail($id);
-
-            if ($cart->user_id !== auth()->id()) {
-                if ($request->wantsJson()) {
-                    return response()->json(['error' => 'Anda tidak memiliki izin untuk mengubah produk ini'], 403);
-                }
-                return back()->with('error', 'Anda tidak memiliki izin untuk mengubah produk ini');
-            }
-
-            $cart->update([
+        } else {
+            // Buat cart baru jika produk belum ada
+            Cart::create([
+                'user_id' => $request->user()->id,
+                'product_id' => $request->product_id,
                 'quantity' => $request->quantity
             ]);
-
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Jumlah produk berhasil diperbarui']);
-            }
-
-            return back()->with('success', 'Jumlah produk berhasil diperbarui');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => $e->getMessage()], 422);
-            }
-            return back()->withErrors($e->errors());
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Produk tidak ditemukan di keranjang'], 404);
-            }
-            return back()->with('error', 'Produk tidak ditemukan di keranjang');
-        } catch (\Exception $e) {
-            \Log::error('Cart update failed: ' . $e->getMessage());
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Gagal memperbarui jumlah produk'], 500);
-            }
-            return back()->with('error', 'Gagal memperbarui jumlah produk');
         }
-    }
 
-    public function destroy($id)
-    {
-        $cart = Cart::findOrFail($id);
-        if ($cart->user_id !== auth()->id()) {
-            return response()->json(['error' => 'Anda tidak memiliki izin untuk menghapus produk ini'], 403);
-        }
-        $cart->delete();
+        return back();
     }
 }

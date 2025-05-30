@@ -6,11 +6,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $appends = ['cart_count'];
+
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    public function getCartCountAttribute()
+    {
+        return $this->carts()->sum('quantity');
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -38,11 +51,24 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
+    /**
+     * Get the delivery addresses for the user.
+     */
+    public function deliveryAddresses()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(DeliveryAddress::class);
+    }
+
+    /**
+     * Get the cart items for the user.
+     */
+    public function cartItems()
+    {
+        return $this->hasMany(\App\Models\Cart::class);
     }
 }

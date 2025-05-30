@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DeliveryAddress extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $guarded = [];
 
@@ -47,14 +49,14 @@ class DeliveryAddress extends Model
         return $this->belongsTo(Subdistrict::class);
     }
 
-    public function salesOrders()
-    {
-        return $this->hasMany(SalesOrder::class);
-    }
-
     public function postalCode()
     {
         return $this->belongsTo(PostalCode::class);
+    }
+
+    public function salesOrders()
+    {
+        return $this->hasMany(SalesOrder::class);
     }
 
     public function user()
@@ -62,29 +64,8 @@ class DeliveryAddress extends Model
         return $this->belongsTo(User::class);
     }
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($query) {
-            $query->user_id = auth()->id();
-
-            $query->user_id = auth()->id();
-                if (auth()->user()->hasRole('customer')) {
-                    $query->for = 1;
-                } elseif (auth()->user()->hasRole('storage-staff')) {
-                    $query->for = 3;
-                } elseif (auth()->user()->hasRole('sales')) {
-                    $query->for = 2;
-                } else {
-                    $query->for = null;
-                }
-        });
-    }
-
     public function getDeliveryAddressNameAttribute()
     {
-        $postalCode = $this->postalCode ? $this->postalCode->postal_code : '';
         $recipientsName = $this->recipient_name ?: '';
         $recipientTelpNo = $this->recipient_telp_no ?: '';
         $address = $this->address ?: '';
@@ -99,7 +80,7 @@ class DeliveryAddress extends Model
             $address,
             $subdistrictName . ', ' . $districtName,
             $cityName . ', ' . $provinceName,
-            $postalCode,
+            $this->postal_code_id,
         ]);
     }
 
