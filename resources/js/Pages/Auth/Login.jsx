@@ -1,8 +1,11 @@
 import GuestLayout from '@/Layouts/GuestLayout';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { TextField, Button, Checkbox, FormControlLabel, Box, Typography, Container, Alert } from '@mui/material';
-import { ThemeProvider } from '@mui/material/styles';
-import theme from '@/theme';
+import {
+    TextField, Button, Checkbox, FormControlLabel, Box, Typography,
+    Container, Alert, Paper, Stack, Grid
+} from '@mui/material';
+import MuiLink from '@mui/material/Link'; // Import MUI Link for consistent styling
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -13,115 +16,126 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('login'), {
             onFinish: () => reset('password'),
         });
     };
 
     return (
-        <ThemeProvider theme={theme}>
-            <GuestLayout>
-                <Head title="Log in" />
+        <GuestLayout>
+            <Head title="Log in" />
 
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
-
-            <Container component="main" maxWidth="sm">
-                <Box
+            <Container component="main" maxWidth="xs">
+                <Paper
                     component="form"
                     onSubmit={submit}
                     sx={{
-                        mt: 1,
-                        p: 3,
+                        mt: 8,
+                        p: 4,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        bgcolor: 'background.paper',
-                        borderRadius: 2,
-                        boxShadow: 3
                     }}
                 >
+                    <ApplicationLogo sx={{ mb: 2, width: 50, height: 50 }} />
+                    <Typography component="h1" variant="h5">
+                        Welcome Back
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Sign in to continue
+                    </Typography>
+
                     {status && (
                         <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
                             {status}
                         </Alert>
                     )}
 
-                    <TextField
-                        margin="normal"
-                        required
+                    <Stack spacing={2} sx={{ width: '100%' }}>
+                        <TextField
+                            required
+                            fullWidth
+                            id="email"
+                            label="Email Address"
+                            name="email"
+                            autoComplete="email"
+                            autoFocus
+                            value={data.email}
+                            onChange={(e) => setData('email', e.target.value)}
+                            error={!!errors.email}
+                            helperText={errors.email}
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'transparent',
+                                },
+                                '& .MuiInputLabel-outlined.Mui-focused': {
+                                    color: 'text.primary',
+                                },
+                            }}
+                        />
+
+                        <TextField
+                            required
+                            fullWidth
+                            name="password"
+                            label="Password"
+                            type="password"
+                            id="password"
+                            autoComplete="current-password"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            error={!!errors.password}
+                            helperText={errors.password}
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'transparent',
+                                },
+                                '& .MuiInputLabel-outlined.Mui-focused': {
+                                    color: 'text.primary',
+                                },
+                            }}
+                        />
+
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={data.remember}
+                                    onChange={(e) => setData('remember', e.target.checked)}
+                                    color="primary"
+                                />
+                            }
+                            label="Remember me"
+                        />
+                    </Stack>
+
+                    <Button
+                        type="submit"
                         fullWidth
-                        id="email"
-                        label="Email Address"
-                        name="email"
-                        autoComplete="email"
-                        autoFocus
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        error={!!errors.email}
-                        helperText={errors.email}
-                    />
+                        variant="contained"
+                        disabled={processing}
+                        sx={{ mt: 3, mb: 2 }}
+                    >
+                        Sign In
+                    </Button>
 
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        error={!!errors.password}
-                        helperText={errors.password}
-                    />
-
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={data.remember}
-                                onChange={(e) => setData('remember', e.target.checked)}
-                                color="primary"
-                            />
-                        }
-                        label="Remember me"
-                    />
-
-                    <Box sx={{ mt: 3, width: '100%', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
+                    <Grid container justifyContent="space-between">
+                        <Grid>
                             {canResetPassword && (
-                                <Link
-                                    href={route('password.request')}
-                                    className="text-sm text-indigo-600 hover:text-indigo-700"
-                                >
-                                    Lupa password?
-                                </Link>
+                                <MuiLink component={Link} href={route('password.request')} variant="body2">
+                                    Forgot password?
+                                </MuiLink>
                             )}
-                            <Link
-                                href={route('register')}
-                                className="text-sm text-indigo-600 hover:text-indigo-700"
-                            >
-                                Belum punya akun? Daftar
-                            </Link>
-                        </Box>
-
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            disabled={processing}
-                            sx={{ width: { xs: '100%', sm: 'auto' } }}
-                        >
-                            Masuk
-                        </Button>
-                    </Box>
-                </Box>
+                        </Grid>
+                        <Grid>
+                            <MuiLink component={Link} href={route('register')} variant="body2">
+                                {"Don't have an account? Sign Up"}
+                            </MuiLink>
+                        </Grid>
+                    </Grid>
+                </Paper>
             </Container>
-            </GuestLayout>
-        </ThemeProvider>
+        </GuestLayout>
     );
 }

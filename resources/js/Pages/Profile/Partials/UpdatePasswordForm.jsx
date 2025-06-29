@@ -1,12 +1,9 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
 import { useRef } from 'react';
+import { Box, TextField, Button, Typography, Stack } from '@mui/material'; // Import MUI components
 
-export default function UpdatePasswordForm({ className = '' }) {
+export default function UpdatePasswordForm() {
     const passwordInput = useRef();
     const currentPasswordInput = useRef();
 
@@ -45,84 +42,91 @@ export default function UpdatePasswordForm({ className = '' }) {
     };
 
     return (
-        <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
+        <Box component="section">
+            <Box component="header" sx={{ mb: 3 }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
                     Update Password
-                </h2>
+                </Typography>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Ensure your account is using a long, random password to stay
-                    secure.
-                </p>
-            </header>
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                    Ensure your account is using a long, random password to stay secure.
+                </Typography>
+            </Box>
 
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel
-                        htmlFor="current_password"
-                        value="Current Password"
-                    />
-
-                    <TextInput
+            <Box
+                component="form"
+                onSubmit={updatePassword}
+                sx={{ mt: 4 }}
+            >
+                <Stack spacing={3}>
+                    <TextField
                         id="current_password"
-                        ref={currentPasswordInput}
-                        value={data.current_password}
-                        onChange={(e) =>
-                            setData('current_password', e.target.value)
-                        }
+                        label="Current Password"
                         type="password"
-                        className="mt-1 block w-full"
+                        variant="outlined"
+                        fullWidth
+                        inputRef={currentPasswordInput}
+                        value={data.current_password}
+                        onChange={(e) => setData('current_password', e.target.value)}
                         autoComplete="current-password"
+                        error={!!errors.current_password}
+                        helperText={errors.current_password}
+                        sx={{
+                            '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'transparent',
+                            },
+                            '& .MuiInputLabel-outlined.Mui-focused': {
+                                color: 'text.primary',
+                            },
+                        }}
                     />
 
-                    <InputError
-                        message={errors.current_password}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="password" value="New Password" />
-
-                    <TextInput
+                    <TextField
                         id="password"
-                        ref={passwordInput}
+                        label="New Password"
+                        type="password"
+                        variant="outlined"
+                        fullWidth
+                        inputRef={passwordInput}
                         value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
-                        type="password"
-                        className="mt-1 block w-full"
                         autoComplete="new-password"
+                        error={!!errors.password}
+                        helperText={errors.password}
+                        sx={{
+                            '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'transparent',
+                            },
+                            '& .MuiInputLabel-outlined.Mui-focused': {
+                                color: 'text.primary',
+                            },
+                        }}
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div>
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
-                    <TextInput
+                    <TextField
                         id="password_confirmation"
-                        value={data.password_confirmation}
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
+                        label="Confirm Password"
                         type="password"
-                        className="mt-1 block w-full"
+                        variant="outlined"
+                        fullWidth
+                        value={data.password_confirmation}
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
                         autoComplete="new-password"
+                        error={!!errors.password_confirmation}
+                        helperText={errors.password_confirmation}
+                        sx={{
+                            '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'transparent',
+                            },
+                            '& .MuiInputLabel-outlined.Mui-focused': {
+                                color: 'text.primary',
+                            },
+                        }}
                     />
+                </Stack>
 
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 4 }}>
+                    <Button variant="contained" disabled={processing}>Save</Button>
 
                     <Transition
                         show={recentlySuccessful}
@@ -131,12 +135,12 @@ export default function UpdatePasswordForm({ className = '' }) {
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <Typography variant="body2" color="text.secondary">
                             Saved.
-                        </p>
+                        </Typography>
                     </Transition>
-                </div>
-            </form>
-        </section>
+                </Box>
+            </Box>
+        </Box>
     );
 }

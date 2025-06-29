@@ -2,7 +2,7 @@
 export const foodPrimaryBrown = '#5D4037';
 export const foodSecondaryBrown = '#795548';
 
-// Sagansa Engineering Colors
+// Sagansa Engineering Colors (reverted to original blue)
 export const engineeringPrimaryBlue = '#0D47A1';
 export const engineeringSecondaryBlue = '#1976D2';
 

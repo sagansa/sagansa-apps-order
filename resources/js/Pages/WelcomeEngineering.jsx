@@ -3,36 +3,25 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { engineeringPrimaryBlue, engineeringSecondaryBlue } from '@/constants/colors';
 import Footer from '@/Components/Footer';
-import { Container, Typography, Grid, Card, CardContent, Button, Box } from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Container, Typography, Grid, Card, Button, Box } from '@mui/material';
 
 export default function WelcomeEngineering({ auth, products = [] }) {
     // Products are already filtered in the backend
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
 
-    const theme = createTheme({
-        palette: {
-            primary: {
-                main: engineeringPrimaryBlue,
-            },
-            secondary: {
-                main: engineeringSecondaryBlue,
-            },
-        },
-    });
-
     return (
-        <ThemeProvider theme={theme}>
-            <Layout
-                auth={auth}
-                header={
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h5" fontWeight="600" color="text.primary">
-                            Sagansa Engineering
-                        </Typography>
-                    </Box>
-                }
-            >
+        <Layout
+            auth={auth}
+            primaryColor={engineeringPrimaryBlue}
+            secondaryColor={engineeringSecondaryBlue}
+            header={
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="h5" fontWeight="600" color="text.primary">
+                        Sagansa Engineering
+                    </Typography>
+                </Box>
+            }
+        >
             <Head title="Sagansa Engineering" />
             {/* Hero Section */}
             <Box
@@ -81,6 +70,7 @@ export default function WelcomeEngineering({ auth, products = [] }) {
                             href="/order"
                             variant="contained"
                             size="large"
+                            color="primary"
                             sx={{
                                 px: 4,
                                 py: 1.5,
@@ -97,109 +87,199 @@ export default function WelcomeEngineering({ auth, products = [] }) {
             </Box>
 
             {/* Featured Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
-                <div className="mx-auto">
-                    <h2 style={{ color: engineeringPrimaryBlue }} className="mb-12 text-3xl font-bold text-center">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Typography
+                        variant="h2"
+                        sx={{
+                            mb: 6,
+                            textAlign: 'center',
+                            fontSize: '2.5rem',
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                        }}
+                    >
                         Layanan Kami
-                    </h2>
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-                        <div className="p-6 bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="mb-4 text-4xl">⚡</div>
-                            <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-xl font-semibold">
-                                EV Charging
-                            </h3>
-                            <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
-                                Solusi lengkap untuk instalasi dan perawatan charging station kendaraan listrik
-                            </p>
-                        </div>
-                        <div className="p-6 bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="mb-4 text-4xl">⚡</div>
-                            <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-xl font-semibold">
-                                Grounding System
-                            </h3>
-                            <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
-                                Instalasi sistem grounding yang aman dan handal untuk charging station
-                            </p>
-                        </div>
-                        <div className="p-6 bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="mb-4 text-4xl">💻</div>
-                            <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-xl font-semibold">
-                                Software Development
-                            </h3>
-                            <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
-                                Pengembangan aplikasi web dan mobile untuk mendukung bisnis Anda
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    </Typography>
+                    <Grid container spacing={4}>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Box sx={{ mb: 2, fontSize: '2.5rem' }}>⚡</Box>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                                    EV Charging
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
+                                    Solusi lengkap untuk instalasi dan perawatan charging station kendaraan listrik
+                                </Typography>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Box sx={{ mb: 2, fontSize: '2.5rem' }}>⚡</Box>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                                    Grounding System
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
+                                    Instalasi sistem grounding yang aman dan handal untuk charging station
+                                </Typography>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Box sx={{ mb: 2, fontSize: '2.5rem' }}>💻</Box>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                                    Software Development
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
+                                    Pengembangan aplikasi web dan mobile untuk mendukung bisnis Anda
+                                </Typography>
+                            </Card>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
 
             {/* About Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
-                <div className="mx-auto">
-                    <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2">
-                        <div>
-                            <h2 style={{ color: engineeringPrimaryBlue }} className="mb-6 text-3xl font-bold">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Grid container spacing={6} alignItems="center">
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Typography variant="h3" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
                                 Tentang Sagansa Engineering
-                            </h2>
-                            <p style={{ color: engineeringPrimaryBlue }} className="mb-4 opacity-90">
+                            </Typography>
+                            <Typography variant="body1" sx={{ mb: 2, opacity: 0.9, color: 'text.primary' }}>
                                 Sagansa Engineering adalah penyedia solusi EV charging dan pengembangan software terkemuka
-                                yang berkomitmen untuk memberikan layanan berkualitas tinggi untuk kebutuhan bisnis Anda.
-                            </p>
-                            <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
-                                Dengan tim ahli berpengalaman dalam instalasi charging station dan pengembangan aplikasi,
-                                kami siap membantu mengoptimalkan infrastruktur EV dan solusi digital Anda.
-                            </p>
-                        </div>
-                        <div className="flex justify-center items-center p-6 h-64 rounded-lg backdrop-blur-sm bg-white/10 dark:bg-gray-800/10">
-                            <div className="text-4xl">⚙️ 🔧 📊</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                                yang berkomitmen to provide high-quality services for your business needs.
+                            </Typography>
+                            <Typography variant="body1" sx={{ mb: 2, opacity: 0.9, color: 'text.primary' }}>
+                                With an experienced team of experts in charging station installation and application development,
+                                we are ready to help optimize your EV infrastructure and digital solutions.
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Card sx={{
+                                height: '16rem',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                bgcolor: 'background.paper',
+                                borderRadius: 2,
+                                boxShadow: 3,
+                            }}>
+                                <Typography variant="h2" sx={{ fontSize: '3rem' }}>⚙️ 🔧 📊</Typography>
+                            </Card>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
 
             {/* Featured Projects Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 dark:bg-gray-900 md:px-8 lg:px-16">
-                <div className="mx-auto">
-                    <h2 style={{ color: engineeringPrimaryBlue }} className="mb-12 text-3xl font-bold text-center">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Typography
+                        variant="h2"
+                        sx={{
+                            mb: 6,
+                            textAlign: 'center',
+                            fontSize: '2.5rem',
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                        }}
+                    >
                         Proyek Unggulan
-                    </h2>
-                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-                        <div className="overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="p-6">
-                                <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-lg font-semibold">
+                    </Typography>
+                    <Grid container spacing={4}>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                                     Instalasi EV Charging
-                                </h3>
-                                <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
                                     Pemasangan charging station dengan sistem grounding yang handal untuk berbagai lokasi
-                                </p>
-                            </div>
-                        </div>
-                        <div className="overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="p-6">
-                                <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-lg font-semibold">
+                                </Typography>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                                     Aplikasi Monitoring
-                                </h3>
-                                <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
                                     Pengembangan sistem monitoring charging station berbasis web dan mobile
-                                </p>
-                            </div>
-                        </div>
-                        <div className="overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105">
-                            <div className="p-6">
-                                <h3 style={{ color: engineeringPrimaryBlue }} className="mb-2 text-lg font-semibold">
+                                </Typography>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Card sx={{
+                                p: 3,
+                                height: '100%',
+                                transition: 'transform 0.3s',
+                                '&:hover': { transform: 'scale(1.05)' },
+                                bgcolor: 'background.paper',
+                            }}>
+                                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                                     Custom Software
-                                </h3>
-                                <p style={{ color: engineeringPrimaryBlue }} className="opacity-90">
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
                                     Pengembangan aplikasi khusus sesuai kebutuhan bisnis Anda
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                                </Typography>
+                            </Card>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
             <Footer />
         </Layout>
-        </ThemeProvider>
     );
 }

@@ -6,6 +6,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { router } from '@inertiajs/react';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 
+// Fungsi untuk mengubah teks menjadi Title Case
+const formatTitleCase = (text) => {
+    if (!text) return '';
+    return text.toLowerCase().split(' ').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+};
+
 export default function DeliveryAddressManagerModal({
     open,
     onClose,
@@ -26,9 +34,15 @@ export default function DeliveryAddressManagerModal({
     selectedSubdistrict,
     postalCodeId,
     setPostalCodeId,
+    setCities,
+    setDistricts,
+    setSubdistricts,
 }) {
     const [openAddEditDialog, setOpenAddEditDialog] = useState(false);
     const [editingAddress, setEditingAddress] = useState(null);
+    const [citiesState, setCitiesState] = useState([]);
+    const [districtsState, setDistrictsState] = useState([]);
+    const [subdistrictsState, setSubdistrictsState] = useState([]);
 
     useEffect(() => {
         // Reset state when modal opens or closes
@@ -45,15 +59,39 @@ export default function DeliveryAddressManagerModal({
         setOpenAddEditDialog(true);
     };
 
-    const handleEditAddress = (address) => {
+    const handleEditAddress = async (address) => {
         setEditingAddress(address);
         // Pre-fill location selects
-        handleProvinceChange({ target: { value: address.province_id } });
-        // handleCityChange({ target: { value: address.city_id } });
-        // handleDistrictChange({ target: { value: address.district_id } });
-        // handleSubdistrictChange({ target: { value: address.subdistrict_id } });
+        await handleProvinceChange({ target: { value: address.province_id } });
+        // Fetch cities
+        if (address.province_id) {
+            await fetch(route('locations.cities', { province_id: address.province_id }))
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) setCitiesState(data);
+                });
+        }
+        await handleCityChange({ target: { value: address.city_id } });
+        // Fetch districts
+        if (address.city_id) {
+            await fetch(route('locations.districts', { city_id: address.city_id }))
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) setDistrictsState(data);
+                });
+        }
+        await handleDistrictChange({ target: { value: address.district_id } });
+        // Fetch subdistricts
+        if (address.district_id) {
+            await fetch(route('locations.subdistricts', { district_id: address.district_id }))
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) setSubdistrictsState(data);
+                });
+        }
+        await handleSubdistrictChange({ target: { value: address.subdistrict_id } });
+        // Set postal code
         setPostalCodeId(address.postal_code_id);
-
         setOpenAddEditDialog(true);
     };
 
@@ -75,15 +113,15 @@ export default function DeliveryAddressManagerModal({
 
     const handleSaveAddress = () => {
         const addressData = {
-            name: document.getElementById('address-name').value,
-            recipient_name: document.getElementById('recipient-name').value,
-            recipient_telp_no: document.getElementById('recipient-telp').value,
+            name: document.getElementById('address-name')?.value || '',
+            recipient_name: document.getElementById('recipient-name')?.value || '',
+            recipient_telp_no: document.getElementById('recipient-telp')?.value || '',
             province_id: selectedProvince,
             city_id: selectedCity,
             district_id: selectedDistrict,
             subdistrict_id: selectedSubdistrict,
             postal_code_id: postalCodeId,
-            address: document.getElementById('address-detail').value,
+            address: document.getElementById('address-detail')?.value || '',
         };
 
         if (editingAddress) {
@@ -186,16 +224,24 @@ export default function DeliveryAddressManagerModal({
                                                 </IconButton>
                                             </Stack>
                                         </Stack>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Penerima: {address.recipient_name} <br />
-                                            No. Telp: {address.recipient_telp_no} <br />
-                                            Alamat: {address.address} <br />
-                                            {address.subdistrict?.name ? `${address.subdistrict.name}, ` : ''}
-                                            {address.district?.name ? `${address.district.name}, ` : ''}
-                                            {address.city?.name ? `${address.city.name}, ` : ''}
-                                            {address.province?.name ? `${address.province.name}` : ''}<br />
-                                            Kode Pos: {address.postal_code_id || '-'}
-                                        </Typography>
+                                        {/* Tampilan Alamat disesuaikan */}
+                                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Typography variant="body2">
+                                                {formatTitleCase(address.recipient_name)} - {address.recipient_telp_no}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                {formatTitleCase(address.address)}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                {formatTitleCase(address.subdistrict?.name)}, {formatTitleCase(address.district?.name)}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                {formatTitleCase(address.city?.name)}, {formatTitleCase(address.province?.name)}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                Kode Pos: {address.postal_code?.postal_code || address.postal_code_id || '-'}
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 </Box>
                             ))
@@ -326,7 +372,7 @@ export default function DeliveryAddressManagerModal({
                     <Button
                         onClick={handleSaveAddress}
                         variant="contained"
-                        disabled={!selectedProvince || !selectedCity || !selectedDistrict || !selectedSubdistrict || !document.getElementById('address-name').value || !document.getElementById('recipient-name').value || !document.getElementById('recipient-telp').value || !document.getElementById('address-detail').value}
+                        disabled={!selectedProvince || !selectedCity || !selectedDistrict || !selectedSubdistrict || !document.getElementById('address-name')?.value || !document.getElementById('recipient-name')?.value || !document.getElementById('recipient-telp')?.value || !document.getElementById('address-detail')?.value}
                     >
                         Simpan
                     </Button>

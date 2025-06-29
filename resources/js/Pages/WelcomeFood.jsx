@@ -3,36 +3,25 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { foodPrimaryBrown, foodSecondaryBrown } from '@/constants/colors';
 import Footer from '@/Components/Footer';
-import { Container, Typography, Grid, Card, CardContent, Button, Box } from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Container, Typography, Grid, Card, Button, Box } from '@mui/material';
 
 export default function WelcomeFood({ auth, products = [], categories = [] }) {
     const filteredProducts = products?.filter(product => product.online_category_id !== 4) || [];
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
 
-    const theme = createTheme({
-        palette: {
-            primary: {
-                main: foodPrimaryBrown,
-            },
-            secondary: {
-                main: foodSecondaryBrown,
-            },
-        },
-    });
-
     return (
-        <ThemeProvider theme={theme}>
-            <Layout
-                auth={auth}
-                header={
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h5" fontWeight="600" color="text.primary">
-                            Sagansa Food
-                        </Typography>
-                    </Box>
-                }
-            >
+        <Layout
+            auth={auth}
+            primaryColor={foodPrimaryBrown}
+            secondaryColor={foodSecondaryBrown}
+            header={
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="h5" fontWeight="600" color="text.primary">
+                        Sagansa Food
+                    </Typography>
+                </Box>
+            }
+        >
             <Head title="Sagansa Food" />
             {/* Hero Section */}
             <Box
@@ -81,6 +70,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                             href="/order"
                             variant="contained"
                             size="large"
+                            color="primary"
                             sx={{
                                 px: 4,
                                 py: 1.5,
@@ -97,91 +87,153 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
             </Box>
 
             {/* Featured Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
-                <div className="mx-auto">
-                    <h2 style={{ color: foodPrimaryBrown }} className="mb-12 text-3xl font-bold text-center">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Typography
+                        variant="h2"
+                        sx={{
+                            mb: 6,
+                            textAlign: 'center',
+                            fontSize: '2.5rem',
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                        }}
+                    >
                         Kategori Produk Kami
-                    </h2>
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+                    </Typography>
+                    <Grid container spacing={4}>
                         {categories.map((category) => (
-                            <div
-                                key={category.id}
-                                className="p-6 bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105"
-                            >
-                                <div className="mb-4 text-4xl">{category.icon}</div>
-                                <h3 style={{ color: foodPrimaryBrown }} className="mb-2 text-xl font-semibold">
-                                    {category.name}
-                                </h3>
-                                <p style={{ color: foodPrimaryBrown }} className="opacity-90">
-                                    {category.description}
-                                </p>
-                            </div>
+                            <Grid item xs={12} md={4} key={category.id}>
+                                <Card sx={{
+                                    p: 3,
+                                    height: '100%',
+                                    transition: 'transform 0.3s',
+                                    '&:hover': { transform: 'scale(1.05)' },
+                                    bgcolor: 'background.paper',
+                                }}>
+                                    <Box sx={{ mb: 2, fontSize: '2.5rem' }}>{category.icon}</Box>
+                                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                                        {category.name}
+                                    </Typography>
+                                    <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
+                                        {category.description}
+                                    </Typography>
+                                </Card>
+                            </Grid>
                         ))}
-                    </div>
-                </div>
-            </section>
+                    </Grid>
+                </Container>
+            </Box>
 
             {/* About Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 md:px-8 lg:px-16 dark:bg-gray-900">
-                <div className="mx-auto">
-                    <div className="grid grid-cols-1 gap-12 items-center md:grid-cols-2">
-                        <div>
-                            <h2 style={{ color: foodPrimaryBrown }} className="mb-6 text-3xl font-bold">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Grid container spacing={6} alignItems="center">
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="h3" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
                                 Tentang Sagansa Food
-                            </h2>
-                            <p style={{ color: foodPrimaryBrown }} className="mb-4 opacity-90">
+                            </Typography>
+                            <Typography variant="body1" sx={{ mb: 2, opacity: 0.9, color: 'text.primary' }}>
                                 Sagansa Food adalah supplier makanan terkemuka yang berkomitmen untuk
                                 menyediakan bahan makanan berkualitas tinggi untuk bisnis kuliner Anda.
-                            </p>
-                            <p style={{ color: foodPrimaryBrown }} className="opacity-90">
+                            </Typography>
+                            <Typography variant="body1" sx={{ opacity: 0.9, color: 'text.primary' }}>
                                 Dengan pengalaman lebih dari 10 tahun dan jaringan pemasok yang luas,
                                 kami menjamin kualitas dan kesegaran setiap produk yang kami kirimkan.
-                            </p>
-                        </div>
-                        <div className="flex justify-center items-center p-6 h-64 rounded-lg backdrop-blur-sm bg-white/10 dark:bg-gray-800/10">
-                            <div className="text-4xl">🏭 🚚 🏪</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Card sx={{
+                                height: '16rem',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                bgcolor: 'background.paper',
+                                borderRadius: 2,
+                                boxShadow: 3,
+                            }}>
+                                <Typography variant="h2" sx={{ fontSize: '3rem' }}>🏭 🚚 🏪</Typography>
+                            </Card>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
 
             {/* Featured Products Section */}
-            <section className="px-4 py-16 bg-white transition-colors duration-300 dark:bg-gray-900 md:px-8 lg:px-16">
-                <div className="mx-auto">
-                    <h2 style={{ color: foodPrimaryBrown }} className="mb-12 text-3xl font-bold text-center">
+            <Box
+                component="section"
+                sx={{
+                    px: { xs: 2, md: 4, lg: 8 },
+                    py: 8,
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Typography
+                        variant="h2"
+                        sx={{
+                            mb: 6,
+                            textAlign: 'center',
+                            fontSize: '2.5rem',
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                        }}
+                    >
                         Produk Unggulan
-                    </h2>
-                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 lg:grid-cols-5">
+                    </Typography>
+                    <Grid container spacing={4}>
                         {filteredProducts.map((product) => (
-                            <Link
-                                key={product.id}
-                                href={route('product.show', product.slug)}
-                                className="overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-300 transform dark:bg-gray-900 hover:scale-105"
-                            >
-                                <div className="overflow-hidden aspect-square">
-                                    <img
-                                        src={product.image_url}
-                                        alt={product.name}
-                                        className="object-cover object-center w-full h-full"
-                                    />
-                                </div>
-                                <div className="p-6">
-                                    <h3 style={{ color: foodPrimaryBrown }} className="mb-2 text-lg font-semibold line-clamp-1">
+                            <Grid item xs={12} sm={6} lg={3} key={product.id}>
+                                <Card
+                                    component={Link}
+                                    href={route('product.show', product.slug)}
+                                    sx={{
+                                        p: 2,
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        transition: 'transform 0.3s',
+                                        '&:hover': { transform: 'scale(1.05)' },
+                                        bgcolor: 'background.paper',
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    <Box sx={{ overflow: 'hidden', aspectRatio: '1/1', mb: 2 }}>
+                                        <img
+                                            src={product.image_url}
+                                            alt={product.name}
+                                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                        />
+                                    </Box>
+                                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: 'primary.main', lineClamp: 1 }}>
                                         {product.name}
-                                    </h3>
-                                    <div className="flex justify-between items-center">
-                                        <span style={{ color: foodPrimaryBrown }} className="text-xl font-bold">
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
                                             Rp {product.online_price?.toLocaleString()}/{product.unit}
-                                        </span>
-                                    </div>
-                                </div>
-                            </Link>
+                                        </Typography>
+                                    </Box>
+                                </Card>
+                            </Grid>
                         ))}
-                    </div>
-                </div>
-            </section>
+                    </Grid>
+                </Container>
+            </Box>
             <Footer />
         </Layout>
-        </ThemeProvider>
     );
 }

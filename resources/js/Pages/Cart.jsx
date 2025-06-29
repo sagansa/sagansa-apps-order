@@ -36,6 +36,7 @@ import {
     DialogContent,
     DialogActions,
 } from '@mui/material';
+import { createTheme } from '@mui/material/styles'; // Import createTheme
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -45,11 +46,10 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EditIcon from '@mui/icons-material/Edit';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import DeliveryAddressManagerModal from '@/Components/DeliveryAddressManagerModal';
+import dayjs from 'dayjs';
 
 const darkTheme = createTheme({
     palette: {
@@ -86,7 +86,7 @@ const getDiscountPercentage = (priceTiers, quantity) => {
     return Math.round(((basePrice - currentPrice) / basePrice) * 100);
 };
 
-export default function Cart({ auth, cartItems, deliveryServices, deliveryAddresses }) {
+export default function Cart({ auth, cartItems, deliveryServices, deliveryAddresses, transferToAccounts }) {
     const [quantities, setQuantities] = useState(
         cartItems?.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
     );
@@ -107,6 +107,18 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
     const [openAddressManagerModal, setOpenAddressManagerModal] = useState(false);
+    const [selectedTransferAccount, setSelectedTransferAccount] = useState('');
+    const [transferProof, setTransferProof] = useState(null); // This will hold the resized file
+    const [deliveryDate, setDeliveryDate] = useState(dayjs().format('YYYY-MM-DD'));
+
+    // State untuk konfirmasi dan nominal ongkir
+    const [shippingCostConfirmed, setShippingCostConfirmed] = useState(false);
+    const [shippingCostAmount, setShippingCostAmount] = useState(0);
+    const [openShippingCostConfirmationModal, setOpenShippingCostConfirmationModal] = useState(false);
+
+    // State untuk opsi pembayaran ongkos kirim
+    const [shippingPaymentMethod, setShippingPaymentMethod] = useState('via_us'); // Default: dibayarkan melalui kami
+
     const handleOpenAddressManagerModal = () => setOpenAddressManagerModal(true);
     const handleCloseAddressManagerModal = () => setOpenAddressManagerModal(false);
 
@@ -116,6 +128,20 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
             .then(response => response.json())
             .then(data => setProvinces(data));
     }, []);
+
+    // Effect to handle shipping cost confirmation when delivery service changes
+    useEffect(() => {
+        const isSelfPickup = selectedDelivery === '33';
+        if (!isSelfPickup && selectedDelivery !== '') {
+            // If delivery is selected and NOT self-pickup, ask for confirmation
+            setOpenShippingCostConfirmationModal(true);
+        } else {
+            // If self-pickup or no delivery selected, reset confirmation and amount
+            setShippingCostConfirmed(false);
+            setShippingCostAmount(0);
+            setOpenShippingCostConfirmationModal(false); // Close modal if open
+        }
+    }, [selectedDelivery]);
 
     const handleProvinceChange = (e) => {
         const provinceId = e.target.value;
@@ -177,6 +203,61 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
         }
     };
 
+    // Image resizing and handling
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('File harus berupa gambar');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+
+            img.onload = () => {
+                const MAX_SIZE = 800; // Max width or height for the resized image
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    // Create a new File object from the Blob
+                    const resizedFile = new File([blob], file.name, {
+                        type: file.type,
+                        lastModified: Date.now()
+                    });
+                    setTransferProof(resizedFile); // Set the resized file for preview
+                    setData('image_payment', resizedFile); // Set the resized file to Inertia form data
+                }, file.type, 0.7); // 0.7 is the quality (70%)
+
+                // Set preview URL for the resized image
+                setPreviewUrl(canvas.toDataURL(file.type));
+            };
+        };
+        reader.readAsDataURL(file);
+    };
+
     const handleQuantityChange = (itemId, change) => {
         const newQuantity = Math.max(1, (quantities[itemId] || 1) + change);
         setQuantities(prev => ({
@@ -230,11 +311,17 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
 
     const subtotal = calculateSubtotal();
 
+    // Calculate total including shipping cost if applicable
+    const total = selectedDelivery && selectedDelivery !== '33' && shippingCostConfirmed && shippingPaymentMethod === 'via_us'
+        ? subtotal + shippingCostAmount
+        : subtotal;
+
     const handleDeliveryChange = (e) => {
         const serviceId = e.target.value;
         setSelectedDelivery(serviceId);
         // Reset selected address when delivery service changes
         setSelectedAddress('');
+        // Effect di atas akan menangani modal/reset konfirmasi ongkir
     };
 
     const handleAddAddress = () => {
@@ -262,8 +349,8 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
 
         // Fetch subdistricts
         fetch(route('api.locations.subdistricts', { district_id: address.district_id }))
-            .then(response => response.json())
-            .then(data => setSubdistricts(data));
+                .then(response => response.json())
+                .then(data => setSubdistricts(data));
 
         setOpenAddressDialog(true);
     };
@@ -301,12 +388,129 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
         }
     };
 
-    const showAddressSelection = selectedDelivery && deliveryServices.find(s => s.id === parseInt(selectedDelivery))?.id !== 33;
+    const showAddressSelection = selectedDelivery && deliveryServices.find(s => s.id === parseInt(selectedDelivery))?.id !== '33';
+
+    // Handler untuk konfirmasi ongkir
+    const handleConfirmShippingCost = () => {
+        setShippingCostConfirmed(true);
+        setOpenShippingCostConfirmationModal(false);
+    };
+
+    const handleCancelShippingCost = () => {
+        setShippingCostConfirmed(false);
+        setShippingCostAmount(0); // Reset amount if not confirmed
+        setOpenShippingCostConfirmationModal(false);
+        // setSelectedDelivery(''); // Reset delivery selection as well if cancelled
+    };
+
+    const handleCheckout = () => {
+        try {
+            // Validasi tambahan sebelum membuat FormData
+            const isSelfPickup = selectedDelivery === '33';
+            const deliveryMethod = deliveryServices.find(service => service.id.toString() === selectedDelivery);
+            const isDelivery = deliveryMethod && deliveryMethod.id !== '33';
+
+            // Validasi: Perlu Rekening & Bukti Transfer jika Ambil Sendiri ATAU (Pengiriman + Ongkir Sudah Konfirmasi)
+             if (isSelfPickup || (isDelivery && shippingCostConfirmed)) { // Kondisi diperbarui
+                 if (!selectedTransferAccount) {
+                     alert('Mohon pilih rekening tujuan transfer.');
+                     return;
+                 }
+                 if (!transferProof) {
+                     alert('Mohon upload bukti transfer.');
+                     return;
+                 }
+             }
+
+            // Kondisi 2 (Bayar Via Kami): Perlu nominal ongkir > 0 jika Pengiriman + Ongkir Sudah Konfirmasi + Bayar Via Kami
+             if (isDelivery && shippingCostConfirmed && shippingPaymentMethod === 'via_us' && shippingCostAmount <= 0) {
+                 alert('Mohon masukkan nominal biaya pengiriman yang valid (lebih dari 0) jika dibayarkan melalui kami.');
+                 return;
+            }
+
+             // Kondisi: Perlu Alamat Pengiriman jika Pengiriman
+            if (isDelivery && !selectedAddress) { // Wajib alamat jika pengiriman (terlepas konfirmasi ongkir/metode bayar ongkir)
+                 alert('Mohon pilih alamat pengiriman.');
+                 return;
+            }
+
+            const formData = new FormData();
+            formData.append('delivery_service_id', selectedDelivery);
+
+            // Sertakan delivery_address_id hanya jika metode pengiriman BUKAN ambil sendiri
+            if (isDelivery) {
+                 formData.append('delivery_address_id', selectedAddress);
+            }
+
+             // Sertakan transfer_to_account_id hanya jika metode pengiriman Ambil Sendiri ATAU Pengiriman + Ongkir Sudah Konfirmasi
+             if (isSelfPickup || (isDelivery && shippingCostConfirmed)) { // Kondisi diperbarui
+                formData.append('transfer_to_account_id', selectedTransferAccount);
+            }
+
+            formData.append('delivery_date', deliveryDate);
+
+            // Tambahkan nominal ongkir:
+            // - Jika Pengiriman + Ongkir Konfirmasi + Bayar Via Kami: Kirim shippingCostAmount
+            // - Jika Pengiriman + Belum Konfirmasi Ongkir ATAU Pengiriman + Ongkir Konfirmasi + Bayar Langsung Kurir: Kirim 0
+            // - Jika Ambil Sendiri: Kirim 0
+             const finalShippingCostForBackend = (isDelivery && shippingCostConfirmed && shippingPaymentMethod === 'via_us')
+                 ? shippingCostAmount
+                 : 0; // Untuk status 4 atau bayar ke kurir, kirim 0 ke backend
+
+             formData.append('shipping_cost', finalShippingCostForBackend);
+
+            if (transferProof) {
+                formData.append('image_payment', transferProof);
+            }
+
+            // Logika penentuan status pembayaran
+            let paymentStatus;
+             if (isSelfPickup || (isDelivery && shippingCostConfirmed)) { // Kondisi diperbarui
+                 // Jika Ambil Sendiri ATAU (Pengiriman + Ongkir Konfirmasi)
+                 // Status 1 jika bukti transfer diupload, status 4 jika belum
+                 paymentStatus = transferProof ? 1 : 4;
+             } else if (isDelivery && !shippingCostConfirmed) {
+                 // Kondisi 3: Pengiriman tapi BELUM konfirmasi Ongkir. Status selalu 4.
+                 paymentStatus = 4;
+            } else {
+                 // Fallback, seharusnya tidak tercapai jika validasi frontend OK
+                 paymentStatus = 4;
+            }
+
+            formData.append('payment_status', paymentStatus);
+
+            // Ubah format items
+            const items = cartItems.map(item => ({
+                product_id: item.product.id,
+                quantity: quantities[item.id] || item.quantity,
+                price: getPriceByQuantity(item.product?.price_tiers, quantities[item.id] || item.quantity),
+            }));
+
+            // Ubah cara append items ke FormData
+            items.forEach((item, index) => {
+                formData.append(`items[${index}][product_id]`, item.product_id);
+                formData.append(`items[${index}][quantity]`, item.quantity);
+                formData.append(`items[${index}][price]`, item.price);
+            });
+
+            router.post(route('cart.checkout'), formData, {
+            onSuccess: () => {
+                    // Redirect akan ditangani oleh backend
+            },
+            onError: (errors) => {
+                    console.error('Error:', errors);
+                    // Tampilkan pesan error ke user
+                    alert('Terjadi kesalahan saat checkout. Silakan coba lagi.');
+                }
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat checkout. Silakan coba lagi.');
+        }
+    };
 
     return (
-        <ThemeProvider theme={darkTheme}>
-            <CssBaseline />
-            <AuthenticatedLayout
+        <AuthenticatedLayout
                 user={auth.user}
                 header={<Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
                     Keranjang Belanja
@@ -326,23 +530,23 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                         <Grid container spacing={3}>
                             <Grid size={{ xs: 12, sm: 8 }} >
                                 {showAddressSelection && (
-                                    <Card sx={{ mb: 3 }}>
+                            <Card sx={{ mb: 3 }}>
                                         <CardHeader
                                             title={
                                                 <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                                                     <Stack direction="row" spacing={1} alignItems="center">
-                                                        <LocationOnIcon />
+                                                        <LocalShippingIcon />
                                                         <Typography variant="h6">
                                                             Alamat Pengiriman
-                                                        </Typography>
+                                        </Typography>
                                                     </Stack>
-                                                    <Button
+                                        <Button
                                                         startIcon={<LocationOnIcon />}
                                                         onClick={handleOpenAddressManagerModal}
                                                         size="small"
                                                     >
                                                         {selectedAddress ? 'Ubah Alamat' : 'Pilih Alamat'}
-                                                    </Button>
+                                        </Button>
                                                 </Stack>
                                             }
                                         />
@@ -376,16 +580,16 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                 {selectedAddressObject.province?.name ? `${selectedAddressObject.province.name}` : ''}<br />
                                                                 Kode Pos: {selectedAddressObject.postal_code_id || '-'}
                                                             </Typography>
-                                                        </Box>
+                                    </Box>
                                                     );
                                                 })()
                                             ) : (
                                                 <Typography variant="body2" color="text.secondary" align="center">
                                                     Silakan pilih alamat pengiriman.
                                                 </Typography>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                    )}
+                                </CardContent>
+                            </Card>
                                 )}
                                 <Card>
                                     <CardHeader
@@ -402,7 +606,7 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                             </Stack>
                                         }
                                     />
-                                    <CardContent>
+                                <CardContent>
                                         <TableContainer component={Paper}>
                                             <Table>
                                                 <TableBody>
@@ -422,7 +626,7 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                         <Stack direction="row" spacing={1} alignItems="center">
                                                                             <Typography variant="body2" color="text.secondary">
                                                                                 Rp {getPriceByQuantity(item.product?.price_tiers, quantities[item.id] || item.quantity)?.toLocaleString()}/{item.product?.unit?.unit || 'unit'}
-                                                                            </Typography>
+                                    </Typography>
                                                                             {getDiscountPercentage(item.product?.price_tiers, quantities[item.id] || item.quantity) > 0 && (
                                                                                 <Chip
                                                                                     label={`Diskon ${getDiscountPercentage(item.product?.price_tiers, quantities[item.id] || item.quantity)}%`}
@@ -439,7 +643,7 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                                         <Typography key={index} variant="body2">
                                                                                             {tier.label || `${tier.min_quantity}-${tier.max_quantity || '∞'} ${item.product?.unit?.unit || 'unit'}`}:
                                                                                             Rp {tier.price.toLocaleString()}/{item.product?.unit?.unit || 'unit'}
-                                                                                        </Typography>
+                                                    </Typography>
                                                                                     ))}
                                                                                 </Box>
                                                                             }>
@@ -449,7 +653,7 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                                     sx={{ cursor: 'help' }}
                                                                                 >
                                                                                     Lihat tier harga
-                                                                                </Typography>
+                                                    </Typography>
                                                                             </Tooltip>
                                                                         )}
                                                                     </Box>
@@ -457,12 +661,12 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                             </TableCell>
                                                             <TableCell align="center">
                                                                 <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                                                                    <IconButton
-                                                                        size="small"
+                                                        <IconButton
+                                                            size="small"
                                                                         onClick={() => handleQuantityChange(item.id, -1)}
-                                                                    >
-                                                                        <RemoveIcon />
-                                                                    </IconButton>
+                                                        >
+                                                            <RemoveIcon />
+                                                        </IconButton>
                                                                     <TextField
                                                                         value={quantities[item.id] || item.quantity}
                                                                         onChange={(e) => handleQuantityInput(item.id, e.target.value)}
@@ -482,12 +686,12 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                             ),
                                                                         }}
                                                                     />
-                                                                    <IconButton
-                                                                        size="small"
+                                                        <IconButton
+                                                            size="small"
                                                                         onClick={() => handleQuantityChange(item.id, 1)}
-                                                                    >
-                                                                        <AddIcon />
-                                                                    </IconButton>
+                                                        >
+                                                            <AddIcon />
+                                                        </IconButton>
                                                                 </Stack>
                                                             </TableCell>
                                                             <TableCell align="right">
@@ -496,28 +700,28 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                                 </Typography>
                                                             </TableCell>
                                                             <TableCell align="center">
-                                                                <IconButton
+                                                        <IconButton
                                                                             color="error"
                                                                             aria-label="hapus"
-                                                                        size="small"
+                                                            size="small"
                                                                         onClick={() => handleDeleteItem(item.id)}
-                                                                >
-                                                                    <DeleteIcon />
-                                                                </IconButton>
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
                                             </Table>
                                         </TableContainer>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
+                                </CardContent>
+                            </Card>
+                        </Grid>
 
                             <Grid size={{ xs: 12, sm: 4 }}>
                                 <Stack spacing={3} sx={{ position: 'sticky', top: 24 }}>
-                                    <Card>
-                                        <CardHeader
+                            <Card>
+                                        {/* <CardHeader
                                             title={
                                                 <Stack direction="row" spacing={1} alignItems="center">
                                                     <LocalShippingIcon />
@@ -526,8 +730,8 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                     </Typography>
                                                 </Stack>
                                             }
-                                        />
-                                        <CardContent>
+                                        /> */}
+                                <CardContent>
                                             <FormControl fullWidth>
                                                 <InputLabel id="delivery-service-label">Metode Pengiriman</InputLabel>
                                                 <Select
@@ -545,190 +749,364 @@ export default function Cart({ auth, cartItems, deliveryServices, deliveryAddres
                                                 </Select>
                                             </FormControl>
                                         </CardContent>
-                                    </Card>
+                                        </Card>
 
-                                    <Card>
-                                        <CardHeader
-                                            title={
-                                                <Typography variant="h6">
-                                                    Ringkasan Belanja
-                                                </Typography>
-                                            }
-                                        />
-                                        <CardContent>
-                                            <Stack spacing={2}>
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <Typography>Subtotal</Typography>
-                                                    <Typography>Rp {subtotal.toLocaleString()}</Typography>
-                                                </Box>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    *Biaya pengiriman akan dikonfirmasi oleh admin
-                                                </Typography>
-                                                <Button
-                                                    variant="contained"
-                                                    size="large"
-                                                    startIcon={<ShoppingCartCheckoutIcon />}
-                                                    fullWidth
-                                                    sx={{ mt: 2 }}
-                                                    disabled={!selectedDelivery || (showAddressSelection && !selectedAddress)}
-                                                >
-                                                    Checkout
-                                                </Button>
-                                                {(!selectedDelivery || (showAddressSelection && !selectedAddress)) && (
-                                                    <Typography variant="caption" color="error">
-                                                        {!selectedDelivery ? 'Silakan pilih metode pengiriman' : 'Silakan pilih alamat pengiriman'}
-                                                    </Typography>
+                                        {/* Tampilkan input nominal ongkir jika sudah dikonfirmasi (tidak self-pickup) */}
+                                        {selectedDelivery && selectedDelivery !== '33' && shippingCostConfirmed && (
+                                            <Card sx={{ mb: 3 }}>
+                                                <CardContent>
+                                                    <Typography variant="subtitle1" gutterBottom>Pembayaran Ongkos Kirim</Typography>
+                                                    <FormControl component="fieldset" fullWidth>
+                                                        <FormLabel component="legend">Metode Pembayaran Ongkos Kirim</FormLabel>
+                                                        <RadioGroup
+                                                            row
+                                                            aria-label="shipping-payment-method"
+                                                            name="shipping-payment-method"
+                                                            value={shippingPaymentMethod}
+                                                            onChange={(e) => setShippingPaymentMethod(e.target.value)}
+                                                        >
+                                                            <FormControlLabel value="via_us" control={<Radio />} label="Dibayarkan melalui kami" />
+                                                            <FormControlLabel value="to_courier" control={<Radio />} label="Dibayarkan langsung pembeli ke kurir" />
+                                                        </RadioGroup>
+                                                    </FormControl>
+
+                                                     {/* Input nominal ongkir hanya muncul jika 'Dibayarkan melalui kami' dipilih */}
+                                                     {shippingPaymentMethod === 'via_us' && (
+                                                         <TextField
+                                                            label="Nominal Biaya Pengiriman"
+                                                            type="number"
+                                                             fullWidth
+                                                             sx={{ mt: 2 }}
+                                                            value={shippingCostAmount}
+                                                             onChange={e => setShippingCostAmount(parseFloat(e.target.value) || 0)}
+                                                             InputProps={{
+                                                                startAdornment: <InputAdornment position="start">Rp</InputAdornment>,
+                                                             }}
+                                                             inputProps={{ min: 0 }}
+                                                        />
+                                                     )}
+
+                                                     {shippingPaymentMethod === 'to_courier' && (
+                                                         <Alert severity="info" sx={{ mt: 2 }}>
+                                                             Nominal ongkos kirim dibayarkan langsung ke kurir saat pesanan diterima.
+                                                         </Alert>
+                                                     )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {/* Card Pilih Rekening Tujuan Transfer */}
+                                        {/* Muncul jika: Ambil Sendiri ATAU (Pengiriman + Ongkir Konfirmasi) */}
+                                        {selectedDelivery && (selectedDelivery === '33' || (selectedDelivery !== '33' && shippingCostConfirmed)) && (
+                                            <Card sx={{ mb: 3 }}>
+                                            {/* <CardHeader
+                                                title={
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Typography variant="h6">
+                                                            Pilih Rekening Tujuan Transfer
+                                                        </Typography>
+                                                    </Stack>
+                                                }
+                                            /> */}
+                                            <CardContent>
+                                                <FormControl fullWidth>
+                                                    <InputLabel id="transfer-account-label">Rekening Tujuan</InputLabel>
+                                                    <Select
+                                                        labelId="transfer-account-label"
+                                                        id="transfer-account"
+                                                        value={selectedTransferAccount}
+                                                        label="Rekening Tujuan"
+                                                        onChange={e => setSelectedTransferAccount(e.target.value)}
+                                                    >
+                                                        {transferToAccounts && transferToAccounts.map((acc) => (
+                                                            <MenuItem key={acc.id} value={acc.id}>
+                                                                {acc.bank?.name} - {acc.number} - {acc.name}
+                                                            </MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+
+                                                {/* Tampilkan upload bukti transfer jika rekening sudah dipilih dan Card ini tampil */}
+                                                {selectedTransferAccount && (
+                                                    <Box mt={3}>
+                                                        <Typography variant="subtitle2" gutterBottom>Bukti Transfer</Typography>
+                                                        <Button
+                                                            variant="contained"
+                                                            component="label"
+                                                            fullWidth
+                                                        >
+                                                            Upload Gambar
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                hidden
+                                                                onChange={e => setTransferProof(e.target.files[0])}
+                                                            />
+                                                        </Button>
+                                                        {transferProof && (
+                                                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                                                File: {transferProof.name}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
                                                 )}
-                                            </Stack>
-                                        </CardContent>
-                                    </Card>
-                                </Stack>
+                                            </CardContent>
+                                        </Card>
+                                        )}
+
+                                        <Card>
+                                            {/* <CardHeader
+                                                title={
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Typography variant="h6">
+                                                            Rencana Tanggal Pengiriman
+                                                        </Typography>
+                                                    </Stack>
+                                                }
+                                            /> */}
+                                            <CardContent>
+                                                <TextField
+                                                    label="Tanggal Pengiriman"
+                                                    type="date"
+                                                    fullWidth
+                                                    value={deliveryDate}
+                                                    onChange={e => setDeliveryDate(e.target.value)}
+                                                    InputProps={{ inputProps: { min: dayjs().format('YYYY-MM-DD') } }}
+                                                />
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card>
+                                            <CardHeader
+                                                title={
+                                                    <Typography variant="h6">
+                                                        Ringkasan Belanja
+                                                    </Typography>
+                                                }
+                                            />
+                                            <CardContent>
+                                                <Stack spacing={2}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography>Subtotal</Typography>
+                                                        <Typography>Rp {subtotal.toLocaleString()}</Typography>
+                                                    </Box>
+                                                    {selectedDelivery && selectedDelivery !== '33' && shippingCostConfirmed && (
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <Typography>Ongkos Kirim</Typography>
+                                                            <Typography>Rp {shippingCostAmount.toLocaleString()}</Typography>
+                                                        </Box>
+                                                    )}
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {selectedDelivery && selectedDelivery !== '33' && !shippingCostConfirmed
+                                                            ? '*) Silakan konfirmasi biaya pengiriman dengan admin'
+                                                            : ''}
+                                                    </Typography>
+                                                    <Divider />
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Grand Total</Typography>
+                                                        <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                                                            Rp {total.toLocaleString()}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Button
+                                                        variant="contained"
+                                                        size="large"
+                                                        startIcon={<ShoppingCartCheckoutIcon />}
+                                                        fullWidth
+                                                        sx={{ mt: 2 }}
+                                                        disabled={ // Kondisi disabled tombol checkout
+                                                            !selectedDelivery || // 1. Metode pengiriman wajib dipilih
+                                                            (selectedDelivery === '33' && // 2. Ambil Sendiri:
+                                                                (!selectedTransferAccount || !transferProof)) || //    Rekening tujuan & bukti transfer wajib
+                                                            (selectedDelivery !== '33' && // 3. Pengiriman:
+                                                                 (!selectedAddress || //    Alamat pengiriman wajib
+                                                                 (shippingCostConfirmed && //    Jika ongkir sudah dikonfirmasi:
+                                                                     ((shippingPaymentMethod === 'via_us' && shippingCostAmount <= 0) || //       Jika bayar via kami, nominal ongkir > 0 wajib
+                                                                      (!selectedTransferAccount || !transferProof)) //       Rekening tujuan & bukti transfer wajib (baik via kami/kurir)
+                                                                     ))
+                                                            )
+                                                        }
+                                                        onClick={handleCheckout}
+                                        >
+                                            Checkout
+                                        </Button>
+                                                    {(!selectedDelivery || (showAddressSelection && !selectedAddress)) && (
+                                                        <Typography variant="caption" color="error">
+                                                            {!selectedDelivery ? 'Silakan pilih metode pengiriman' : 'Silakan pilih alamat pengiriman'}
+                    </Typography>
+                )}
+                                                </Stack>
+                                    </CardContent>
+                                </Card>
+
+
+                                    </Stack>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                    )}
-                </Box>
+                        )}
+                    </Box>
 
-                {/* Address Dialog */}
-                <Dialog
-                    open={openAddressDialog}
-                    onClose={handleCloseAddressDialog}
-                    maxWidth="sm"
-                    fullWidth
-                >
-                    <DialogTitle>
-                        {editingAddress ? 'Edit Alamat' : 'Tambah Alamat Baru'}
-                    </DialogTitle>
-                    <DialogContent>
-                        <Stack spacing={2} sx={{ mt: 2 }}>
-                            <TextField
-                                id="address-name"
-                                label="Nama Alamat"
-                                fullWidth
-                                defaultValue={editingAddress?.name}
-                            />
-                            <TextField
-                                id="recipient-name"
-                                label="Nama Penerima"
-                                fullWidth
-                                defaultValue={editingAddress?.recipient_name}
-                            />
-                            <TextField
-                                id="recipient-telp"
-                                label="Nomor Telepon"
-                                fullWidth
-                                defaultValue={editingAddress?.recipient_telp_no}
-                            />
-                            <FormControl fullWidth>
-                                <InputLabel>Provinsi</InputLabel>
-                                <Select
-                                    value={selectedProvince}
-                                    label="Provinsi"
-                                    onChange={handleProvinceChange}
-                                >
-                                    {provinces.map((province) => (
-                                        <MenuItem key={province.id} value={province.id}>
-                                            {province.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <FormControl fullWidth>
-                                <InputLabel>Kota/Kabupaten</InputLabel>
-                                <Select
-                                    value={selectedCity}
-                                    label="Kota/Kabupaten"
-                                    onChange={handleCityChange}
-                                    disabled={!selectedProvince}
-                                >
-                                    {cities.map((city) => (
-                                        <MenuItem key={city.id} value={city.id}>
-                                            {city.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <FormControl fullWidth>
-                                <InputLabel>Kecamatan</InputLabel>
-                                <Select
-                                    value={selectedDistrict}
-                                    label="Kecamatan"
-                                    onChange={handleDistrictChange}
-                                    disabled={!selectedCity}
-                                >
-                                    {districts.map((district) => (
-                                        <MenuItem key={district.id} value={district.id}>
-                                            {district.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <FormControl fullWidth>
-                                <InputLabel>Kelurahan/Desa</InputLabel>
-                                <Select
-                                    value={selectedSubdistrict}
-                                    label="Kelurahan/Desa"
-                                    onChange={handleSubdistrictChange}
-                                    disabled={!selectedDistrict}
-                                >
-                                    {subdistricts.map((subdistrict) => (
-                                        <MenuItem key={subdistrict.id} value={subdistrict.id}>
-                                            {subdistrict.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <TextField
-                                label="Kode Pos"
-                                fullWidth
-                                value={postalCodeId}
-                                onChange={(e) => setPostalCodeId(e.target.value)}
-                                inputProps={{ maxLength: 5 }}
-                                disabled={true}
-                            />
-                            <TextField
-                                id="address-detail"
-                                label="Alamat Lengkap"
-                                fullWidth
-                                multiline
-                                rows={3}
-                                defaultValue={editingAddress?.address}
-                            />
-                        </Stack>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleCloseAddressDialog}>Batal</Button>
-                        <Button
-                            onClick={handleSaveAddress}
-                            variant="contained"
-                            disabled={!selectedProvince || !selectedCity || !selectedDistrict || !selectedSubdistrict}
+                    {/* Address Dialog */}
+                    <Dialog
+                        open={openAddressDialog}
+                        onClose={handleCloseAddressDialog}
+                        maxWidth="sm"
+                        fullWidth
+                    >
+                        <DialogTitle>
+                            {editingAddress ? 'Edit Alamat' : 'Tambah Alamat Baru'}
+                        </DialogTitle>
+                        <DialogContent>
+                            <Stack spacing={2} sx={{ mt: 2 }}>
+                    <TextField
+                                    id="address-name"
+                                    label="Nama Alamat"
+                        fullWidth
+                                    defaultValue={editingAddress?.name}
+                    />
+                    <TextField
+                                    id="recipient-name"
+                                    label="Nama Penerima"
+                        fullWidth
+                                    defaultValue={editingAddress?.recipient_name}
+                    />
+                    <TextField
+                                    id="recipient-telp"
+                                    label="Nomor Telepon"
+                        fullWidth
+                                    defaultValue={editingAddress?.recipient_telp_no}
+                                />
+                                <FormControl fullWidth>
+                        <InputLabel>Provinsi</InputLabel>
+                        <Select
+                                        value={selectedProvince}
+                            label="Provinsi"
+                                        onChange={handleProvinceChange}
                         >
-                            Simpan
-                        </Button>
-                    </DialogActions>
-                </Dialog>
+                                        {provinces.map((province) => (
+                                <MenuItem key={province.id} value={province.id}>
+                                    {province.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                                <FormControl fullWidth>
+                        <InputLabel>Kota/Kabupaten</InputLabel>
+                        <Select
+                                        value={selectedCity}
+                            label="Kota/Kabupaten"
+                                        onChange={handleCityChange}
+                                        disabled={!selectedProvince}
+                        >
+                                        {cities.map((city) => (
+                                <MenuItem key={city.id} value={city.id}>
+                                    {city.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                                <FormControl fullWidth>
+                        <InputLabel>Kecamatan</InputLabel>
+                        <Select
+                                        value={selectedDistrict}
+                            label="Kecamatan"
+                                        onChange={handleDistrictChange}
+                                        disabled={!selectedCity}
+                        >
+                                        {districts.map((district) => (
+                                <MenuItem key={district.id} value={district.id}>
+                                    {district.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                                <FormControl fullWidth>
+                        <InputLabel>Kelurahan/Desa</InputLabel>
+                        <Select
+                                        value={selectedSubdistrict}
+                            label="Kelurahan/Desa"
+                                        onChange={handleSubdistrictChange}
+                                        disabled={!selectedDistrict}
+                        >
+                                        {subdistricts.map((subdistrict) => (
+                                <MenuItem key={subdistrict.id} value={subdistrict.id}>
+                                    {subdistrict.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                                <TextField
+                            label="Kode Pos"
+                                    fullWidth
+                                    value={postalCodeId}
+                                    onChange={(e) => setPostalCodeId(e.target.value)}
+                                    inputProps={{ maxLength: 5 }}
+                                    disabled={true}
+                                />
+                                <TextField
+                                    id="address-detail"
+                                    label="Alamat Lengkap"
+                                    fullWidth
+                                    multiline
+                                    rows={3}
+                                    defaultValue={editingAddress?.address}
+                                />
+                            </Stack>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleCloseAddressDialog}>Batal</Button>
+                            <Button
+                                onClick={handleSaveAddress}
+                                variant="contained"
+                                disabled={!selectedProvince || !selectedCity || !selectedDistrict || !selectedSubdistrict}
+                            >
+                                Simpan
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
 
-                <DeliveryAddressManagerModal
-                    open={openAddressManagerModal}
-                    onClose={handleCloseAddressManagerModal}
-                    deliveryAddresses={deliveryAddresses}
-                    selectedAddressId={selectedAddress}
-                    onSelectAddress={setSelectedAddress}
-                    provinces={provinces}
-                    cities={cities}
-                    districts={districts}
-                    subdistricts={subdistricts}
-                    handleProvinceChange={handleProvinceChange}
-                    handleCityChange={handleCityChange}
-                    handleDistrictChange={handleDistrictChange}
-                    handleSubdistrictChange={handleSubdistrictChange}
-                    selectedProvince={selectedProvince}
-                    selectedCity={selectedCity}
-                    selectedDistrict={selectedDistrict}
-                    selectedSubdistrict={selectedSubdistrict}
-                    postalCodeId={postalCodeId}
-                    setPostalCodeId={setPostalCodeId}
-                />
-            </AuthenticatedLayout>
-        </ThemeProvider>
+                    {/* Shipping Cost Confirmation Modal */}
+                    <Dialog
+                        open={openShippingCostConfirmationModal}
+                        onClose={handleCancelShippingCost} // Close modal if cancelled
+                        maxWidth="sm"
+                        fullWidth
+                    >
+                        <DialogTitle>Konfirmasi Biaya Pengiriman</DialogTitle>
+                        <DialogContent>
+                            <Typography variant="body1">Apakah Anda sudah mengkonfirmasi biaya pengiriman dengan admin?</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                Jika ya, Anda bisa memasukkan nominal biaya pengiriman di langkah selanjutnya.
+                                Jika belum, silakan hubungi admin untuk mengkonfirmasi biaya pengiriman.
+                            </Typography>
+                </DialogContent>
+                <DialogActions>
+                            <Button onClick={handleCancelShippingCost} color="error">Belum Konfirmasi</Button>
+                            <Button onClick={handleConfirmShippingCost} variant="contained">Sudah Konfirmasi</Button>
+                </DialogActions>
+            </Dialog>
+
+                    <DeliveryAddressManagerModal
+                        open={openAddressManagerModal}
+                        onClose={handleCloseAddressManagerModal}
+                        deliveryAddresses={deliveryAddresses}
+                        selectedAddressId={selectedAddress}
+                        onSelectAddress={setSelectedAddress}
+                        provinces={provinces}
+                        cities={cities}
+                        districts={districts}
+                        subdistricts={subdistricts}
+                        handleProvinceChange={handleProvinceChange}
+                        handleCityChange={handleCityChange}
+                        handleDistrictChange={handleDistrictChange}
+                        handleSubdistrictChange={handleSubdistrictChange}
+                        selectedProvince={selectedProvince}
+                        selectedCity={selectedCity}
+                        selectedDistrict={selectedDistrict}
+                        selectedSubdistrict={selectedSubdistrict}
+                        postalCodeId={postalCodeId}
+                        setPostalCodeId={setPostalCodeId}
+                    />
+        </AuthenticatedLayout>
     );
 }

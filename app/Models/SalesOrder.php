@@ -22,7 +22,7 @@ class SalesOrder extends Model
         'store_id',
         'receipt_no',
         'image_delivery',
-        'order_by_id',
+        'ordered_by_id',
         'assigned_by_id',
         'notes',
         'total_price',

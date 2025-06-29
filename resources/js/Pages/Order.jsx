@@ -3,7 +3,46 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { ShoppingCartIcon } from '@heroicons/react/24/outline';
+import {
+    Box,
+    Container,
+    Grid,
+    Card,
+    CardContent,
+    CardMedia,
+    Typography,
+    Select,
+    MenuItem,
+    TextField,
+    CircularProgress,
+    FormControl,
+    InputLabel,
+    Paper,
+    Stack
+} from '@mui/material';
+
+// Placeholder untuk gambar jika tidak tersedia
+const NoImagePlaceholder = () => (
+    <Box
+        sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            bgcolor: 'background.default', // Use theme-aware color
+            color: 'text.secondary',
+            height: '100%',
+            width: '100%',
+            fontSize: '0.9rem',
+            textAlign: 'center',
+            p: 2,
+            border: '1px dashed',
+            borderColor: 'divider' // Use theme-aware border color
+        }}
+    >
+        Gambar Tidak Tersedia
+    </Box>
+);
 
 export default function Order({ auth, products = [], categories = [], units = [] }) {
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -13,7 +52,8 @@ export default function Order({ auth, products = [], categories = [], units = []
 
     useEffect(() => {
         if (priceRange.min < 0) return;
-        if (priceRange.max < priceRange.min) return;
+        // Memungkinkan max_price 0 atau null untuk mengabaikan filter max
+        if (priceRange.max !== 0 && priceRange.max !== null && priceRange.max < priceRange.min) return;
 
         const debounceTimeout = setTimeout(() => {
             setIsLoading(true);
@@ -22,7 +62,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                 {
                     category: selectedCategory,
                     min_price: priceRange.min || null,
-                    max_price: priceRange.max || null,
+                    max_price: (priceRange.max === 0 || priceRange.max === null) ? null : priceRange.max,
                     unit: selectedUnit
                 },
                 {
@@ -44,126 +84,240 @@ export default function Order({ auth, products = [], categories = [], units = []
         <Layout
             auth={auth}
             header={
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">Order</h2>
-                </div>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold' }}>
+                        Order
+                    </Typography>
+                </Box>
             }
         >
             <Head title="Order" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="flex gap-6">
+            <Box sx={{ py: 4 }}> {/* Consistent vertical padding */}
+                <Container maxWidth="lg">
+                    <Grid container spacing={4}> {/* Spacing between main columns */}
                         {/* Sidebar Filter */}
-                        <div className="w-64 shrink-0">
-                            <div className="p-4 bg-white rounded-lg shadow-sm">
-                                <h3 className="mb-4 text-lg font-semibold">Filter Products</h3>
+                        <Grid size={{ xs: 12, md: 3 }}>
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    p: 3,
+                                    bgcolor: 'background.paper',
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}
+                            >
+                                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                                    Filter Products
+                                </Typography>
 
+                                {/* Filter options using Stack for spacing */}
+                                <Stack spacing={3} sx={{ flexGrow: 1 }}>
                                 {/* Category Filter */}
-                                <div className="mb-6">
-                                    <h4 className="mb-2 font-medium">Category</h4>
-                                    <select
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel id="category-select-label">Category</InputLabel>
+                                        <Select
+                                            labelId="category-select-label"
                                         value={selectedCategory}
                                         onChange={(e) => setSelectedCategory(e.target.value)}
-                                        className="w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                            label="Category"
                                         disabled={isLoading}
                                     >
-                                        <option value="all">All Categories</option>
+                                            <MenuItem value="all">All Categories</MenuItem>
                                         {categories.map((category) => (
-                                            <option key={category.id} value={category.id}>
+                                                <MenuItem key={category.id} value={category.id}>
                                                 {category.name}
-                                            </option>
+                                                </MenuItem>
                                         ))}
-                                    </select>
-                                </div>
+                                        </Select>
+                                    </FormControl>
 
                                 {/* Price Range Filter */}
-                                <div className="mb-6">
-                                    <h4 className="mb-2 font-medium">Price Range</h4>
-                                    <div className="space-y-2">
-                                        <input
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'medium' }}>
+                                            Price Range
+                                        </Typography>
+                                        {/* Grid container for price inputs */}
+                                        <Grid container spacing={1}> {/* Spacing between price inputs */}
+                                            <Grid size={6}>
+                                                <TextField
                                             type="number"
                                             value={priceRange.min}
                                             onChange={(e) => setPriceRange({ ...priceRange, min: parseInt(e.target.value) || 0 })}
-                                            placeholder="Min Price"
-                                            className="w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                    placeholder="Min"
+                                                    fullWidth
+                                                    size="small"
                                             disabled={isLoading}
+                                                    InputProps={{ inputProps: { min: 0 } }}
                                         />
-                                        <input
+                                            </Grid>
+                                            <Grid size={6}>
+                                                <TextField
                                             type="number"
                                             value={priceRange.max}
                                             onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) || 0 })}
-                                            placeholder="Max Price"
-                                            className="w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                    placeholder="Max"
+                                                    fullWidth
+                                                    size="small"
                                             disabled={isLoading}
+                                                    InputProps={{ inputProps: { min: 0 } }}
                                         />
-                                    </div>
-                                </div>
+                                            </Grid>
+                                        </Grid>
+                                    </Box>
 
                                 {/* Unit Filter */}
-                                <div className="mb-6">
-                                    <h4 className="mb-2 font-medium">Unit</h4>
-                                    <select
+                                    <FormControl fullWidth size="small">
+                                         <InputLabel id="unit-select-label">Unit</InputLabel>
+                                        <Select
+                                            labelId="unit-select-label"
                                         value={selectedUnit}
                                         onChange={(e) => setSelectedUnit(e.target.value)}
-                                        className="w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                            label="Unit"
                                         disabled={isLoading}
                                     >
-                                        <option value="all">All Units</option>
+                                            <MenuItem value="all">All Units</MenuItem>
                                         {units.map((unit) => (
-                                            <option key={unit.id} value={unit.id}>
+                                                <MenuItem key={unit.id} value={unit.id}>
                                                 {unit.unit}
-                                            </option>
+                                                </MenuItem>
                                         ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Paper>
+                        </Grid>
 
                         {/* Product Grid */}
-                        <div className="overflow-hidden flex-1 bg-white shadow-sm sm:rounded-lg">
-                            <div className="p-6">
+                        <Grid size={{ xs: 12, md: 9 }}>
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    p: 3,
+                                    bgcolor: 'background.paper',
+                                    height: '100%'
+                                }}
+                            >
                                 {isLoading ? (
-                                    <div className="flex justify-center items-center py-8">
-                                        <div className="w-8 h-8 rounded-full border-b-2 animate-spin border-primary"></div>
-                                    </div>
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                        <CircularProgress />
+                                    </Box>
                                 ) : (
-                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                                    <Grid container spacing={2}> {/* Spacing between product cards */}
                                         {products.length > 0 ? products.map((product) => (
-                                            <div
-                                                key={product.id}
-                                                className="flex overflow-hidden flex-col bg-white rounded-lg border border-gray-200 shadow-md cursor-pointer"
+                                            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2.4 }} key={product.id}>
+                                                <Card
+                                                    sx={{
+                                                        height: '100%',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        cursor: 'pointer',
+                                                        '&:hover': {
+                                                            boxShadow: 6
+                                                        }
+                                                    }}
                                                 onClick={() => router.visit(route('product.show', product.slug))}
                                             >
-                                                <div className="overflow-hidden w-full bg-gray-200 rounded-t-lg aspect-square">
-                                                        <img
-                                                            src={product.image_url}
+                                                    {/* Aspect ratio container for image/placeholder */}
+                                                    <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                        {product.image_url ? (
+                                                            <CardMedia
+                                                                component="img"
+                                                                image={product.image_url}
                                                             alt={product.name}
-                                                            className="object-cover object-center w-full h-full"
-                                                        />
-                                                    </div>
-                                                <div className="p-3">
-                                                    <h3 className="mb-1 text-sm font-semibold text-gray-900 truncate">{product.name}</h3>
-                                                    <div>
-                                                        <span className="text-base font-bold text-primary">
+                                                                sx={{
+                                                                    objectFit: 'cover',
+                                                                    position: 'absolute',
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                             // Placeholder centered within the aspect ratio container
+                                                            <Box sx={{
+                                                                position: 'absolute',
+                                                                top: 0,
+                                                                left: 0,
+                                                                width: '100%',
+                                                                height: '100%'
+                                                            }}>
+                                                                <NoImagePlaceholder />
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                    <CardContent sx={{ flexGrow: 1, p: 1.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}> {/* Add display flex, column, justify between */}
+                                                        <Box> {/* Wrapper for name to keep it separate from prices */}
+                                                            <Typography
+                                                                gutterBottom // Adds margin below the text
+                                                                variant="subtitle2"
+                                                                component="h3"
+                                                                sx={{
+                                                                    fontWeight: 'bold',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                    display: '-webkit-box',
+                                                                    WebkitLineClamp: 2,
+                                                                    WebkitBoxOrient: 'vertical',
+                                                                }}
+                                                                title={product.name} // Menambahkan atribut title untuk tooltip
+                                                            >
+                                                                {product.name}
+                                                            </Typography>
+                                                        </Box>
+                                                        {/* Container for prices */}
+                                                        <Box>
+                                                            {product.multi_price && product.multi_price.length > 0 ? (
+                                                                product.multi_price.map((price, index) => (
+                                                                    <Box
+                                                                        key={index}
+                                                                        sx={{
+                                                                            display: 'flex',
+                                                                            justifyContent: 'space-between',
+                                                                            alignItems: 'center',
+                                                                            mb: index < product.multi_price.length - 1 ? 0.5 : 0 // Margin between price items
+                                                                        }}
+                                                                    >
+                                                                        <Typography variant="caption" color="text.secondary">
+                                                                            {price.min_quantity} {product.unit.unit}
+                                                                        </Typography>
+                                                                        <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold' }}>
+                                                                            Rp {price.price.toLocaleString()}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                ))
+                                                            ) : (
+                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        1 {product.unit.unit}
+                                                                    </Typography>
+                                                                    <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold' }}>
                                                             Rp {(product.online_price || 0).toLocaleString()}
-                                                        </span>
-                                                        <span className="text-xs text-gray-600">/{product.unit.unit}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                                    </Typography>
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
                                         )) : (
-                                            <div className="col-span-full py-8 text-center text-gray-500">
+                                            <Grid xs={12}>
+                                                <Box sx={{ py: 4, textAlign: 'center' }}>
+                                                    <Typography color="text.secondary">
                                                 Tidak ada produk yang tersedia
-                                            </div>
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
                                         )}
-                                    </div>
+                                    </Grid>
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
         </Layout>
     );
 }

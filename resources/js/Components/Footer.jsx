@@ -1,6 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { textPrimary } from '@/constants/colors';
-import { Container, Grid, Typography, IconButton, Box } from '@mui/material';
+import { Container, Grid, Typography, IconButton, Box, useTheme } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
@@ -9,12 +8,21 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 
 export default function Footer() {
+    const theme = useTheme();
+
     return (
-        <Box component="footer" sx={{ py: 6, bgcolor: 'grey.900', color: 'white' }}>
+        <Box
+            component="footer"
+            sx={{
+                py: 6,
+                bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200',
+                color: theme.palette.text.primary,
+            }}
+        >
             <Container maxWidth="lg">
                 <Grid container spacing={4} sx={{ mb: 4 }}>
-                    <Grid item xs={12} md={3}>
-                        <Typography variant="h6" sx={{ mb: 2, color: textPrimary }}>Sagansa</Typography>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Sagansa</Typography>
                         <Typography variant="body2" sx={{ mb: 2, opacity: 0.9 }}>Solusi Terpercaya untuk Kebutuhan Bisnis Anda</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -32,41 +40,41 @@ export default function Footer() {
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} md={3}>
-                        <Typography variant="h6" sx={{ mb: 2, color: textPrimary }}>Layanan</Typography>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Layanan</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/food" style={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: textPrimary } }}>
-                                <Typography variant="body2">Sagansa Food</Typography>
+                            <Link href="/food" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Food</Typography>
                             </Link>
-                            <Link href="/engineering" style={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: textPrimary } }}>
-                                <Typography variant="body2">Sagansa Engineering</Typography>
+                            <Link href="/engineering" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Engineering</Typography>
                             </Link>
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} md={3}>
-                        <Typography variant="h6" sx={{ mb: 2, color: textPrimary }}>Dukungan</Typography>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Dukungan</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: textPrimary } }}>
-                                <Typography variant="body2">FAQ</Typography>
+                            <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>FAQ</Typography>
                             </Link>
-                            <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: textPrimary } }}>
-                                <Typography variant="body2">Syarat & Ketentuan</Typography>
+                            <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Syarat & Ketentuan</Typography>
                             </Link>
-                            <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: textPrimary } }}>
-                                <Typography variant="body2">Kebijakan Privasi</Typography>
+                            <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Kebijakan Privasi</Typography>
                             </Link>
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} md={3}>
-                        <Typography variant="h6" sx={{ mb: 2, color: textPrimary }}>Ikuti Kami</Typography>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Ikuti Kami</Typography>
                         <Box sx={{ display: 'flex', gap: 2 }}>
                             <IconButton
                                 href="https://facebook.com/sagansa"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                sx={{ color: 'white', '&:hover': { color: textPrimary } }}
+                                sx={{ color: theme.palette.text.primary, '&:hover': { color: theme.palette.primary.main } }}
                             >
                                 <FacebookIcon />
                             </IconButton>
@@ -74,7 +82,7 @@ export default function Footer() {
                                 href="https://instagram.com/sagansa"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                sx={{ color: 'white', '&:hover': { color: textPrimary } }}
+                                sx={{ color: theme.palette.text.primary, '&:hover': { color: theme.palette.primary.main } }}
                             >
                                 <InstagramIcon />
                             </IconButton>
@@ -82,14 +90,14 @@ export default function Footer() {
                                 href="https://linkedin.com/company/sagansa"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                sx={{ color: 'white', '&:hover': { color: textPrimary } }}
+                                sx={{ color: theme.palette.text.primary, '&:hover': { color: theme.palette.primary.main } }}
                             >
                                 <LinkedInIcon />
                             </IconButton>
                         </Box>
                     </Grid>
                 </Grid>
-                <Box sx={{ pt: 3, textAlign: 'center', borderTop: 1, borderColor: 'grey.800' }}>
+                <Box sx={{ pt: 3, textAlign: 'center', borderTop: 1, borderColor: theme.palette.divider }}>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
                         © {new Date().getFullYear()} Sagansa. Hak Cipta Dilindungi.
                     </Typography>

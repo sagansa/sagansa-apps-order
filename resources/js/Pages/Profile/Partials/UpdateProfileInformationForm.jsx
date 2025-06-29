@@ -1,14 +1,11 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { Box, TextField, Button, Typography, Stack, Alert } from '@mui/material'; // Import MUI components
+import MuiLink from '@mui/material/Link'; // Import MUI Link for consistency
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
     status,
-    className = '',
 }) {
     const user = usePage().props.auth.user;
 
@@ -20,80 +17,105 @@ export default function UpdateProfileInformation({
 
     const submit = (e) => {
         e.preventDefault();
-
         patch(route('profile.update'));
     };
 
     return (
-        <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
+        <Box component="section">
+            <Box component="header" sx={{ mb: 3 }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
                     Profile Information
-                </h2>
+                </Typography>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
                     Update your account's profile information and email address.
-                </p>
-            </header>
+                </Typography>
+            </Box>
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel htmlFor="name" value="Name" />
+            <Box
+                component="form"
+                onSubmit={submit}
+                sx={{ mt: 4 }}
+            >
+                    <Stack spacing={3}>
+                        <TextField
+                            id="name"
+                            label="Name"
+                            variant="outlined" // Use outlined variant for better appearance
+                            fullWidth
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            required
+                            autoFocus
+                            autoComplete="name"
+                            error={!!errors.name}
+                            helperText={errors.name}
+                            sx={{
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'transparent', // Remove blue border on focus
+                                },
+                                '& .MuiInputLabel-outlined.Mui-focused': {
+                                    color: 'text.primary', // Keep label color consistent or default
+                                },
+                            }}
+                        />
 
-                    <TextInput
-                        id="name"
-                        className="mt-1 block w-full"
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                        isFocused
-                        autoComplete="name"
-                    />
-
-                    <InputError className="mt-2" message={errors.name} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        className="mt-1 block w-full"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                        autoComplete="username"
-                    />
-
-                    <InputError className="mt-2" message={errors.email} />
-                </div>
+                        <TextField
+                            id="email"
+                            label="Email"
+                            type="email"
+                            variant="outlined" // Use outlined variant for better appearance
+                            fullWidth
+                            value={data.email}
+                            onChange={(e) => setData('email', e.target.value)}
+                            required
+                            autoComplete="username"
+                            error={!!errors.email}
+                            helperText={errors.email}
+                            sx={{
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'transparent', // Remove blue border on focus
+                                },
+                                '& .MuiInputLabel-outlined.Mui-focused': {
+                                    color: 'text.primary', // Keep label color consistent or default
+                                },
+                            }}
+                        />
+                </Stack>
 
                 {mustVerifyEmail && user.email_verified_at === null && (
-                    <div>
-                        <p className="mt-2 text-sm text-gray-800">
+                    <Box sx={{ mt: 3 }}>
+                        <Typography variant="body2" sx={{ mt: 2, color: 'text.primary' }}>
                             Your email address is unverified.
-                            <Link
+                            <MuiLink
+                                component={Link}
                                 href={route('verification.send')}
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                sx={{
+                                    ml: 1,
+                                    color: 'primary.main',
+                                    textDecoration: 'underline',
+                                    '&:hover': { textDecoration: 'underline', color: 'primary.dark' },
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                }}
                             >
                                 Click here to re-send the verification email.
-                            </Link>
-                        </p>
+                            </MuiLink>
+                        </Typography>
 
                         {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                                A new verification link has been sent to your
-                                email address.
-                            </div>
+                            <Alert severity="success" sx={{ mt: 2 }}>
+                                A new verification link has been sent to your email address.
+                            </Alert>
                         )}
-                    </div>
+                    </Box>
                 )}
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 4 }}>
+                    <Button variant="contained" disabled={processing}>Save</Button>
 
                     <Transition
                         show={recentlySuccessful}
@@ -102,12 +124,12 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <Typography variant="body2" color="text.secondary">
                             Saved.
-                        </p>
+                        </Typography>
                     </Transition>
-                </div>
-            </form>
-        </section>
+                </Box>
+            </Box>
+        </Box>
     );
 }

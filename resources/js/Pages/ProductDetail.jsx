@@ -20,6 +20,7 @@ import {
     Tooltip,
     Chip,
 } from '@mui/material';
+import CssBaseline from '@mui/material/CssBaseline';
 import {
     Add as AddIcon,
     Remove as RemoveIcon,
@@ -28,24 +29,6 @@ import {
     LocalShipping as LocalShippingIcon,
     Security as SecurityIcon,
 } from '@mui/icons-material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-
-const darkTheme = createTheme({
-    palette: {
-        mode: 'dark',
-        primary: {
-            main: '#90caf9',
-        },
-        secondary: {
-            main: '#f48fb1',
-        },
-        background: {
-            default: '#121212',
-            paper: '#1e1e1e',
-        },
-    },
-});
 
 export default function ProductDetail({ auth, product }) {
     const [quantity, setQuantity] = useState(1);
@@ -84,7 +67,8 @@ export default function ProductDetail({ auth, product }) {
                 toast.success(`${quantity} ${product.name} ditambahkan ke keranjang`);
             },
             onError: (errors) => {
-                toast.error(errors.message || 'Gagal menambahkan ke keranjang');
+                console.error(errors);
+                toast.error(errors?.message || errors?.quantity || 'Gagal menambahkan ke keranjang');
             }
         });
     };
@@ -98,139 +82,131 @@ export default function ProductDetail({ auth, product }) {
         setQuantity(Math.max(1, newValue));
     };
 
-    const images = product.images && product.images.length > 0
-        ? product.images.map(img => img.image_url)
-        : [product.image_url];
+    const mainImage = (product.images && product.images.length > 0
+        ? product.images[0].image_url
+        : product.image_url) || '/images/no_image.png';
 
     const Layout = auth?.user ? AuthenticatedLayout : CustomerLayout;
 
     return (
-        <ThemeProvider theme={darkTheme}>
-            <CssBaseline />
-            <Layout
-                user={auth?.user}
-                header={<Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
-                    Detail Produk
-                </Typography>}
-            >
-                <Head title={product.name} />
+        <Layout
+            user={auth?.user}
+            header={<Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
+                Detail Produk
+            </Typography>}
+        >
+            <Head title={product.name} />
 
-                <Box sx={{ py: 4, px: 2 }}>
-                    <Card>
-                        <CardContent>
-                            <Grid container spacing={4}>
-                                <Grid sx={{ width: { xs: '100%', md: '50%' } }}>
-                                    <CardMedia
-                                        component="img"
-                                        image={images[0]}
-                                        alt={product.name}
-                                        sx={{
-                                            height: 400,
-                                            objectFit: 'cover',
-                                            borderRadius: 1,
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid sx={{ width: { xs: '100%', md: '50%' } }}>
-                                    <Stack spacing={3}>
-                                        <Typography variant="h4" component="h1" gutterBottom>
-                                            {product.name}
-                                        </Typography>
+            <Box sx={{ py: 4 }}>
+                <Paper sx={{ p: 3 }}>
+                    <Grid container spacing={4}>
+                        {/* Image */}
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Card sx={{
+                                width: '100%',
+                                pt: '75%', // 4:3 Aspect Ratio
+                                position: 'relative',
+                                overflow: 'hidden',
+                                border: '1px solid',
+                                borderColor: 'divider'
+                            }}>
+                                <CardMedia
+                                    component="img"
+                                    image={mainImage}
+                                    alt={product.name}
+                                    sx={{
+                                        objectFit: 'contain', // Use 'contain' to show the whole image
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        bgcolor: 'background.default' // Background for letterboxing
+                                    }}
+                                />
+                            </Card>
+                        </Grid>
 
-                                        <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
-                                            <Stack spacing={2}>
-                                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                                                    <Typography variant="h4" color="primary">
-                                                        Rp {(product?.online_price || 0).toLocaleString()}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        /{product?.unit?.unit || 'pcs'}
-                                                    </Typography>
-                                                </Box>
-                                                <Typography variant="body1" color="text.secondary">
-                                                    Total: <Typography component="span" variant="h6" color="primary">
-                                                        Rp {((product?.online_price || 0) * quantity).toLocaleString()}
-                                                    </Typography>
-                                                </Typography>
-                                            </Stack>
-                                        </Paper>
+                        {/* Product Details */}
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Stack spacing={3}>
+                                <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+                                    {product.name}
+                                </Typography>
 
-                                        <Stack direction="row" spacing={2} alignItems="center">
-                                            <TextField
-                                                value={quantity}
-                                                onChange={(e) => handleQuantityInput(e.target.value)}
-                                                type="number"
-                                                size="small"
-                                                inputProps={{
-                                                    min: 1,
-                                                    style: { textAlign: 'center', width: '80px' }
-                                                }}
-                                                InputProps={{
-                                                    startAdornment: (
-                                                        <InputAdornment position="start">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleQuantityChange(-1)}
-                                                            >
-                                                                <RemoveIcon />
-                                                            </IconButton>
-                                                        </InputAdornment>
-                                                    ),
-                                                    endAdornment: (
-                                                        <InputAdornment position="end">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleQuantityChange(1)}
-                                                            >
-                                                                <AddIcon />
-                                                            </IconButton>
-                                                        </InputAdornment>
-                                                    ),
-                                                }}
-                                            />
-                                            <Button
-                                                variant="contained"
-                                                startIcon={<ShoppingCartIcon />}
-                                                onClick={handleAddToCart}
-                                                size="large"
-                                            >
-                                                Tambah ke Keranjang
-                                            </Button>
-                                            <Tooltip title="Bagikan">
-                                                <IconButton onClick={handleShare}>
-                                                    <ShareIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Stack>
-
-                                        <Divider />
-
-                                        <Stack spacing={2}>
-                                            <Typography variant="h6">Deskripsi Produk</Typography>
-                                            <Typography variant="body1" color="text.secondary">
-                                                {product.description}
+                                <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+                                    <Stack spacing={2}>
+                                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                                            <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
+                                                Rp {(product?.online_price || 0).toLocaleString()}
                                             </Typography>
-                                        </Stack>
-
-                                        <Stack direction="row" spacing={2}>
-                                            <Chip
-                                                icon={<LocalShippingIcon />}
-                                                label="Pengiriman Cepat"
-                                                variant="outlined"
-                                            />
-                                            <Chip
-                                                icon={<SecurityIcon />}
-                                                label="Garansi 100%"
-                                                variant="outlined"
-                                            />
-                                        </Stack>
+                                            <Typography variant="body1" color="text.secondary">
+                                                /{product?.unit?.unit || 'pcs'}
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="body1" color="text.secondary">
+                                            Total: <Typography component="span" variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                                                Rp {((product?.online_price || 0) * quantity).toLocaleString()}
+                                            </Typography>
+                                        </Typography>
                                     </Stack>
-                                </Grid>
-                            </Grid>
-                        </CardContent>
-                    </Card>
-                </Box>
-            </Layout>
-        </ThemeProvider>
+                                </Paper>
+
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                                    <TextField
+                                        value={quantity}
+                                        onChange={(e) => handleQuantityInput(e.target.value)}
+                                        type="number"
+                                        size="small"
+                                        InputProps={{
+                                            inputProps: { min: 1, style: { textAlign: 'center' } },
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <IconButton size="small" onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}>
+                                                        <RemoveIcon />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton size="small" onClick={() => handleQuantityChange(1)}>
+                                                        <AddIcon />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                        sx={{ width: { xs: '100%', sm: '150px' } }}
+                                    />
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<ShoppingCartIcon />}
+                                        onClick={handleAddToCart}
+                                        size="large"
+                                        sx={{ flexGrow: 1 }}
+                                    >
+                                        Add to Cart
+                                    </Button>
+                                    <Tooltip title="Bagikan">
+                                        <IconButton onClick={handleShare}>
+                                            <ShareIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Stack>
+
+                                <Divider />
+
+                                <Stack spacing={1}>
+                                    <Typography variant="h6">Deskripsi Produk</Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                        {product.description || 'Tidak ada deskripsi untuk produk ini.'}
+                                    </Typography>
+                                </Stack>
+
+                            </Stack>
+                        </Grid>
+                    </Grid>
+                </Paper>
+            </Box>
+        </Layout>
     );
 }
