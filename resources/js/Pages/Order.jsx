@@ -18,8 +18,12 @@ import {
     FormControl,
     InputLabel,
     Paper,
-    Stack
+    Stack,
+    Snackbar,
+    Alert,
+    Button // Add Button import
 } from '@mui/material';
+import { toast, Toaster } from 'react-hot-toast'; // Import toast and Toaster for notifications
 
 // Placeholder untuk gambar jika tidak tersedia
 const NoImagePlaceholder = () => (
@@ -44,10 +48,11 @@ const NoImagePlaceholder = () => (
     </Box>
 );
 
-export default function Order({ auth, products = [], categories = [], units = [] }) {
+export default function Order({ auth, products = [], categories = [], units = [], search: initialSearch = '' }) {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
     const [selectedUnit, setSelectedUnit] = useState('all');
+    const [searchQuery, setSearchQuery] = useState(initialSearch);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -63,7 +68,8 @@ export default function Order({ auth, products = [], categories = [], units = []
                     category: selectedCategory,
                     min_price: priceRange.min || null,
                     max_price: (priceRange.max === 0 || priceRange.max === null) ? null : priceRange.max,
-                    unit: selectedUnit
+                    unit: selectedUnit,
+                    search: searchQuery || null,
                 },
                 {
                     preserveState: true,
@@ -76,9 +82,33 @@ export default function Order({ auth, products = [], categories = [], units = []
         }, 500);
 
         return () => clearTimeout(debounceTimeout);
-    }, [selectedCategory, priceRange, selectedUnit]);
+    }, [selectedCategory, priceRange, selectedUnit, searchQuery]);
 
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
+
+    const handleAddToCart = (product, quantity = 1) => {
+        if (!auth?.user) {
+            router.visit(route('login'));
+            return;
+        }
+
+        const cartData = {
+            product_id: product.id,
+            quantity: quantity,
+            user_id: auth.user.id
+        };
+
+        router.post(route('cart.store'), cartData, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success(`${quantity} ${product.name} ditambahkan ke keranjang`);
+            },
+            onError: (errors) => {
+                console.error(errors);
+                toast.error(errors?.message || errors?.quantity || 'Gagal menambahkan ke keranjang');
+            }
+        });
+    };
 
     return (
         <Layout
@@ -114,7 +144,17 @@ export default function Order({ auth, products = [], categories = [], units = []
 
                                 {/* Filter options using Stack for spacing */}
                                 <Stack spacing={3} sx={{ flexGrow: 1 }}>
-                                {/* Category Filter */}
+                                    {/* Search Input */}
+                                    <TextField
+                                        label="Search Products"
+                                        variant="outlined"
+                                        size="small"
+                                        fullWidth
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        disabled={isLoading}
+                                    />
+                                    {/* Category Filter */}
                                     <FormControl fullWidth size="small">
                                         <InputLabel id="category-select-label">Category</InputLabel>
                                         <Select
@@ -300,13 +340,26 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                             )}
                                                         </Box>
                                                     </CardContent>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="small"
+                                                        fullWidth
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent card onClick from firing
+                                                            handleAddToCart(product);
+                                                        }}
+                                                        sx={{ mt: 'auto', p: 1 }} // Push button to bottom
+                                                    >
+                                                        Add to Cart
+                                                    </Button>
                                                 </Card>
                                             </Grid>
                                         )) : (
-                                            <Grid xs={12}>
+                                            <Grid item xs={12}>
                                                 <Box sx={{ py: 4, textAlign: 'center' }}>
                                                     <Typography color="text.secondary">
-                                                Tidak ada produk yang tersedia
+                                                        Tidak ada produk yang tersedia
                                                     </Typography>
                                                 </Box>
                                             </Grid>
@@ -318,6 +371,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                     </Grid>
                 </Container>
             </Box>
+            <Toaster /> {/* Add Toaster component here */}
         </Layout>
     );
 }

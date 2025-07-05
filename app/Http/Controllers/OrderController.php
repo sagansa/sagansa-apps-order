@@ -15,8 +15,10 @@ use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request) // Add Request $request parameter
     {
+        Log::info('OrderController@index request:', $request->all()); // Log all request parameters
+
         $products = Product::with(['unit', 'onlineCategory'])
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
@@ -36,6 +38,9 @@ class OrderController extends Controller
                 $query->whereHas('unit', function ($q) {
                     $q->where('id', request('unit'));
                 });
+            })
+            ->when(request('search'), function ($query) {
+                $query->where('name', 'like', '%' . request('search') . '%');
             })
             ->get();
 
@@ -83,8 +88,10 @@ class OrderController extends Controller
                     'id' => $order->id,
                     'order_number' => $orderNumber,
                     'date' => $order->delivery_date ? $order->delivery_date : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
-                    'delivery_status' => $this->deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
-                    'payment_status' => $this->paymentStatusMapping[$order->payment_status] ?? 'Tidak Diketahui',
+                    'delivery_status_label' => $this->deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
+                    'delivery_status_value' => $order->delivery_status,
+                    'payment_status_label' => $this->paymentStatusMapping[$order->payment_status] ?? 'Tidak Diketahui',
+                    'payment_status_value' => $order->payment_status,
                     'total' => $order->total_price,
                 ];
             });
@@ -163,6 +170,9 @@ class OrderController extends Controller
         return Inertia::render('TransactionDetail', [
             'order' => $data,
             'transferToAccounts' => $transferToAccounts,
+            'auth' => [
+                'user' => auth()->user(), // Pass authenticated user data
+            ],
         ]);
     }
 
@@ -194,5 +204,13 @@ class OrderController extends Controller
         Log::info('Order payment updated:', ['order_id' => $id, 'transfer_to_account_id' => $request->transfer_to_account_id]);
 
         return back()->with('success', 'Bukti transfer berhasil diupload!');
+    }
+
+    public function setManualTransfer(SalesOrder $salesOrder)
+    {
+        $salesOrder->status = 'pending_manual_transfer';
+        $salesOrder->save();
+
+        return back()->with('success', 'Pesanan berhasil diatur untuk transfer manual.');
     }
 }

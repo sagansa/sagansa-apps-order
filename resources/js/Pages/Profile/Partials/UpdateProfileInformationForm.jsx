@@ -41,7 +41,7 @@ export default function UpdateProfileInformation({
                         <TextField
                             id="name"
                             label="Name"
-                            variant="outlined" // Use outlined variant for better appearance
+                            // variant="filled" // Use outlined variant for better appearance
                             fullWidth
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
@@ -64,7 +64,7 @@ export default function UpdateProfileInformation({
                             id="email"
                             label="Email"
                             type="email"
-                            variant="outlined" // Use outlined variant for better appearance
+                            variant="filled" // Use outlined variant for better appearance
                             fullWidth
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}

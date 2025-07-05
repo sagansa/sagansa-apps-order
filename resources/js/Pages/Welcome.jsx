@@ -241,7 +241,7 @@ export default function Welcome({ auth, products, categories }) {
                                             {product.description ? product.description.substring(0, 70) + '...' : ''}
                                         </Typography>
                                         <Typography variant="h6" color="primary.main" sx={{ mt: 'auto', mb: 1 }}>
-                                            Rp. {new Intl.NumberFormat('id-ID').format(product.price)}
+                                            Rp. {new Intl.NumberFormat('id-ID').format(product.online_price)}
                                         </Typography>
                                         <Button
                                             component={Link}

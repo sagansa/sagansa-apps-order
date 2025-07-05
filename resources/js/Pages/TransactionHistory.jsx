@@ -2,29 +2,8 @@ import { Head } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip } from '@mui/material';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { router, usePage } from '@inertiajs/react';
-
-const statusColor = (statusLabel) => {
-    switch (statusLabel) {
-        case 'Sudah dikirim':
-        case 'Dibayar':
-            return 'success'; // Green for completed/positive states
-        case 'Perbaiki':
-        case 'Dikembalikan':
-        case 'Tidak valid':
-        case 'Belum dibayar':
-            return 'error'; // Red for negative/problematic states
-        case 'Belum dikirim':
-        case 'Siap dikirim':
-        case 'Diproses':
-            return 'warning'; // Orange for pending/in-progress states
-        case 'Belum diperiksa':
-        case 'Valid':
-            return 'info'; // Blue for informational/neutral states
-        default:
-            return 'default'; // Grey for unknown or default states
-    }
-};
+import { router } from '@inertiajs/react';
+import { getDeliveryStatusColor, getPaymentStatusColor } from '@/Utils/statusUtils';
 
 export default function OrderHistory({ auth, orders = [] }) {
     return (
@@ -70,10 +49,10 @@ export default function OrderHistory({ auth, orders = [] }) {
                                                     <TableCell>{order.order_number}</TableCell>
                                                     <TableCell>{order.date}</TableCell>
                                                     <TableCell>
-                                                        <Chip label={order.payment_status} color={statusColor(order.payment_status)} size="small" />
+                                                        <Chip label={order.payment_status_label} color={getPaymentStatusColor(order.payment_status_value)} size="small" />
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Chip label={order.delivery_status} color={statusColor(order.delivery_status)} size="small" />
+                                                        <Chip label={order.delivery_status_label} color={getDeliveryStatusColor(order.delivery_status_value)} size="small" />
                                                     </TableCell>
                                                     <TableCell>Rp {order.total?.toLocaleString('id-ID') ?? '-'}</TableCell>
                                                     <TableCell align="center">

@@ -18,6 +18,10 @@ class SalesOrder extends Model
         'image_payment',
         'payment_status',
         'delivery_status',
+        'status', // Added for overall order status
+        'midtrans_snap_token',
+        'midtrans_transaction_id',
+        'midtrans_status',
         'shipping_cost',
         'store_id',
         'receipt_no',
@@ -28,6 +32,18 @@ class SalesOrder extends Model
         'total_price',
         'received_by',
     ];
+
+    // Accessor for image_payment
+    public function getImagePaymentAttribute($value)
+    {
+        return $value ? asset('storage/' . $value) : null;
+    }
+
+    // Accessor for image_delivery
+    public function getImageDeliveryAttribute($value)
+    {
+        return $value ? asset('storage/' . $value) : null;
+    }
 
     public function deliveryService()
     {

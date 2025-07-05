@@ -12,33 +12,15 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloseIcon from '@mui/icons-material/Close';
 import ImageIcon from '@mui/icons-material/Image';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-
-
-// Fungsi untuk mengubah teks menjadi Title Case
-const formatTitleCase = (text) => {
-    if (!text) return '';
-    return text.toLowerCase().split(' ').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-};
-
-const statusColor = (deliveryStatusLabel) => {
-    switch (deliveryStatusLabel) {
-        case 'Sudah dikirim': return 'success';
-        case 'Perbaiki':
-        case 'Dikembalikan': return 'error';
-        case 'Belum dikirim':
-        case 'Siap dikirim':
-        case 'Diproses':
-             return 'info';
-        default: return 'default';
-    }
-};
+import { getDeliveryStatusColor } from '@/Utils/statusUtils';
+import { formatTitleCase } from '@/Utils/stringUtils';
+import axios from 'axios'; // Import axios for API calls
 
 export default function DetailTransaction({ auth, order, transferToAccounts }) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -54,6 +36,51 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
         transfer_to_account_id: '',
         shipping_cost: order.shipping_cost ?? 0,
     });
+
+    const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+    const [isManualTransferSelected, setIsManualTransferSelected] = useState(false);
+    const [midtransLoading, setMidtransLoading] = useState(false);
+
+    const handleMidtransPayment = async () => {
+        setMidtransLoading(true);
+        try {
+            // Send transfer_to_account_id as null for Midtrans payment to avoid backend error
+            const response = await axios.post(route('midtrans.payment', order.id), {
+                transfer_to_account_id: null
+            });
+            const snapToken = response.data.snap_token;
+            snap.pay(snapToken, {
+                onSuccess: function(result){
+                    alert("Pembayaran Berhasil!");
+                    router.reload();
+                },
+                onPending: function(result){
+                    alert("Pembayaran Pending!");
+                    router.reload();
+                },
+                onError: function(result){
+                    alert("Pembayaran Gagal!");
+                    router.reload();
+                },
+                onClose: function(){
+                    alert('Anda menutup jendela pembayaran.');
+                }
+            });
+        } catch (error) {
+            console.error('Midtrans payment error:', error);
+            setSnackbar({
+                open: true,
+                message: 'Gagal memuat pembayaran Midtrans.',
+                severity: 'error'
+            });
+        } finally {
+            setMidtransLoading(false);
+        }
+    };
+
+    const handleSetManualTransfer = () => {
+        setIsManualTransferSelected(true);
+    };
 
     const handleOpenUploadModal = () => {
         setOpenUploadModal(true);
@@ -161,6 +188,12 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
     useEffect(() => {
         if (order) {
             setData('shipping_cost', order.shipping_cost ?? 0);
+            if (order.payment_status_label === 'Belum dibayar') {
+                setShowPaymentOptions(true);
+            }
+            if (order.status === 'pending_manual_transfer') {
+                setIsManualTransferSelected(true);
+            }
         }
     }, [order]);
 
@@ -195,7 +228,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 <Typography variant="subtitle2" color="text.secondary">No. Pesanan: {order.order_number}</Typography>
                             </Box>
                             <Box sx={{ flexGrow: 1 }} />
-                            <Chip label={order.delivery_status_label} color={statusColor(order.delivery_status_label)} size="medium" />
+                            <Chip label={order.delivery_status_label} color={getDeliveryStatusColor(order.delivery_status_value)} size="medium" />
                         </Box>
                         <Divider sx={{ mb: 3 }} />
                         {/* Info Atas */}
@@ -258,18 +291,18 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: 'background.paper' }}>
                                         <TableCell sx={{ color: 'text.primary' }}>Nama Produk</TableCell>
-                                        <TableCell sx={{ color: 'text.primary' }}>Qty</TableCell>
-                                        <TableCell sx={{ color: 'text.primary' }}>Harga Satuan</TableCell>
-                                        <TableCell sx={{ color: 'text.primary' }}>Subtotal</TableCell>
+                                        <TableCell sx={{ color: 'text.primary' }} align="right">Qty</TableCell>
+                                        <TableCell sx={{ color: 'text.primary' }} align="right">Harga Satuan</TableCell>
+                                        <TableCell sx={{ color: 'text.primary' }} align="right">Subtotal</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {order.details.map((item, idx) => (
                                         <TableRow key={idx}>
                                             <TableCell>{item.product_name}</TableCell>
-                                            <TableCell>{item.quantity} {item.unit}</TableCell>
-                                            <TableCell>Rp {item.unit_price?.toLocaleString('id-ID') ?? '-'}</TableCell>
-                                            <TableCell>Rp {item.subtotal_price?.toLocaleString('id-ID') ?? '-'}</TableCell>
+                                            <TableCell align="right">{item.quantity} {item.unit}</TableCell>
+                                            <TableCell align="right">Rp {item.unit_price?.toLocaleString('id-ID') ?? '-'}</TableCell>
+                                            <TableCell align="right">Rp {item.subtotal_price?.toLocaleString('id-ID') ?? '-'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -284,17 +317,72 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 </Typography>
                             </Box>
                         </Box>
-                        {/* Tombol Upload Bukti Transfer */}
-                        {order.payment_status_label === 'Belum dibayar' && (
-                            <Box sx={{ mt: 3, textAlign: 'center' }}>
+                        {/* Payment Options */}
+                        {showPaymentOptions && !isManualTransferSelected && (
+                            <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center', flexDirection: 'column' }}>
+                                <Typography variant="h6" gutterBottom>
+                                    Pilih Metode Pembayaran
+                                </Typography>
                                 <Button
                                     variant="contained"
                                     color="primary"
-                                    onClick={handleOpenUploadModal}
-                                    startIcon={<CloudUploadIcon />}
+                                    onClick={handleMidtransPayment}
+                                    disabled={midtransLoading}
                                 >
-                                    Upload Bukti Pembayaran
+                                    {midtransLoading ? <CircularProgress size={24} /> : 'Bayar dengan Midtrans'}
                                 </Button>
+                                <Button
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={handleSetManualTransfer}
+                                >
+                                    Transfer Bank Manual
+                                </Button>
+                            </Box>
+                        )}
+
+                        {/* Manual Transfer Details and Upload Button */}
+                        {(order.status === 'pending_manual_transfer' || isManualTransferSelected) && order.payment_status_value !== 1 && (
+                            <Box sx={{ mt: 4, textAlign: 'left' }}>
+                                <Typography variant="h6" gutterBottom>
+                                    Detail Transfer Bank Manual
+                                </Typography>
+                                <Typography variant="body1">
+                                    Silakan transfer ke rekening berikut:
+                                </Typography>
+                                {order.transfer_to_account ? (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2">
+                                            **Bank:** {order.transfer_to_account.bank?.name}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            **Nomor Rekening:** {order.transfer_to_account.account_number}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            **Atas Nama:** {order.transfer_to_account.account_name}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mt: 1 }}>
+                                            **Jumlah:** Rp {order.total?.toLocaleString('id-ID')}
+                                        </Typography>
+                                    </Box>
+                                ) : (
+                                    <Typography variant="body2" color="error">
+                                        Detail rekening transfer tidak tersedia.
+                                    </Typography>
+                                )}
+                                <Typography variant="body2" sx={{ mt: 2 }}>
+                                    Pesanan Anda akan diproses setelah pembayaran diverifikasi.
+                                </Typography>
+                                <Box sx={{ mt: 3, textAlign: 'center' }}>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => handleOpenUploadModal(true)}
+                                        startIcon={<CloudUploadIcon />}
+                                    >
+                                        Upload Bukti Pembayaran
+                                    </Button>
+                                </Box>
                             </Box>
                         )}
                         {/* Bukti transfer & pengiriman */}
@@ -304,7 +392,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                     <Typography variant="subtitle2" color="text.secondary">Bukti Pembayaran</Typography>
                                     <Box sx={{ mt: 1 }}>
                                         <img
-                                            src={order.image_payment.startsWith('http') ? order.image_payment : `/storage/${order.image_payment}`}
+                                            src={order.image_payment}
                                             alt="Bukti Transfer"
                                             style={{
                                                 width: '100%',

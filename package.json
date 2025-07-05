@@ -2,8 +2,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "dotenv -e .env vite build",
+        "dev": "dotenv -e .env vite"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
@@ -28,6 +28,7 @@
         "@mui/icons-material": "^7.1.0",
         "@mui/material": "^7.1.0",
         "dayjs": "^1.11.13",
+        "dotenv-cli": "^8.0.0",
         "framer-motion": "^12.11.3",
         "react-hot-toast": "^2.5.2",
         "react-responsive-carousel": "^3.2.23",

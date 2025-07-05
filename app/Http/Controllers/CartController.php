@@ -11,6 +11,8 @@ use App\Models\TransferToAccount;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // Import Log facade
+use Illuminate\Support\Facades\URL; // Import URL facade
 
 class CartController extends Controller
 {
@@ -106,16 +108,30 @@ class CartController extends Controller
                 'image_payment' => 'nullable|image|max:2048',
                 // shipping_cost divalidasi kondisional
                 'shipping_cost' => 'nullable|numeric|min:0',
-                'payment_status' => 'required|integer|in:1,4', // Pastikan hanya menerima status 1 atau 4 dari frontend
+                'payment_status' => 'required|integer|in:1,4,5', // Add status 5 for Midtrans pending
+                'payment_method' => 'required|string|in:manual_transfer,midtrans', // Add payment_method validation
+                'shipping_payment_method' => 'nullable|string|in:via_us,to_courier', // Add shipping_payment_method validation
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.quantity' => 'required|integer|min:1',
                 'items.*.price' => 'required|numeric|min:0',
             ]);
 
+            // Ensure these keys exist in validated array, even if null
+            $validated['transfer_to_account_id'] = $validated['transfer_to_account_id'] ?? null;
+            $validated['image_payment'] = $validated['image_payment'] ?? null;
+            $validated['shipping_payment_method'] = $validated['shipping_payment_method'] ?? null;
+
             $isSelfPickup = $validated['delivery_service_id'] == 33;
             $paymentStatus = $validated['payment_status'];
+            $paymentMethod = $validated['payment_method'];
+            $shippingPaymentMethod = $validated['shipping_payment_method'] ?? null; // Get shipping_payment_method
             $shippingCost = $validated['shipping_cost'] ?? 0;
+
+            // Ensure transfer_to_account_id is null if payment method is Midtrans
+            if ($paymentMethod === 'midtrans') {
+                $validated['transfer_to_account_id'] = null;
+            }
 
             // Validasi Kondisional berdasarkan Metode Pengiriman dan Status Pembayaran
             if (!$isSelfPickup) { // Metode Pengiriman: Selain Ambil Sendiri
@@ -124,48 +140,47 @@ class CartController extends Controller
                     return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih untuk metode pengiriman ini.']);
                 }
 
-                // Jika status pembayaran 1 dan ongkir > 0 (dibayar via platform)
-                if ($paymentStatus == 1 && $shippingCost > 0) { // Ditambah kondisi $shippingCost > 0
-                    // Wajib ada rekening tujuan transfer
-                     if (empty($validated['transfer_to_account_id'])) {
-                         return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih.']);
-                     }
-                    // Wajib ada bukti transfer jika status 1 dan ongkir > 0
-                    if (!$request->hasFile('image_payment')) {
-                         return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
+                // If payment_status is 1 (paid)
+                if ($paymentStatus == 1) {
+                    // If shipping_payment_method is 'via_us' AND shippingCost > 0, then transfer details are required.
+                    if ($shippingPaymentMethod === 'via_us' && $shippingCost > 0) {
+                        if (empty($validated['transfer_to_account_id'])) {
+                            return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih.']);
+                        }
+                        if (!$request->hasFile('image_payment')) {
+                            return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk pembayaran via kami.']);
+                        }
                     }
+                    // If shipping_payment_method is 'to_courier' or shippingCost is 0, no transfer details are required.
+                    // The frontend sets payment_status to 1 for 'to_courier' as it's considered paid from system perspective.
+                } elseif ($paymentStatus == 4) { // Delivery + Shipping Cost Not Confirmed (Status 4)
+                    // No transfer account or proof required at this stage
+                    $shippingCost = 0; // Ensure it's stored as 0 if status is 4
+                    $validated['transfer_to_account_id'] = null; // Ensure null in backend
+                    $validated['image_payment'] = null; // Ensure null in backend
+                }
+            } else { // Delivery Method: Self-Pickup (isSelfPickup = true, ID 33)
+                // No delivery address required
+                $validated['delivery_address_id'] = null; // Ensure null in backend
 
-                } elseif ($paymentStatus == 4) { // Pengiriman + Belum Konfirmasi Ongkir (Status 4)
-                    // Tidak perlu rekening tujuan transfer atau bukti transfer di tahap ini
-                     $shippingCost = 0; // Pastikan disimpan 0 jika status 4
-                     $validated['transfer_to_account_id'] = null; // Pastikan null di backend
-                     $validated['image_payment'] = null; // Pastikan null di backend
-                 }
-                 // Jika status pembayaran 1 dan ongkir 0 (dibayar ke kurir), tidak wajib rekening/bukti transfer
+                // Transfer account is required for self-pickup
+                if (empty($validated['transfer_to_account_id'])) {
+                    return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih untuk metode ambil sendiri.']);
+                }
 
-            } else { // Metode Pengiriman: Ambil Sendiri (isSelfPickup = true, ID 33)
-                 // Tidak perlu alamat pengiriman
-                 $validated['delivery_address_id'] = null; // Pastikan null di backend
+                if ($paymentStatus == 1) { // Self-Pickup + Proof Uploaded (Status 1)
+                    // Proof of transfer is required if status is 1
+                    if (!$request->hasFile('image_payment')) {
+                        return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
+                    }
+                } elseif ($paymentStatus == 4) { // Self-Pickup + Proof Not Uploaded (Status 4)
+                    // No transfer proof required at this stage
+                    $validated['image_payment'] = null; // Ensure null in backend
+                }
+                $shippingCost = 0;
+            }
 
-                // Wajib ada rekening tujuan transfer
-                 if (empty($validated['transfer_to_account_id'])) {
-                     return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih untuk metode ambil sendiri.']);
-                 }
-
-                 if ($paymentStatus == 1) { // Ambil Sendiri + Bukti Upload (Status 1)
-                     // Wajib ada bukti transfer jika status 1
-                     if (!$request->hasFile('image_payment')) {
-                          return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
-                     }
-                 } elseif ($paymentStatus == 4) { // Ambil Sendiri + Belum Upload Bukti Transfer (Status 4)
-                     // Tidak perlu bukti transfer di tahap ini
-                      $validated['image_payment'] = null; // Pastikan null di backend
-                 }
-                // shipping_cost selalu 0 untuk Ambil Sendiri
-                 $shippingCost = 0;
-             }
-
-             // Hitung Subtotal dan Total Price
+            // Hitung Subtotal dan Total Price
             $subtotal = array_reduce($validated['items'], function ($sum, $item) {
                 return $sum + ($item['quantity'] * $item['price']);
             }, 0);
@@ -204,6 +219,56 @@ class CartController extends Controller
 
             Cart::where('user_id', $request->user()->id)->delete();
 
+            // Eager load relationships for the newly created order
+            $order->load([
+                'orderedBy',
+                'deliveryService',
+                'deliveryAddress.province',
+                'deliveryAddress.city',
+                'deliveryAddress.district',
+                'deliveryAddress.subdistrict',
+                'transferToAccount.bank',
+                'detailSalesOrders.product.unit'
+            ]);
+
+            // Prepare order details for WhatsApp message
+            $orderDetails = [
+                'order_id' => $order->id,
+                'order_number' => substr(md5((string)$order->total_price . (string)$order->id . (string)$order->created_at), 0, 8), // Generate order number
+                'customer_name' => $order->orderedBy->name,
+                'total_amount' => $order->total_price,
+                'delivery_method' => $order->deliveryService->name,
+                'payment_status' => $order->payment_status,
+                'delivery_status' => $order->delivery_status,
+                'shipping_cost' => $order->shipping_cost,
+                'delivery_date' => $order->delivery_date,
+                'products' => $order->detailSalesOrders->map(function ($detail) {
+                    return [
+                        'name' => $detail->product->name,
+                        'quantity' => $detail->quantity,
+                        'unit' => $detail->product->unit->unit ?? 'unit',
+                        'price' => $detail->unit_price,
+                        'subtotal' => $detail->subtotal_price,
+                    ];
+                }),
+                'delivery_address' => $order->deliveryAddress ? [
+                    'name' => $order->deliveryAddress->name,
+                    'recipient_name' => $order->deliveryAddress->recipient_name,
+                    'recipient_telp_no' => $order->deliveryAddress->recipient_telp_no,
+                    'address' => $order->deliveryAddress->address,
+                    'subdistrict' => $order->deliveryAddress->subdistrict->name ?? '',
+                    'district' => $order->deliveryAddress->district->name ?? '',
+                    'city' => $order->deliveryAddress->city->name ?? '',
+                    'province' => $order->deliveryAddress->province->name ?? '',
+                    'postal_code' => $order->deliveryAddress->postalCode->postal_code ?? '',
+                ] : null,
+                'transfer_account' => $order->transferToAccount ? [
+                    'bank_name' => $order->transferToAccount->bank->name ?? '',
+                    'account_number' => $order->transferToAccount->number,
+                    'account_name' => $order->transferToAccount->name,
+                ] : null,
+            ];
+
             // Logika pesan redirect berdasarkan payment_status
             $message = ($order->payment_status == 4)
                 ? 'Pesanan berhasil dibuat! Admin akan segera menghubungi Anda untuk konfirmasi biaya ongkos kirim dan total pembayaran.'
@@ -211,11 +276,56 @@ class CartController extends Controller
                     ? 'Pesanan berhasil dibuat dan segera diproses! Silakan lakukan pembayaran atau ambil pesanan di toko kami sesuai dengan tanggal yang telah ditentukan.'
                     : 'Pesanan berhasil dibuat dan segera diproses! Silakan lakukan pembayaran sesuai instruksi.');
 
-            return redirect()->route('checkout.success', [
-                'delivery_type' => $isSelfPickup ? 'self_pickup' : 'delivery',
+            $order->load(['transferToAccount.bank']); // Ensure transferToAccount and bank are loaded for frontend display
+
+            return Inertia::render('CheckoutSuccess', [
+                'deliveryType' => $isSelfPickup ? 'self_pickup' : 'delivery',
                 'message' => $message,
-                'order_id' => $order->id,
-            ])->with('success', 'Pesanan berhasil dibuat!');
+                'salesOrder' => $order, // Pass the salesOrder object directly
+                'paymentMethod' => $paymentMethod, // Pass the selected payment method
+                'order_details_for_whatsapp' => $orderDetails, // Pass directly as a prop
+            ])->with([
+                'success' => 'Pesanan berhasil dibuat!',
+            ]);
         });
+    }
+
+    // New method to handle Midtrans callback
+    public function midtransCallback(Request $request)
+    {
+        $serverKey = config('midtrans.server_key');
+        $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
+
+        if ($hashed != $request->signature_key) {
+            return response()->json(['message' => 'Invalid signature key'], 403);
+        }
+
+        $order = SalesOrder::where('id', $request->order_id)->first();
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        if ($request->transaction_status == 'capture') {
+            if ($request->fraud_status == 'challenge') {
+                $order->payment_status = 2; // Challenge
+            } else if ($request->fraud_status == 'accept') {
+                $order->payment_status = 1; // Success
+            }
+        } else if ($request->transaction_status == 'settlement') {
+            $order->payment_status = 1; // Success
+        } else if ($request->transaction_status == 'pending') {
+            $order->payment_status = 5; // Pending
+        } else if ($request->transaction_status == 'deny') {
+            $order->payment_status = 0; // Deny
+        } else if ($request->transaction_status == 'expire') {
+            $order->payment_status = 0; // Expire
+        } else if ($request->transaction_status == 'cancel') {
+            $order->payment_status = 0; // Cancel
+        }
+
+        $order->save();
+
+        return response()->json(['message' => 'OK'], 200);
     }
 }

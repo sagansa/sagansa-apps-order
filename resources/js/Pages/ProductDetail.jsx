@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CustomerLayout from '@/Layouts/GuestLayout';
 import { useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import {
     Box,
     Card,
@@ -96,6 +96,7 @@ export default function ProductDetail({ auth, product }) {
             </Typography>}
         >
             <Head title={product.name} />
+            <Toaster /> {/* Add Toaster component here */}
 
             <Box sx={{ py: 4 }}>
                 <Paper sx={{ p: 3 }}>

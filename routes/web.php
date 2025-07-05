@@ -38,11 +38,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 
-    Route::get('/checkout-success', function (Request $request) {
-        return Inertia::render('CheckoutSuccess', [
-            'deliveryType' => $request->query('delivery_type'),
-            'message' => $request->query('message')
-        ]);
+    // Route for checkout success is now handled by CartController directly
+    Route::get('/checkout-success', function () {
+        // This route is primarily for Inertia.js to handle client-side navigation
+        // The data is passed directly from CartController::checkout
+        return Inertia::render('CheckoutSuccess');
     })->name('checkout.success');
 
     // Location routes
@@ -59,9 +59,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/transaction-history', [OrderController::class, 'orderHistory'])->name('transaction.history');
 
-    Route::get('/order/{id}', [OrderController::class, 'show'])->name('order.show');
+    Route::get('/transaction-detail/{id}', [OrderController::class, 'show'])->name('order.show');
 
     Route::post('/order/{order}/update-payment', [OrderController::class, 'updatePayment'])->name('order.update-payment');
+    Route::post('/sales-order/{salesOrder}/set-manual-transfer', [OrderController::class, 'setManualTransfer'])->name('sales-order.set-manual-transfer');
 });
 
 require __DIR__.'/auth.php';

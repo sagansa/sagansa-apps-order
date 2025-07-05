@@ -37,11 +37,11 @@ export default function Register() {
                         alignItems: 'center',
                     }}
                 >
-                    <ApplicationLogo sx={{ mb: 2, width: 50, height: 50 }} />
+                    <ApplicationLogo sx={{ mb: 1, width: 60, height: 60 }} />
                     <Typography component="h1" variant="h5">
                         Create an Account
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Get started with us today!
                     </Typography>
 

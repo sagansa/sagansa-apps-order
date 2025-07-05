@@ -21,4 +21,7 @@ export default defineConfig({
             }
         }
     },
+    define: {
+        'process.env.WHATSAPP_ADMIN_NUMBER': JSON.stringify(process.env.WHATSAPP_ADMIN_NUMBER),
+    },
 });

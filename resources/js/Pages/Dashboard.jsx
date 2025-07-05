@@ -39,11 +39,11 @@ export default function Dashboard({ auth, stats, recentOrders, lastOrderDate, or
 
     return (
         <AuthenticatedLayout
-            header={
-                <Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
-                    Dashboard
-                </Typography>
-            }
+            // header={
+            //     <Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
+            //         Dashboard
+            //     </Typography>
+            // }
         >
             <Head title="Dashboard" />
 
@@ -61,7 +61,7 @@ export default function Dashboard({ auth, stats, recentOrders, lastOrderDate, or
                         </Paper>
 
                         {/* Stats Section */}
-                        <Grid container spacing={3}>
+                        <Grid container spacing={4}>
                             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                                 <StatCard title="Total Pesanan" value={stats.totalOrders} icon={ShoppingCartIcon} />
                             </Grid>

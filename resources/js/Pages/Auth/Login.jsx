@@ -37,11 +37,11 @@ export default function Login({ status, canResetPassword }) {
                         alignItems: 'center',
                     }}
                 >
-                    <ApplicationLogo sx={{ mb: 2, width: 50, height: 50 }} />
+                    <ApplicationLogo sx={{ mb: 1, width: 60, height: 60 }} /> {/* Smaller logo */}
                     <Typography component="h1" variant="h5">
                         Welcome Back
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}> {/* Reduced margin */}
                         Sign in to continue
                     </Typography>
 
@@ -64,7 +64,7 @@ export default function Login({ status, canResetPassword }) {
                             onChange={(e) => setData('email', e.target.value)}
                             error={!!errors.email}
                             helperText={errors.email}
-                            variant="outlined"
+                            // variant="filled"
                             sx={{
                                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
                                     borderColor: 'transparent',
@@ -87,7 +87,7 @@ export default function Login({ status, canResetPassword }) {
                             onChange={(e) => setData('password', e.target.value)}
                             error={!!errors.password}
                             helperText={errors.password}
-                            variant="outlined"
+                            // variant="filled"
                             sx={{
                                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
                                     borderColor: 'transparent',

@@ -71,7 +71,7 @@ export default function BaseLayout({ children, header, isAuthenticated, user, pr
                             </IconButton>
 
                             <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-                                <ApplicationLogo className="w-auto h-9" />
+                                <ApplicationLogo sx={{ width: 50, height: 50 }} />
                             </Link>
 
                             <Box sx={{ display: { xs: 'none', sm: 'flex' }, ml: 4 }}>
@@ -164,9 +164,10 @@ export default function BaseLayout({ children, header, isAuthenticated, user, pr
                     flex: 1,
                     display: 'flex',
                     justifyContent: 'center',
-                    p: 3
+                    px: { xs: 0.5, sm: 1 }, // Reduced horizontal padding for smaller screens
+                    py: 3 // Keep vertical padding
                 }}>
-                    <Container maxWidth="lg">
+                    <Container disableGutters={true}> {/* Remove default Container gutters */}
                         {children}
                     </Container>
                 </Box>
