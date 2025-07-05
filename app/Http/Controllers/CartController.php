@@ -13,6 +13,8 @@ use App\Models\DetailSalesOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log; // Import Log facade
 use Illuminate\Support\Facades\URL; // Import URL facade
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class CartController extends Controller
 {
@@ -230,6 +232,33 @@ class CartController extends Controller
                 'transferToAccount.bank',
                 'detailSalesOrders.product.unit'
             ]);
+
+            if ($paymentMethod === 'midtrans') {
+                // Set Midtrans configuration
+                Config::$serverKey = config('services.midtrans.server_key');
+                Config::$isProduction = config('services.midtrans.is_production');
+                Config::$isSanitized = true;
+                Config::$is3ds = true;
+
+                $midtrans_params = [
+                    'transaction_details' => [
+                        'order_id' => $order->id,
+                        'gross_amount' => $totalPrice,
+                    ],
+                    'customer_details' => [
+                        'first_name' => $request->user()->name,
+                        'email' => $request->user()->email,
+                    ],
+                    'enabled_payments' => ['gopay', 'shopeepay', 'bank_transfer'],
+                    'vtweb' => []
+                ];
+
+                $snapToken = Snap::getSnapToken($midtrans_params);
+                $order->midtrans_snap_token = $snapToken;
+                $order->save();
+
+                return response()->json(['snap_token' => $snapToken]);
+            }
 
             // Prepare order details for WhatsApp message
             $orderDetails = [

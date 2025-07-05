@@ -52,6 +52,7 @@ import { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
 import DeliveryAddressManagerModal from "@/Components/DeliveryAddressManagerModal";
 import dayjs from "dayjs";
+import axios from "axios";
 
 const darkTheme = createTheme({
     palette: {
@@ -147,6 +148,23 @@ export default function Cart({
         setOpenAddressManagerModal(true);
     const handleCloseAddressManagerModal = () =>
         setOpenAddressManagerModal(false);
+
+    useEffect(() => {
+        const midtransScriptUrl =
+            "https://app.sandbox.midtrans.com/snap/snap.js";
+        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
+
+        let script = document.createElement("script");
+        script.src = midtransScriptUrl;
+        script.setAttribute("data-client-key", clientKey);
+        script.async = true;
+
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
 
     useEffect(() => {
         // Fetch provinces on component mount
@@ -611,18 +629,57 @@ export default function Cart({
                 formData.append(`items[${index}][price]`, item.price);
             });
 
-            router.post(route("cart.checkout"), formData, {
-                onSuccess: () => {
-                    // Redirect akan ditangani oleh backend
-                },
-                onError: (errors) => {
-                    console.error("Error:", errors);
-                    // Tampilkan pesan error ke user
-                    alert(
-                        "Terjadi kesalahan saat checkout. Silakan coba lagi."
-                    );
-                },
-            });
+            if (selectedPaymentMethod === "midtrans") {
+                // For Midtrans, we expect a JSON response with a snap_token
+                axios
+                    .post(route("cart.checkout"), formData)
+                    .then((response) => {
+                        if (response.data.snap_token) {
+                            window.snap.pay(response.data.snap_token, {
+                                onSuccess: function (result) {
+                                    router.visit(
+                                        route("checkout.success", {
+                                            order_id: result.order_id,
+                                            status: "success",
+                                        })
+                                    );
+                                },
+                                onPending: function (result) {
+                                    router.visit(
+                                        route("checkout.success", {
+                                            order_id: result.order_id,
+                                            status: "pending",
+                                        })
+                                    );
+                                },
+                                onError: function (result) {
+                                    router.visit(
+                                        route("checkout.success", {
+                                            order_id: result.order_id,
+                                            status: "error",
+                                        })
+                                    );
+                                },
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                        alert(
+                            "Terjadi kesalahan saat checkout dengan Midtrans. Silakan coba lagi."
+                        );
+                    });
+            } else {
+                // For manual transfer, use Inertia's post
+                router.post(route("cart.checkout"), formData, {
+                    onError: (errors) => {
+                        console.error("Error:", errors);
+                        alert(
+                            "Terjadi kesalahan saat checkout. Silakan coba lagi."
+                        );
+                    },
+                });
+            }
         } catch (error) {
             console.error("Error:", error);
             alert("Terjadi kesalahan saat checkout. Silakan coba lagi.");
@@ -1452,7 +1509,7 @@ export default function Cart({
                     </Stack>
                 ) : (
                     <Grid container spacing={3} flexWrap="nowrap">
-                        <Grid item sm={8} md={8}>
+                        <Grid size={{ xs: 12, sm: 8 }}>
                             {showAddressSelection && (
                                 <Card sx={{ mb: 3 }}>
                                     <CardHeader
@@ -1905,7 +1962,7 @@ export default function Cart({
                             </Card>
                         </Grid>
 
-                        <Grid item sm={4} md={4}>
+                        <Grid size={{ sm: 4, md: 4 }}>
                             <Stack
                                 spacing={3}
                                 sx={{}} // Removed sticky positioning
