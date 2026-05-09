@@ -3,13 +3,14 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import InfoIcon from '@mui/icons-material/Info';
 import { router } from '@inertiajs/react';
+import { brandBlack, brandGold } from '@/constants/colors';
 
 const darkTheme = createTheme({
     palette: {
         mode: 'dark',
-        primary: { main: '#90caf9' },
-        secondary: { main: '#f48fb1' },
-        background: { default: '#121212', paper: '#1e1e1e' },
+        primary: { main: brandGold, contrastText: brandBlack },
+        secondary: { main: brandBlack, contrastText: '#FFFFFF' },
+        background: { default: brandBlack, paper: '#141414' },
     },
 });
 
@@ -23,7 +24,7 @@ export default function AdminInfo() {
                 <Typography variant="body1" align="center" sx={{ mb: 3 }}>
                     Admin akan segera memberikan informasi biaya ongkos kirim.<br />Silakan konfirmasi ke admin untuk melanjutkan proses pesanan Anda.
                 </Typography>
-                <Button variant="contained" color="primary" onClick={() => router.visit('/order')}>Lihat Pesanan</Button>
+                <Button variant="contained" color="primary" onClick={() => router.visit(route('order.index'))}>Lihat Pesanan</Button>
             </Box>
         </ThemeProvider>
     );

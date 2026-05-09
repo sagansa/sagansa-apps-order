@@ -15,13 +15,22 @@ use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
-    public function index(Request $request) // Add Request $request parameter
+    private function userId(Request $request): int
     {
-        Log::info('OrderController@index request:', $request->all()); // Log all request parameters
+        return $request->user()->id;
+    }
 
-        $products = Product::with(['unit', 'onlineCategory'])
+    public function index(Request $request)
+    {
+        Log::info('OrderController@index request:', $request->all());
+
+        $products = Product::with(['unit', 'onlineCategory', 'priceTiers'])
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
+            })
+            ->where(function ($query) {
+                $query->where('online_price', '>', 0)
+                      ->orWhereHas('priceTiers');
             })
             ->when(request('category') && request('category') !== 'all', function ($query) {
                 $query->whereHas('onlineCategory', function ($q) {
@@ -68,13 +77,12 @@ class OrderController extends Controller
         2 => 'Valid',
         3 => 'Tidak valid',
         4 => 'Belum dibayar',
-
     ];
 
     public function orderHistory(Request $request)
     {
-        $orders = SalesOrder::with(['detailSalesOrders.product'])
-            ->where('ordered_by_id', auth()->id())
+        $order = SalesOrder::with(['detailSalesOrders.product'])
+            ->where('ordered_by_id', $this->userId($request))
             ->orderByDesc('created_at')
             ->paginate(10)
             ->through(function ($order) {
@@ -97,7 +105,7 @@ class OrderController extends Controller
             });
 
         return Inertia::render('TransactionHistory', [
-            'orders' => $orders,
+            'orders' => $order,
         ]);
     }
 
@@ -110,10 +118,10 @@ class OrderController extends Controller
             'deliveryAddress.city',
             'deliveryAddress.district',
             'deliveryAddress.subdistrict',
-            'deliveryAddress.postalCode'
+            'deliveryAddress.postalCode',
         ])
             ->where('id', $id)
-            ->where('ordered_by_id', auth()->id())
+            ->where('ordered_by_id', $this->userId(request()))
             ->firstOrFail();
 
         $combinedString = (string)$order->total_price . (string)$order->id;
@@ -157,7 +165,7 @@ class OrderController extends Controller
                 return [
                     'product_name' => $detail->product ? $detail->product->name : 'Produk Tidak Diketahui',
                     'quantity' => $detail->quantity,
-                    'unit' => $detail->product->unit->unit,
+                    'unit' => $detail->product->unit->unit ?? '',
                     'unit_price' => $detail->unit_price,
                     'subtotal_price' => $detail->subtotal_price,
                 ];
@@ -171,7 +179,7 @@ class OrderController extends Controller
             'order' => $data,
             'transferToAccounts' => $transferToAccounts,
             'auth' => [
-                'user' => auth()->user(), // Pass authenticated user data
+                'user' => auth()->user(),
             ],
         ]);
     }
@@ -180,7 +188,6 @@ class OrderController extends Controller
     {
         $order = SalesOrder::findOrFail($id);
 
-        // Validasi sederhana
         $request->validate([
             'transfer_to_account_id' => 'required|exists:transfer_to_accounts,id',
             'image_payment' => 'nullable|image|max:2048',
@@ -191,26 +198,15 @@ class OrderController extends Controller
             'payment_status' => 1, // 'Dibayar'
         ];
 
-        // Cek jika ada file gambar yang diupload
         if ($request->hasFile('image_payment')) {
-            // Upload file
             $imagePath = $request->file('image_payment')->store('payments', 'public');
             $updateData['image_payment'] = $imagePath;
         }
 
-        // Update field yang diperlukan
         $order->update($updateData);
 
         Log::info('Order payment updated:', ['order_id' => $id, 'transfer_to_account_id' => $request->transfer_to_account_id]);
 
         return back()->with('success', 'Bukti transfer berhasil diupload!');
-    }
-
-    public function setManualTransfer(SalesOrder $salesOrder)
-    {
-        $salesOrder->status = 'pending_manual_transfer';
-        $salesOrder->save();
-
-        return back()->with('success', 'Pesanan berhasil diatur untuk transfer manual.');
     }
 }

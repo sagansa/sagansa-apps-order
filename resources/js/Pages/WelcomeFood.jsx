@@ -67,7 +67,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                         </Typography>
                         <Button
                             component={Link}
-                            href="/order"
+                            href={route('order.index')}
                             variant="contained"
                             size="large"
                             color="primary"
@@ -110,7 +110,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                     </Typography>
                     <Grid container spacing={4}>
                         {categories.map((category) => (
-                            <Grid item xs={12} md={4} key={category.id}>
+                            <Grid size={{ xs: 12, md: 4 }} key={category.id}>
                                 <Card sx={{
                                     p: 3,
                                     height: '100%',
@@ -143,7 +143,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
             >
                 <Container maxWidth="lg">
                     <Grid container spacing={6} alignItems="center">
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <Typography variant="h3" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
                                 Tentang Sagansa Food
                             </Typography>
@@ -156,7 +156,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                                 kami menjamin kualitas dan kesegaran setiap produk yang kami kirimkan.
                             </Typography>
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <Card sx={{
                                 height: '16rem',
                                 display: 'flex',
@@ -197,7 +197,7 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                     </Typography>
                     <Grid container spacing={4}>
                         {filteredProducts.map((product) => (
-                            <Grid item xs={12} sm={6} lg={3} key={product.id}>
+                            <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={product.id}>
                                 <Card
                                     component={Link}
                                     href={route('product.show', product.slug)}

@@ -67,7 +67,7 @@ export default function WelcomeEngineering({ auth, products = [] }) {
                         </Typography>
                         <Button
                             component={Link}
-                            href="/order"
+                            href={route('order.index')}
                             variant="contained"
                             size="large"
                             color="primary"

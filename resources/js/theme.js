@@ -2,6 +2,7 @@ import { createTheme } from '@mui/material/styles';
 import {
   foodPrimaryBrown,
   foodSecondaryBrown,
+  brandBlack,
   textPrimary,
   textSecondary,
   textLight,
@@ -19,9 +20,11 @@ const theme = createTheme({
   palette: {
     primary: {
       main: foodPrimaryBrown,
+      contrastText: brandBlack,
     },
     secondary: {
       main: foodSecondaryBrown,
+      contrastText: textLight,
     },
     error: {
       main: primaryRed,

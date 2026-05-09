@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Unit extends Model
 {
+    protected $connection = 'mysql';
+
     use HasFactory;
 
     protected $guarded = [];

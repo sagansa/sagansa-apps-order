@@ -10,9 +10,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->string('slug')->nullable()->after('name');
-        });
+        if (!Schema::hasColumn('products', 'slug')) {
+            Schema::table('products', function (Blueprint $table) {
+                $table->string('slug')->nullable()->after('name');
+            });
+        }
 
         // Generate slugs for existing products
         Product::whereNull('slug')->each(function ($product) {

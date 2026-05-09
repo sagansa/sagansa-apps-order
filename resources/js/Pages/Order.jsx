@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Box,
@@ -48,29 +48,60 @@ const NoImagePlaceholder = () => (
     </Box>
 );
 
-export default function Order({ auth, products = [], categories = [], units = [], search: initialSearch = '' }) {
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
-    const [selectedUnit, setSelectedUnit] = useState('all');
-    const [searchQuery, setSearchQuery] = useState(initialSearch);
+const getInitialFilters = () => {
+    if (typeof window === 'undefined') {
+        return {
+            category: 'all',
+            minPrice: 0,
+            maxPrice: 0,
+            unit: 'all',
+            search: '',
+        };
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    return {
+        category: params.get('category') || 'all',
+        minPrice: parseInt(params.get('min_price'), 10) || 0,
+        maxPrice: parseInt(params.get('max_price'), 10) || 0,
+        unit: params.get('unit') || 'all',
+        search: params.get('search') || '',
+    };
+};
+
+export default function Order({ auth, products = [], categories = [], units = [] }) {
+    const initialFilters = getInitialFilters();
+    const isInitialRender = useRef(true);
+    const [selectedCategory, setSelectedCategory] = useState(initialFilters.category);
+    const [priceRange, setPriceRange] = useState({ min: initialFilters.minPrice, max: initialFilters.maxPrice });
+    const [selectedUnit, setSelectedUnit] = useState(initialFilters.unit);
+    const [searchQuery, setSearchQuery] = useState(initialFilters.search);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
+        if (isInitialRender.current) {
+            isInitialRender.current = false;
+            return;
+        }
+
         if (priceRange.min < 0) return;
         // Memungkinkan max_price 0 atau null untuk mengabaikan filter max
         if (priceRange.max !== 0 && priceRange.max !== null && priceRange.max < priceRange.min) return;
 
         const debounceTimeout = setTimeout(() => {
+            const filters = {};
+
+            if (selectedCategory !== 'all') filters.category = selectedCategory;
+            if (priceRange.min > 0) filters.min_price = priceRange.min;
+            if (priceRange.max > 0) filters.max_price = priceRange.max;
+            if (selectedUnit !== 'all') filters.unit = selectedUnit;
+            if (searchQuery.trim()) filters.search = searchQuery.trim();
+
             setIsLoading(true);
             router.get(
                 route('order.index'),
-                {
-                    category: selectedCategory,
-                    min_price: priceRange.min || null,
-                    max_price: (priceRange.max === 0 || priceRange.max === null) ? null : priceRange.max,
-                    unit: selectedUnit,
-                    search: searchQuery || null,
-                },
+                filters,
                 {
                     preserveState: true,
                     preserveScroll: true,
@@ -123,11 +154,11 @@ export default function Order({ auth, products = [], categories = [], units = []
         >
             <Head title="Order" />
 
-            <Box sx={{ py: 4 }}> {/* Consistent vertical padding */}
-                <Container maxWidth="lg">
-                    <Grid container spacing={4}> {/* Spacing between main columns */}
+            <Box sx={{ py: 2 }}> {/* Reduced vertical padding */}
+                <Container maxWidth="xl"> {/* Increased maxWidth to xl */}
+                    <Grid container spacing={2}> {/* Reduced spacing between main columns */}
                         {/* Sidebar Filter */}
-                        <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid size={{ xs: 12, md: 2.5 }}> {/* Reduced sidebar width */}
                             <Paper
                                 elevation={3}
                                 sx={{
@@ -230,31 +261,31 @@ export default function Order({ auth, products = [], categories = [], units = []
                         </Grid>
 
                         {/* Product Grid */}
-                        <Grid size={{ xs: 12, md: 9 }}>
-                            <Paper
-                                elevation={3}
-                                sx={{
-                                    p: 3,
-                                    bgcolor: 'background.paper',
-                                    height: '100%'
-                                }}
-                            >
+                        <Grid size={{ xs: 12, md: 9.5 }}> {/* Increased product grid width */} 
                                 {isLoading ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                                         <CircularProgress />
                                     </Box>
                                 ) : (
-                                    <Grid container spacing={2}> {/* Spacing between product cards */}
+                                    <Grid container spacing={1.5}> {/* Tighter spacing between product cards */}
                                         {products.length > 0 ? products.map((product) => (
-                                            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2.4 }} key={product.id}>
+                                            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={product.id}> {/* 6 columns on lg screens */}
                                                 <Card
+                                                    elevation={0}
                                                     sx={{
                                                         height: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
                                                         cursor: 'pointer',
+                                                        border: '1px solid',
+                                                        borderColor: 'divider',
+                                                        borderRadius: 2,
+                                                        transition: 'all 0.2s ease-in-out',
+                                                        overflow: 'hidden',
+                                                        position: 'relative',
                                                         '&:hover': {
-                                                            boxShadow: 6
+                                                            borderColor: '#C6A96B',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)' // More subtle shadow
                                                         }
                                                     }}
                                                 onClick={() => router.visit(route('product.show', product.slug))}
@@ -273,92 +304,113 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                     left: 0,
                                                                     width: '100%',
                                                                     height: '100%',
+                                                                    transition: 'transform 0.5s ease',
+                                                                    '.MuiCard-root:hover &': {
+                                                                        transform: 'scale(1.1)'
+                                                                    }
                                                                 }}
                                                             />
                                                         ) : (
-                                                             // Placeholder centered within the aspect ratio container
-                                                            <Box sx={{
-                                                                position: 'absolute',
-                                                                top: 0,
-                                                                left: 0,
-                                                                width: '100%',
-                                                                height: '100%'
-                                                            }}>
-                                                                <NoImagePlaceholder />
-                                                            </Box>
+                                                              // Placeholder centered within the aspect ratio container
+                                                             <Box sx={{
+                                                                 position: 'absolute',
+                                                                 top: 0,
+                                                                 left: 0,
+                                                                 width: '100%',
+                                                                 height: '100%'
+                                                             }}>
+                                                                 <NoImagePlaceholder />
+                                                             </Box>
                                                         )}
                                                     </Box>
-                                                    <CardContent sx={{ flexGrow: 1, p: 1.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}> {/* Add display flex, column, justify between */}
+                                                    <CardContent sx={{ flexGrow: 1, p: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}> {/* Reduced padding */}
                                                         <Box> {/* Wrapper for name to keep it separate from prices */}
                                                             <Typography
-                                                                gutterBottom // Adds margin below the text
                                                                 variant="subtitle2"
                                                                 component="h3"
                                                                 sx={{
-                                                                    fontWeight: 'bold',
+                                                                    fontWeight: '600', // Slightly lighter weight for better readability at small size
+                                                                    fontSize: '0.875rem', // Smaller font size
+                                                                    mb: 0.5, // Reduced margin
+                                                                    lineHeight: 1.2,
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
                                                                     display: '-webkit-box',
                                                                     WebkitLineClamp: 2,
                                                                     WebkitBoxOrient: 'vertical',
                                                                 }}
-                                                                title={product.name} // Menambahkan atribut title untuk tooltip
+                                                                title={product.name}
                                                             >
                                                                 {product.name}
                                                             </Typography>
                                                         </Box>
                                                         {/* Container for prices */}
-                                                        <Box>
-                                                            {product.multi_price && product.multi_price.length > 0 ? (
-                                                                product.multi_price.map((price, index) => (
-                                                                    <Box
-                                                                        key={index}
-                                                                        sx={{
-                                                                            display: 'flex',
-                                                                            justifyContent: 'space-between',
-                                                                            alignItems: 'center',
-                                                                            mb: index < product.multi_price.length - 1 ? 0.5 : 0 // Margin between price items
-                                                                        }}
-                                                                    >
-                                                                        <Typography variant="caption" color="text.secondary">
-                                                                            {price.min_quantity} {product.unit.unit}
-                                                                        </Typography>
-                                                                        <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                                            Rp {price.price.toLocaleString()}
-                                                                        </Typography>
-                                                                    </Box>
-                                                                ))
-                                                            ) : (
-                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                    <Typography variant="caption" color="text.secondary">
-                                                                        1 {product.unit.unit}
+                                                        <Box sx={{ mt: 'auto' }}>
+                                                            {product.price_tiers && product.price_tiers.length > 0 ? (
+                                                                <Box sx={{ bgcolor: 'rgba(198, 169, 107, 0.05)', p: 0.75, borderRadius: 1 }}>
+                                                                    {product.price_tiers.slice(0, 2).map((tier, index) => (
+                                                                        <Box
+                                                                            key={index}
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                justifyContent: 'space-between',
+                                                                                alignItems: 'center',
+                                                                                mb: index === 0 ? 0.25 : 0
+                                                                            }}
+                                                                        >
+                                                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                                                                                {tier.min_quantity}+ {product.unit?.unit || 'unit'}
+                                                                            </Typography>
+                                                                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#C6A96B', fontSize: '0.7rem' }}>
+                                                                                Rp {Number(tier.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                                                            </Typography>
+                                                                        </Box>
+                                                                    ))}
+                                                                </Box>
+                                                            ) : Number(product.online_price) > 0 ? (
+                                                                <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: 'rgba(198, 169, 107, 0.05)', p: 0.75, borderRadius: 1 }}>
+                                                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                                                                        Per {product.unit.unit}
                                                                     </Typography>
-                                                                    <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                            Rp {(product.online_price || 0).toLocaleString()}
+                                                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#C6A96B', fontSize: '0.9rem' }}>
+                                                                        Rp {Number(product.online_price || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                                                     </Typography>
                                                                 </Box>
-                                                            )}
+                                                            ) : null}
                                                         </Box>
                                                     </CardContent>
-                                                    <Button
-                                                        variant="contained"
-                                                        color="primary"
-                                                        size="small"
-                                                        fullWidth
-                                                        onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent card onClick from firing
-                                                            handleAddToCart(product);
-                                                        }}
-                                                        sx={{ mt: 'auto', p: 1 }} // Push button to bottom
-                                                    >
-                                                        Add to Cart
-                                                    </Button>
+                                                    <Box sx={{ px: 0.75, pb: 1 }}>
+                                                        <Button
+                                                            variant="contained"
+                                                            size="small"
+                                                            fullWidth
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleAddToCart(product);
+                                                            }}
+                                                            sx={{
+                                                                borderRadius: 1,
+                                                                py: 0.5,
+                                                                fontWeight: 'bold',
+                                                                fontSize: '0.7rem',
+                                                                textTransform: 'none',
+                                                                boxShadow: 'none',
+                                                                background: 'linear-gradient(45deg, #C6A96B 30%, #D4AF37 90%)',
+                                                                '&:hover': {
+                                                                    background: 'linear-gradient(45deg, #B0945A 30%, #C6A96B 90%)',
+                                                                    boxShadow: 'none',
+                                                                }
+                                                            }}
+                                                        >
+                                                            Add to Cart
+                                                        </Button>
+                                                    </Box>
                                                 </Card>
                                             </Grid>
                                         )) : (
-                                            <Grid item xs={12}>
-                                                <Box sx={{ py: 4, textAlign: 'center' }}>
-                                                    <Typography color="text.secondary">
+                                            <Grid size={12}>
+                                                <Box sx={{ py: 8, textAlign: 'center' }}>
+                                                    <Typography color="text.secondary" variant="h6">
                                                         Tidak ada produk yang tersedia
                                                     </Typography>
                                                 </Box>
@@ -366,7 +418,6 @@ export default function Order({ auth, products = [], categories = [], units = []
                                         )}
                                     </Grid>
                                 )}
-                            </Paper>
                         </Grid>
                     </Grid>
                 </Container>

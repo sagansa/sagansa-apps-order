@@ -7,11 +7,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PostalCode extends Model
 {
+    protected $connection = 'mysql';
+
     use HasFactory;
 
     public $timestamps = false;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'province_id',
+        'city_id',
+        'district_id',
+        'subdistrict_id',
+        'postal_code',
+    ];
 
     public function province()
     {

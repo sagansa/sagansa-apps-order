@@ -10,9 +10,23 @@ use Illuminate\Support\Facades\Auth;
 
 class DeliveryAddressController extends Controller
 {
+    private function userId(): int
+    {
+        return Auth::id();
+    }
+
     public function index()
     {
-        return Inertia::render('DeliveryAddress/Index');
+        $deliveryAddresses = Auth::user()->deliveryAddresses()->with(['province', 'city', 'district', 'subdistrict'])->get();
+        
+        // Add information about whether address has been used in orders
+        $deliveryAddresses->each(function ($address) {
+            $address->is_used_in_orders = $address->salesOrders()->count() > 0;
+        });
+
+        return Inertia::render('DeliveryAddress/Index', [
+            'deliveryAddresses' => $deliveryAddresses,
+        ]);
     }
 
     public function store(Request $request)
@@ -30,18 +44,16 @@ class DeliveryAddressController extends Controller
         ]);
 
         $deliveryAddress = new DeliveryAddress($validatedData);
-        $deliveryAddress->user_id = Auth::id();
+        $deliveryAddress->user_id = $this->userId();
         $deliveryAddress->for = 3;
         $deliveryAddress->save();
-
-        // dd($deliveryAddress);
 
         return redirect()->route('cart.index');
     }
 
     public function update(Request $request, DeliveryAddress $deliveryAddress)
     {
-        if ($deliveryAddress->user_id !== Auth::id()) {
+        if ($deliveryAddress->user_id != $this->userId()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -69,7 +81,7 @@ class DeliveryAddressController extends Controller
 
     public function destroy(DeliveryAddress $deliveryAddress)
     {
-        if ($deliveryAddress->user_id !== Auth::id()) {
+        if ($deliveryAddress->user_id != $this->userId()) {
             abort(403, 'Unauthorized action.');
         }
         $deliveryAddress->delete();

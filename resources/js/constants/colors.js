@@ -1,23 +1,27 @@
-// Sagansa Food Colors
-export const foodPrimaryBrown = '#5D4037';
-export const foodSecondaryBrown = '#795548';
+// Brand Colors
+export const brandBlack = "#0A0A0A";
+export const brandGold = "#C6A96B";
 
-// Sagansa Engineering Colors (reverted to original blue)
-export const engineeringPrimaryBlue = '#0D47A1';
-export const engineeringSecondaryBlue = '#1976D2';
+// Sagansa Food Colors
+export const foodPrimaryBrown = brandGold;
+export const foodSecondaryBrown = brandBlack;
+
+// Sagansa Engineering Colors
+export const engineeringPrimaryBlue = brandGold;
+export const engineeringSecondaryBlue = brandBlack;
 
 // Common Colors
-export const primaryGreen = '#6A8467';
-export const secondaryGreen = '#E4E2D3';
-export const primaryRed = '#D32F2F';
-export const primaryYellow = '#FBC02D';
+export const primaryGreen = brandGold;
+export const secondaryGreen = brandBlack;
+export const primaryRed = "#D32F2F";
+export const primaryYellow = "#FBC02D";
 
 // Text Colors
-export const textPrimary = '#212121';
-export const textSecondary = '#757575';
-export const textLight = '#FFFFFF';
-export const textDark = '#000000';
-export const textMuted = '#9E9E9E';
-export const textLink = '#1976D2';
-export const textError = '#D32F2F';
-export const textSuccess = '#2E7D32';
+export const textPrimary = brandBlack;
+export const textSecondary = "#757575";
+export const textLight = "#FFFFFF";
+export const textDark = brandBlack;
+export const textMuted = "#9E9E9E";
+export const textLink = brandGold;
+export const textError = "#D32F2F";
+export const textSuccess = "#2E7D32";

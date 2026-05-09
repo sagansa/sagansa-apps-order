@@ -11,6 +11,8 @@ class DeliveryAddress extends Model
     use HasFactory;
     use SoftDeletes;
 
+    protected $connection = 'mysql';
+
     protected $guarded = [];
 
     protected $fillable = [

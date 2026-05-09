@@ -14,6 +14,10 @@ class WelcomeController extends Controller
     {
         $products = Product::with(['unit', 'onlineCategory'])
             ->where('online_category_id', '!=', 4)
+            ->where(function ($query) {
+                $query->where('online_price', '>', 0)
+                      ->orWhereHas('priceTiers');
+            })
             ->latest()
             ->take(5)
             ->get()

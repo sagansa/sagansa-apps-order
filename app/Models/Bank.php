@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Bank extends Model
 {
+    protected $connection = 'mysql';
+
     use HasFactory;
 
     protected $guarded = [];

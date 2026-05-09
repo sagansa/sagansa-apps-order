@@ -10,7 +10,7 @@ class ProductController extends Controller
 {
     public function show($slug)
     {
-        $product = Product::with(['unit', 'onlineCategory', 'images'])
+        $product = Product::with(['unit', 'onlineCategory', 'images', 'priceTiers'])
             ->where('slug', $slug)
             ->firstOrFail();
 
