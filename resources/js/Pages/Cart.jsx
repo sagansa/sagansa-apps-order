@@ -15,20 +15,11 @@ import {
     IconButton,
     Box,
     Grid,
-    Divider,
     TextField,
-    Avatar,
     Stack,
     Tooltip,
-    Chip,
-    InputAdornment,
     FormControl,
-    FormLabel,
-    RadioGroup,
-    FormControlLabel,
-    Radio,
     Select,
-    Alert,
     InputLabel,
     MenuItem,
     Dialog,
@@ -38,57 +29,27 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import useMediaQuery from "@mui/material/useMediaQuery"; // Import useMediaQuery
-import { createTheme } from "@mui/material/styles"; // Import createTheme
-import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
-import ShoppingCartCheckoutIcon from "@mui/icons-material/ShoppingCartCheckout";
 import InfoIcon from "@mui/icons-material/Info";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import EditIcon from "@mui/icons-material/Edit";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { router } from "@inertiajs/react";
 import DeliveryAddressManagerModal from "@/Components/DeliveryAddressManagerModal";
 import dayjs from "dayjs";
 import axios from "axios";
-
-const darkTheme = createTheme({
-    palette: {
-        mode: "dark",
-        primary: {
-            main: "#90caf9",
-        },
-        secondary: {
-            main: "#f48fb1",
-        },
-        background: {
-            default: "#121212",
-            paper: "#1e1e1e",
-        },
-    },
-});
-
-const getPriceByQuantity = (priceTiers, quantity) => {
-    if (!priceTiers || priceTiers.length === 0) return 0;
-
-    const tier = priceTiers.find(
-        (tier) =>
-            quantity >= tier.min_quantity &&
-            (tier.max_quantity === null || quantity <= tier.max_quantity)
-    );
-
-    return tier ? tier.price : priceTiers[0].price;
-};
-
-const getDiscountPercentage = (priceTiers, quantity) => {
-    if (!priceTiers || priceTiers.length === 0) return 0;
-
-    const basePrice = priceTiers[0].price;
-    const currentPrice = getPriceByQuantity(priceTiers, quantity);
-    return Math.round(((basePrice - currentPrice) / basePrice) * 100);
-};
+import {
+    getPriceByQuantity,
+    getDiscountPercentage,
+} from "@/Utils/cartCalculations";
+import CartItemCard from "@/Components/cart/CartItemCard";
+import DeliveryAddressDisplay from "@/Components/cart/DeliveryAddressDisplay";
+import ShippingPaymentMethodSelector from "@/Components/cart/ShippingPaymentMethodSelector";
+import PaymentMethodSelector from "@/Components/cart/PaymentMethodSelector";
+import ManualTransferDetails from "@/Components/cart/ManualTransferDetails";
+import OrderSummaryCard from "@/Components/cart/OrderSummaryCard";
+import { brandBlack, brandGold } from "@/constants/colors";
 
 export default function Cart({
     auth,
@@ -119,9 +80,6 @@ export default function Cart({
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedSubdistrict, setSelectedSubdistrict] = useState("");
     const [postalCodeId, setPostalCodeId] = useState("");
-    const [address, setAddress] = useState("");
-    const [latitude, setLatitude] = useState("");
-    const [longitude, setLongitude] = useState("");
     const [openAddressManagerModal, setOpenAddressManagerModal] =
         useState(false);
     const [selectedTransferAccount, setSelectedTransferAccount] = useState("");
@@ -129,7 +87,6 @@ export default function Cart({
     const [deliveryDate, setDeliveryDate] = useState(
         dayjs().format("YYYY-MM-DD")
     );
-    const [previewUrl, setPreviewUrl] = useState(null); // State for image preview URL
 
     // State untuk konfirmasi dan nominal ongkir
     const [shippingCostConfirmed, setShippingCostConfirmed] = useState(false);
@@ -143,28 +100,13 @@ export default function Cart({
     const [shippingPaymentMethod, setShippingPaymentMethod] =
         useState("via_us"); // Default: dibayarkan melalui kami
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(""); // State untuk metode pembayaran utama
+    const [showWAButton, setShowWAButton] = useState(false);
 
     const handleOpenAddressManagerModal = () =>
         setOpenAddressManagerModal(true);
     const handleCloseAddressManagerModal = () =>
         setOpenAddressManagerModal(false);
 
-    useEffect(() => {
-        const midtransScriptUrl =
-            "https://app.sandbox.midtrans.com/snap/snap.js";
-        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
-
-        let script = document.createElement("script");
-        script.src = midtransScriptUrl;
-        script.setAttribute("data-client-key", clientKey);
-        script.async = true;
-
-        document.body.appendChild(script);
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
 
     useEffect(() => {
         // Fetch provinces on component mount
@@ -370,7 +312,8 @@ export default function Cart({
                 const quantity = quantities[item.id] || item.quantity;
                 const pricePerUnit = getPriceByQuantity(
                     item.product?.price_tiers,
-                    quantity
+                    quantity,
+                    item.product?.online_price || 0
                 );
                 return total + pricePerUnit * quantity;
             }, 0) || 0
@@ -379,7 +322,8 @@ export default function Cart({
 
     const subtotal = calculateSubtotal();
 
-    // Calculate total including shipping cost if applicable
+
+    // Calculate total including shipping cost and Midtrans fee if applicable
     const total =
         selectedDelivery &&
         selectedDelivery !== "33" &&
@@ -393,6 +337,12 @@ export default function Cart({
         setSelectedDelivery(serviceId);
         // Reset selected address when delivery service changes
         setSelectedAddress("");
+
+        // Hide WA button if pickup is selected
+        if (serviceId === "33") {
+            setShowWAButton(false);
+        }
+
         // Effect di atas akan menangani modal/reset konfirmasi ongkir
     };
 
@@ -473,36 +423,41 @@ export default function Cart({
     const showAddressSelection =
         selectedDelivery &&
         deliveryServices.find((s) => s.id === parseInt(selectedDelivery))
-            ?.id !== "33";
+            ?.id != 33; // Use non-strict comparison or integer to catch both string and integer IDs
 
     // Handler untuk konfirmasi ongkir
     const handleConfirmShippingCost = () => {
         setShippingCostConfirmed(true);
         setOpenShippingCostConfirmationModal(false);
+        setShowWAButton(false); // Hide button if confirmed
     };
 
     const handleCancelShippingCost = () => {
         setShippingCostConfirmed(false);
         setShippingCostAmount(0); // Reset amount if not confirmed
         setOpenShippingCostConfirmationModal(false);
-        // setSelectedDelivery(''); // Reset delivery selection as well if cancelled
+        setSelectedDelivery(""); // Reset delivery selection as well if cancelled
+        setShowWAButton(true); // Show button ONLY when explicitly unconfirmed
     };
 
-    const handleCheckout = (event) => {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleCheckout = async (event) => {
         event.preventDefault(); // Prevent default form submission behavior
+
+        // --- Start Processing ---
+        setIsProcessing(true);
+
         try {
-            // Validasi tambahan sebelum membuat FormData
+            // --- Form Data Assembly ---
             const isSelfPickup = selectedDelivery === "33";
             const deliveryMethod = deliveryServices.find(
                 (service) => service.id.toString() === selectedDelivery
             );
-            const isDelivery = deliveryMethod && deliveryMethod.id !== "33";
+            const isDelivery = deliveryMethod && deliveryMethod.id != 33;
 
             // Validasi untuk Transfer Manual
             if (selectedPaymentMethod === "manual_transfer") {
-                // Manual transfer details (account and proof) are only required if:
-                // 1. It's self-pickup (always requires immediate payment details)
-                // 2. It's delivery AND shipping cost is confirmed AND shipping payment is via us
                 if (
                     isSelfPickup ||
                     (isDelivery &&
@@ -511,17 +466,15 @@ export default function Cart({
                 ) {
                     if (!selectedTransferAccount) {
                         alert("Mohon pilih rekening tujuan transfer.");
+                        setIsProcessing(false);
                         return;
                     }
                     if (!transferProof) {
                         alert("Mohon upload bukti transfer.");
+                        setIsProcessing(false);
                         return;
                     }
                 }
-                // If it's delivery AND shipping cost is NOT confirmed, then payment details are not required at this stage.
-                // The order will be created as pending, and user will confirm payment later.
-            } else if (selectedPaymentMethod === "midtrans") {
-                // No specific frontend validation for Midtrans here, as it will be handled by Midtrans gateway
             }
 
             // Kondisi 2 (Bayar Via Kami): Perlu nominal ongkir > 0 jika Pengiriman + Ongkir Sudah Konfirmasi + Bayar Via Kami
@@ -534,83 +487,59 @@ export default function Cart({
                 alert(
                     "Mohon masukkan nominal biaya pengiriman yang valid (lebih dari 0) jika dibayarkan melalui kami."
                 );
+                setIsProcessing(false);
                 return;
             }
 
             // Kondisi: Perlu Alamat Pengiriman jika Pengiriman
             if (isDelivery && !selectedAddress) {
-                // Wajib alamat jika pengiriman (terlepas konfirmasi ongkir/metode bayar ongkir)
                 alert("Mohon pilih alamat pengiriman.");
+                setIsProcessing(false);
                 return;
             }
 
             const formData = new FormData();
             formData.append("delivery_service_id", selectedDelivery);
 
-            // Sertakan delivery_address_id hanya jika metode pengiriman BUKAN ambil sendiri
             if (isDelivery) {
                 formData.append("delivery_address_id", selectedAddress);
             }
 
-            // Append transfer_to_account_id if manual transfer is selected
-            if (selectedPaymentMethod === "manual_transfer") {
-                formData.append(
-                    "transfer_to_account_id",
-                    selectedTransferAccount || ""
-                );
-            } else {
-                formData.append("transfer_to_account_id", ""); // Ensure it's always sent, even if empty
-            }
+            formData.append(
+                "transfer_to_account_id",
+                selectedTransferAccount || ""
+            );
 
-            // Always append image_payment if transferProof exists
             if (transferProof) {
                 formData.append("image_payment", transferProof);
             }
 
             formData.append("delivery_date", deliveryDate);
 
-            // Tambahkan nominal ongkir:
-            // - Jika Pengiriman + Ongkir Konfirmasi + Bayar Via Kami: Kirim shippingCostAmount
-            // - Jika Pengiriman + Belum Konfirmasi Ongkir ATAU Pengiriman + Ongkir Konfirmasi + Bayar Langsung Kurir: Kirim 0
-            // - Jika Ambil Sendiri: Kirim 0
             const finalShippingCostForBackend =
                 isDelivery &&
                 shippingCostConfirmed &&
                 shippingPaymentMethod === "via_us"
                     ? shippingCostAmount
-                    : 0; // Untuk status 4 atau bayar ke kurir, kirim 0 ke backend
+                    : 0;
 
             formData.append("shipping_cost", finalShippingCostForBackend);
 
             // Logika penentuan status pembayaran
             let paymentStatus;
-            if (selectedPaymentMethod === "manual_transfer") {
-                if (isSelfPickup) {
-                    // Jika Ambil Sendiri, payment_status 1 jika bukti transfer diupload, 4 jika belum
-                    paymentStatus = transferProof ? 1 : 4;
-                } else if (isDelivery && shippingCostConfirmed) {
-                    // Jika Pengiriman dan Ongkir Sudah Konfirmasi (baik via kami atau ke kurir), set payment_status = 1.
-                    // Bukti transfer untuk 'via_us' akan divalidasi di backend jika payment_status 1.
-                    paymentStatus = 1;
-                } else if (isDelivery && !shippingCostConfirmed) {
-                    // Jika Pengiriman tapi BELUM konfirmasi Ongkir. Status selalu 4.
-                    paymentStatus = 4;
-                } else {
-                    // Fallback, seharusnya tidak tercapai jika validasi frontend OK
-                    paymentStatus = 4;
-                }
-            } else if (selectedPaymentMethod === "midtrans") {
-                // For Midtrans, initial status could be pending (e.g., 5) or direct to Midtrans gateway
-                // Assuming 5 for pending Midtrans payment, backend will update after transaction.
-                paymentStatus = 5;
+            if (isSelfPickup) {
+                paymentStatus = transferProof ? 1 : 4;
+            } else if (isDelivery && shippingCostConfirmed) {
+                paymentStatus = 1;
+            } else if (isDelivery && !shippingCostConfirmed) {
+                paymentStatus = 4;
             } else {
-                // Default or fallback if no payment method is selected
                 paymentStatus = 4;
             }
 
-            formData.append("shipping_payment_method", shippingPaymentMethod); // Add this line to send the shipping payment method
+            formData.append("shipping_payment_method", shippingPaymentMethod);
             formData.append("payment_status", paymentStatus);
-            formData.append("payment_method", selectedPaymentMethod); // Add this line to send the selected payment method
+            formData.append("payment_method", "manual_transfer");
 
             // Ubah format items
             const items = cartItems.map((item) => ({
@@ -618,71 +547,30 @@ export default function Cart({
                 quantity: quantities[item.id] || item.quantity,
                 price: getPriceByQuantity(
                     item.product?.price_tiers,
-                    quantities[item.id] || item.quantity
+                    quantities[item.id] || item.quantity,
+                    item.product?.online_price || 0
                 ),
             }));
 
-            // Ubah cara append items ke FormData
             items.forEach((item, index) => {
                 formData.append(`items[${index}][product_id]`, item.product_id);
                 formData.append(`items[${index}][quantity]`, item.quantity);
                 formData.append(`items[${index}][price]`, item.price);
             });
 
-            if (selectedPaymentMethod === "midtrans") {
-                // For Midtrans, we expect a JSON response with a snap_token
-                axios
-                    .post(route("cart.checkout"), formData)
-                    .then((response) => {
-                        if (response.data.snap_token) {
-                            window.snap.pay(response.data.snap_token, {
-                                onSuccess: function (result) {
-                                    router.visit(
-                                        route("checkout.success", {
-                                            order_id: result.order_id,
-                                            status: "success",
-                                        })
-                                    );
-                                },
-                                onPending: function (result) {
-                                    router.visit(
-                                        route("checkout.success", {
-                                            order_id: result.order_id,
-                                            status: "pending",
-                                        })
-                                    );
-                                },
-                                onError: function (result) {
-                                    router.visit(
-                                        route("checkout.success", {
-                                            order_id: result.order_id,
-                                            status: "error",
-                                        })
-                                    );
-                                },
-                            });
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error:", error);
-                        alert(
-                            "Terjadi kesalahan saat checkout dengan Midtrans. Silakan coba lagi."
-                        );
-                    });
-            } else {
-                // For manual transfer, use Inertia's post
-                router.post(route("cart.checkout"), formData, {
-                    onError: (errors) => {
-                        console.error("Error:", errors);
-                        alert(
-                            "Terjadi kesalahan saat checkout. Silakan coba lagi."
-                        );
-                    },
-                });
-            }
+            // --- API Call ---
+            router.post(route("cart.checkout"), formData, {
+                onError: (errors) => {
+                    console.error("Error:", errors);
+                    const errorString = Object.values(errors).join("\n");
+                    alert(`Terjadi kesalahan saat checkout:\n${errorString}`);
+                },
+                onFinish: () => setIsProcessing(false),
+            });
         } catch (error) {
-            console.error("Error:", error);
-            alert("Terjadi kesalahan saat checkout. Silakan coba lagi.");
+            console.error("Unhandled checkout error:", error);
+            alert("Terjadi kesalahan yang tidak terduga.");
+            setIsProcessing(false);
         }
     };
 
@@ -693,13 +581,13 @@ export default function Cart({
                 <Typography
                     variant="h4"
                     component="h2"
-                    sx={{ color: "text.primary" }}
+                    sx={{ color: "text.primary", fontWeight: "bold" }}
                 >
-                    Keranjang Belanja
+                    Checkout
                 </Typography>
             }
         >
-            <Head title="Keranjang Belanja" />
+            <Head title="Checkout" />
 
             {/* Optimize padding for smaller screens */}
             <Box sx={{ py: 4, px: { xs: 1, sm: 2 } }}>
@@ -760,92 +648,13 @@ export default function Cart({
                                     }
                                 />
                                 <CardContent>
-                                    {/* Tampilkan alamat yang dipilih atau pesan placeholder */}
-                                    {selectedAddress ? (
-                                        (() => {
-                                            const selectedAddressObject =
-                                                deliveryAddresses.find(
-                                                    (address) =>
-                                                        address.id.toString() ===
-                                                        selectedAddress
-                                                );
-                                            if (!selectedAddressObject)
-                                                return (
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                        align="center"
-                                                    >
-                                                        Silakan pilih alamat
-                                                        pengiriman.
-                                                    </Typography>
-                                                );
-                                            return (
-                                                <Box
-                                                    sx={{
-                                                        p: 2,
-                                                        border: "1px solid",
-                                                        borderColor: "divider",
-                                                        borderRadius: 1,
-                                                    }}
-                                                >
-                                                    <Typography variant="subtitle1">
-                                                        {
-                                                            selectedAddressObject.name
-                                                        }
-                                                    </Typography>
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                    >
-                                                        Penerima:{" "}
-                                                        {
-                                                            selectedAddressObject.recipient_name
-                                                        }{" "}
-                                                        <br />
-                                                        No. Telp:{" "}
-                                                        {
-                                                            selectedAddressObject.recipient_telp_no
-                                                        }{" "}
-                                                        <br />
-                                                        Alamat:{" "}
-                                                        {
-                                                            selectedAddressObject.address
-                                                        }{" "}
-                                                        <br />
-                                                        {selectedAddressObject
-                                                            .subdistrict?.name
-                                                            ? `${selectedAddressObject.subdistrict.name}, `
-                                                            : ""}
-                                                        {selectedAddressObject
-                                                            .district?.name
-                                                            ? `${selectedAddressObject.district.name}, `
-                                                            : ""}
-                                                        {selectedAddressObject
-                                                            .city?.name
-                                                            ? `${selectedAddressObject.city.name}, `
-                                                            : ""}
-                                                        {selectedAddressObject
-                                                            .province?.name
-                                                            ? `${selectedAddressObject.province.name}`
-                                                            : ""}
-                                                        <br />
-                                                        Kode Pos:{" "}
-                                                        {selectedAddressObject.postal_code_id ||
-                                                            "-"}
-                                                    </Typography>
-                                                </Box>
-                                            );
-                                        })()
-                                    ) : (
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            align="center"
-                                        >
-                                            Silakan pilih alamat pengiriman.
-                                        </Typography>
-                                    )}
+                                    <DeliveryAddressDisplay
+                                        selectedAddressObject={deliveryAddresses.find(
+                                            (address) =>
+                                                address.id.toString() ===
+                                                selectedAddress
+                                        )}
+                                    />
                                 </CardContent>
                             </Card>
                         )}
@@ -872,259 +681,19 @@ export default function Cart({
                             <CardContent>
                                 <Stack spacing={2}>
                                     {cartItems?.map((item) => (
-                                        <Card key={item.id} variant="outlined">
-                                            <CardContent>
-                                                <Stack
-                                                    direction="row"
-                                                    spacing={2}
-                                                    alignItems="center"
-                                                >
-                                                    <Avatar
-                                                        variant="rounded"
-                                                        src={
-                                                            item.product?.image
-                                                        }
-                                                        sx={{
-                                                            width: 60,
-                                                            height: 60,
-                                                        }}
-                                                    />
-                                                    <Box sx={{ flexGrow: 1 }}>
-                                                        <Typography
-                                                            variant="subtitle1"
-                                                            sx={{
-                                                                fontSize:
-                                                                    "0.9rem",
-                                                            }}
-                                                        >
-                                                            {item.product?.name}
-                                                        </Typography>
-                                                        <Stack
-                                                            direction="row"
-                                                            spacing={1}
-                                                            alignItems="center"
-                                                        >
-                                                            <Typography
-                                                                variant="body2"
-                                                                color="text.secondary"
-                                                            >
-                                                                Rp{" "}
-                                                                {getPriceByQuantity(
-                                                                    item.product
-                                                                        ?.price_tiers,
-                                                                    quantities[
-                                                                        item.id
-                                                                    ] ||
-                                                                        item.quantity
-                                                                )?.toLocaleString()}{" "}
-                                                                /{" "}
-                                                                {item.product
-                                                                    ?.unit
-                                                                    ?.unit ||
-                                                                    "unit"}
-                                                            </Typography>
-                                                            {getDiscountPercentage(
-                                                                item.product
-                                                                    ?.price_tiers,
-                                                                quantities[
-                                                                    item.id
-                                                                ] ||
-                                                                    item.quantity
-                                                            ) > 0 && (
-                                                                <Chip
-                                                                    label={`Diskon ${getDiscountPercentage(
-                                                                        item
-                                                                            .product
-                                                                            ?.price_tiers,
-                                                                        quantities[
-                                                                            item
-                                                                                .id
-                                                                        ] ||
-                                                                            item.quantity
-                                                                    )}%`}
-                                                                    color="success"
-                                                                    size="small"
-                                                                />
-                                                            )}
-                                                        </Stack>
-                                                        {item.product
-                                                            ?.price_tiers
-                                                            ?.length > 0 && (
-                                                            <Tooltip
-                                                                title={
-                                                                    <Box>
-                                                                        <Typography variant="subtitle2">
-                                                                            Tier
-                                                                            Harga:
-                                                                        </Typography>
-                                                                        {item.product.price_tiers.map(
-                                                                            (
-                                                                                tier,
-                                                                                index
-                                                                            ) => (
-                                                                                <Typography
-                                                                                    key={
-                                                                                        index
-                                                                                    }
-                                                                                    variant="body2"
-                                                                                >
-                                                                                    {tier.label ||
-                                                                                        `${
-                                                                                            tier.min_quantity
-                                                                                        }-${
-                                                                                            tier.max_quantity ||
-                                                                                            "∞"
-                                                                                        } ${
-                                                                                            item
-                                                                                                .product
-                                                                                                ?.unit
-                                                                                                ?.unit ||
-                                                                                            "unit"
-                                                                                        }`}
-
-                                                                                    :
-                                                                                    Rp{" "}
-                                                                                    {tier.price.toLocaleString()}{" "}
-                                                                                    /{" "}
-                                                                                    {item
-                                                                                        .product
-                                                                                        ?.unit
-                                                                                        ?.unit ||
-                                                                                        "unit"}
-                                                                                </Typography>
-                                                                            )
-                                                                        )}
-                                                                    </Box>
-                                                                }
-                                                            >
-                                                                <Typography
-                                                                    variant="caption"
-                                                                    color="text.secondary"
-                                                                    sx={{
-                                                                        cursor: "help",
-                                                                    }}
-                                                                >
-                                                                    Lihat tier
-                                                                    harga
-                                                                </Typography>
-                                                            </Tooltip>
-                                                        )}
-                                                    </Box>
-                                                </Stack>
-                                                <Divider sx={{ my: 1.5 }} />
-                                                <Stack
-                                                    direction="row"
-                                                    justifyContent="space-between"
-                                                    alignItems="center"
-                                                >
-                                                    <Stack
-                                                        direction="row"
-                                                        spacing={1}
-                                                        alignItems="center"
-                                                    >
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() =>
-                                                                handleQuantityChange(
-                                                                    item.id,
-                                                                    -1
-                                                                )
-                                                            }
-                                                        >
-                                                            <RemoveIcon />
-                                                        </IconButton>
-                                                        <TextField
-                                                            value={
-                                                                quantities[
-                                                                    item.id
-                                                                ] ||
-                                                                item.quantity
-                                                            }
-                                                            onChange={(e) =>
-                                                                handleQuantityInput(
-                                                                    item.id,
-                                                                    e.target
-                                                                        .value
-                                                                )
-                                                            }
-                                                            type="number"
-                                                            size="small"
-                                                            sx={{
-                                                                width: "60px",
-                                                            }}
-                                                            inputProps={{
-                                                                min: 1,
-                                                                style: {
-                                                                    textAlign:
-                                                                        "center",
-                                                                },
-                                                            }}
-                                                            InputProps={{
-                                                                endAdornment: (
-                                                                    <InputAdornment position="end">
-                                                                        <Typography
-                                                                            variant="caption"
-                                                                            color="text.secondary"
-                                                                        >
-                                                                            {item
-                                                                                .product
-                                                                                ?.unit
-                                                                                ?.unit ||
-                                                                                "unit"}
-                                                                        </Typography>
-                                                                    </InputAdornment>
-                                                                ),
-                                                            }}
-                                                        />
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() =>
-                                                                handleQuantityChange(
-                                                                    item.id,
-                                                                    1
-                                                                )
-                                                            }
-                                                        >
-                                                            <AddIcon />
-                                                        </IconButton>
-                                                    </Stack>
-                                                    <Typography
-                                                        variant="subtitle1"
-                                                        sx={{
-                                                            fontWeight: "bold",
-                                                        }}
-                                                    >
-                                                        Rp{" "}
-                                                        {(
-                                                            (quantities[
-                                                                item.id
-                                                            ] ||
-                                                                item.quantity) *
-                                                            getPriceByQuantity(
-                                                                item.product
-                                                                    ?.price_tiers,
-                                                                quantities[
-                                                                    item.id
-                                                                ] ||
-                                                                    item.quantity
-                                                            )
-                                                        )?.toLocaleString()}
-                                                    </Typography>
-                                                    <IconButton
-                                                        color="error"
-                                                        aria-label="hapus"
-                                                        size="small"
-                                                        onClick={() =>
-                                                            handleDeleteItem(
-                                                                item.id
-                                                            )
-                                                        }
-                                                    >
-                                                        <DeleteIcon />
-                                                    </IconButton>
-                                                </Stack>
-                                            </CardContent>
-                                        </Card>
+                                        <CartItemCard
+                                            key={item.id}
+                                            item={item}
+                                            quantities={quantities}
+                                            handleQuantityChange={
+                                                handleQuantityChange
+                                            }
+                                            handleQuantityInput={
+                                                handleQuantityInput
+                                            }
+                                            handleDeleteItem={handleDeleteItem}
+                                            isMobile={isMobile}
+                                        />
                                     ))}
                                 </Stack>
                             </CardContent>
@@ -1154,6 +723,33 @@ export default function Cart({
                                             ))}
                                         </Select>
                                     </FormControl>
+                                    {showWAButton && !shippingCostConfirmed && (
+                                        <Button
+                                            variant="outlined"
+                                            fullWidth
+                                            startIcon={<WhatsAppIcon />}
+                                            href={`https://wa.me/6285782004645?text=${encodeURIComponent(
+                                                "Halo Sagansa, saya ingin konfirmasi pesanan saya dan menanyakan biaya pengiriman."
+                                            )}`}
+                                            target="_blank"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1,
+                                                py: 1,
+                                                borderRadius: 2,
+                                                fontWeight: "bold",
+                                                borderColor: "#25D366",
+                                                color: "#25D366",
+                                                "&:hover": {
+                                                    borderColor: "#128C7E",
+                                                    bgcolor:
+                                                        "rgba(37, 211, 102, 0.05)",
+                                                },
+                                            }}
+                                        >
+                                            Chat WA Admin
+                                        </Button>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -1161,201 +757,41 @@ export default function Cart({
                             {selectedDelivery &&
                                 selectedDelivery !== "33" &&
                                 shippingCostConfirmed && (
-                                    <Card sx={{ mb: 3 }}>
-                                        <CardContent>
-                                            <Typography
-                                                variant="subtitle1"
-                                                gutterBottom
-                                            >
-                                                Pembayaran Ongkos Kirim
-                                            </Typography>
-                                            <FormControl
-                                                component="fieldset"
-                                                fullWidth
-                                            >
-                                                <FormLabel component="legend">
-                                                    Metode Pembayaran Ongkos
-                                                    Kirim
-                                                </FormLabel>
-                                                <RadioGroup
-                                                    row
-                                                    aria-label="shipping-payment-method"
-                                                    name="shipping-payment-method"
-                                                    value={
-                                                        shippingPaymentMethod
-                                                    }
-                                                    onChange={(e) =>
-                                                        setShippingPaymentMethod(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    <FormControlLabel
-                                                        value="via_us"
-                                                        control={<Radio />}
-                                                        label="Dibayarkan melalui kami"
-                                                    />
-                                                    <FormControlLabel
-                                                        value="to_courier"
-                                                        control={<Radio />}
-                                                        label="Dibayarkan langsung pembeli ke kurir"
-                                                    />
-                                                </RadioGroup>
-
-                                                {/* Container for dynamic shipping cost input/alert */}
-                                                <Box
-                                                    sx={{
-                                                        minHeight: "80px",
-                                                        mt: 2,
-                                                    }}
-                                                >
-                                                    {" "}
-                                                    {/* Reserve space */}
-                                                    {shippingPaymentMethod ===
-                                                    "via_us" ? (
-                                                        <TextField
-                                                            label="Nominal Biaya Pengiriman"
-                                                            type="number"
-                                                            fullWidth
-                                                            value={
-                                                                shippingCostAmount
-                                                            }
-                                                            onChange={(e) =>
-                                                                setShippingCostAmount(
-                                                                    parseFloat(
-                                                                        e.target
-                                                                            .value
-                                                                    ) || 0
-                                                                )
-                                                            }
-                                                            InputProps={{
-                                                                startAdornment:
-                                                                    (
-                                                                        <InputAdornment position="start">
-                                                                            Rp
-                                                                        </InputAdornment>
-                                                                    ),
-                                                            }}
-                                                            inputProps={{
-                                                                min: 0,
-                                                            }}
-                                                        />
-                                                    ) : shippingPaymentMethod ===
-                                                      "to_courier" ? (
-                                                        <Alert severity="info">
-                                                            Nominal ongkos kirim
-                                                            dibayarkan langsung
-                                                            ke kurir saat
-                                                            pesanan diterima.
-                                                        </Alert>
-                                                    ) : null}
-                                                </Box>
-                                            </FormControl>
-                                        </CardContent>
-                                    </Card>
+                                    <ShippingPaymentMethodSelector
+                                        shippingPaymentMethod={
+                                            shippingPaymentMethod
+                                        }
+                                        setShippingPaymentMethod={
+                                            setShippingPaymentMethod
+                                        }
+                                        shippingCostAmount={shippingCostAmount}
+                                        setShippingCostAmount={
+                                            setShippingCostAmount
+                                        }
+                                    />
                                 )}
 
                             {/* Card Metode Pembayaran */}
-                            <Card sx={{ mb: 3 }}>
-                                <CardContent>
-                                    <FormControl fullWidth>
-                                        <InputLabel id="payment-method-label">
-                                            Metode Pembayaran
-                                        </InputLabel>
-                                        <Select
-                                            labelId="payment-method-label"
-                                            id="payment-method"
-                                            value={selectedPaymentMethod}
-                                            label="Metode Pembayaran"
-                                            onChange={(e) =>
-                                                setSelectedPaymentMethod(
-                                                    e.target.value
-                                                )
-                                            }
-                                        >
-                                            <MenuItem value="manual_transfer">
-                                                Transfer Manual
-                                            </MenuItem>
-                                            <MenuItem value="midtrans">
-                                                Midtrans
-                                            </MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </CardContent>
-                            </Card>
+                            <PaymentMethodSelector
+                                selectedPaymentMethod={selectedPaymentMethod}
+                                setSelectedPaymentMethod={
+                                    setSelectedPaymentMethod
+                                }
+                            />
 
                             {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
                             {selectedPaymentMethod === "manual_transfer" && (
-                                <Card sx={{ mb: 3 }}>
-                                    <CardContent>
-                                        <FormControl fullWidth>
-                                            <InputLabel id="transfer-account-label">
-                                                Rekening Tujuan
-                                            </InputLabel>
-                                            <Select
-                                                labelId="transfer-account-label"
-                                                id="transfer-account"
-                                                value={selectedTransferAccount}
-                                                label="Rekening Tujuan"
-                                                onChange={(e) =>
-                                                    setSelectedTransferAccount(
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {transferToAccounts &&
-                                                    transferToAccounts.map(
-                                                        (acc) => (
-                                                            <MenuItem
-                                                                key={acc.id}
-                                                                value={acc.id}
-                                                            >
-                                                                {acc.bank?.name}{" "}
-                                                                - {acc.number} -{" "}
-                                                                {acc.name}
-                                                            </MenuItem>
-                                                        )
-                                                    )}
-                                            </Select>
-                                        </FormControl>
-
-                                        {/* Tampilkan upload bukti transfer jika rekening sudah dipilih dan Card ini tampil */}
-                                        {selectedTransferAccount && (
-                                            <Box mt={3}>
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    gutterBottom
-                                                >
-                                                    Bukti Transfer
-                                                </Typography>
-                                                <Button
-                                                    variant="contained"
-                                                    component="label"
-                                                    fullWidth
-                                                >
-                                                    Upload Gambar
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        hidden
-                                                        onChange={(e) =>
-                                                            handleFileChange(e)
-                                                        }
-                                                    />
-                                                </Button>
-                                                {transferProof && (
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{ mt: 1 }}
-                                                    >
-                                                        File:{" "}
-                                                        {transferProof.name}
-                                                    </Typography>
-                                                )}
-                                            </Box>
-                                        )}
-                                    </CardContent>
-                                </Card>
+                                <ManualTransferDetails
+                                    selectedTransferAccount={
+                                        selectedTransferAccount
+                                    }
+                                    setSelectedTransferAccount={
+                                        setSelectedTransferAccount
+                                    }
+                                    transferToAccounts={transferToAccounts}
+                                    transferProof={transferProof}
+                                    handleFileChange={handleFileChange}
+                                />
                             )}
 
                             <Card>
@@ -1379,137 +815,29 @@ export default function Cart({
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader
-                                    title={
-                                        <Typography variant="h6">
-                                            Ringkasan Belanja
-                                        </Typography>
-                                    }
-                                />
-                                <CardContent>
-                                    <Stack spacing={2}>
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                            }}
-                                        >
-                                            <Typography>Subtotal</Typography>
-                                            <Typography>
-                                                Rp {subtotal.toLocaleString()}
-                                            </Typography>
-                                        </Box>
-                                        {selectedDelivery &&
-                                            selectedDelivery !== "33" &&
-                                            shippingCostConfirmed && (
-                                                <Box
-                                                    sx={{
-                                                        display: "flex",
-                                                        justifyContent:
-                                                            "space-between",
-                                                    }}
-                                                >
-                                                    <Typography>
-                                                        Ongkos Kirim
-                                                    </Typography>
-                                                    <Typography>
-                                                        Rp{" "}
-                                                        {shippingCostAmount.toLocaleString()}
-                                                    </Typography>
-                                                </Box>
-                                            )}
-                                        <Typography
-                                            variant="caption"
-                                            color="text.secondary"
-                                        >
-                                            {selectedDelivery &&
-                                            selectedDelivery !== "33" &&
-                                            !shippingCostConfirmed
-                                                ? "*) Silakan konfirmasi biaya pengiriman dengan admin"
-                                                : ""}
-                                        </Typography>
-                                        <Divider />
-                                        <Box sx={{ width: "100%" }}>
-                                            <Box
-                                                sx={{
-                                                    display: "flex",
-                                                    justifyContent:
-                                                        "flex-start",
-                                                }}
-                                            >
-                                                <Typography
-                                                    variant="h6"
-                                                    sx={{ fontWeight: "bold" }}
-                                                >
-                                                    Grand Total
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-
-                                        <Button
-                                            variant="contained"
-                                            size="large"
-                                            startIcon={
-                                                <ShoppingCartCheckoutIcon />
-                                            }
-                                            fullWidth
-                                            sx={{ mt: 2 }}
-                                            disabled={
-                                                !selectedDelivery || // Metode pengiriman wajib dipilih
-                                                !selectedPaymentMethod || // Metode pembayaran wajib dipilih
-                                                (selectedPaymentMethod ===
-                                                    "manual_transfer" && // Jika transfer manual:
-                                                    (selectedDelivery ===
-                                                        "33" ||
-                                                        (selectedDelivery !==
-                                                            "33" &&
-                                                            shippingCostConfirmed &&
-                                                            shippingPaymentMethod ===
-                                                                "via_us")) && // Hanya wajib jika self-pickup ATAU pengiriman, ongkir dikonfirmasi, dan bayar via kami
-                                                    (!selectedTransferAccount ||
-                                                        !transferProof)) || // Rekening tujuan & bukti transfer wajib jika kondisi di atas terpenuhi
-                                                (selectedDelivery !== "33" && // Jika pengiriman (bukan ambil sendiri):
-                                                    shippingCostAmount <= 0) // Jika bayar via kami, nominal ongkir > 0 wajib
-                                            }
-                                            onClick={handleCheckout}
-                                        >
-                                            Checkout
-                                        </Button>
-                                        {!selectedDelivery && (
-                                            <Typography
-                                                variant="caption"
-                                                color="error"
-                                            >
-                                                Silakan pilih metode pengiriman.
-                                            </Typography>
-                                        )}
-                                        {!selectedPaymentMethod && (
-                                            <Typography
-                                                variant="caption"
-                                                color="error"
-                                            >
-                                                Silakan pilih metode pembayaran.
-                                            </Typography>
-                                        )}
-                                        {showAddressSelection &&
-                                            !selectedAddress && (
-                                                <Typography
-                                                    variant="caption"
-                                                    color="error"
-                                                >
-                                                    Silakan pilih alamat
-                                                    pengiriman.
-                                                </Typography>
-                                            )}
-                                    </Stack>
-                                </CardContent>
-                            </Card>
+                            <OrderSummaryCard
+                                subtotal={subtotal}
+                                selectedDelivery={selectedDelivery}
+                                shippingCostConfirmed={shippingCostConfirmed}
+                                shippingPaymentMethod={shippingPaymentMethod}
+                                shippingCostAmount={shippingCostAmount}
+                                total={total}
+                                handleCheckout={handleCheckout}
+                                isProcessing={isProcessing}
+                                selectedPaymentMethod={selectedPaymentMethod}
+                                selectedTransferAccount={
+                                    selectedTransferAccount
+                                }
+                                transferProof={transferProof}
+                                showAddressSelection={showAddressSelection}
+                                selectedAddress={selectedAddress}
+                                deliveryServices={deliveryServices}
+                            />
                         </Stack>
                     </Stack>
                 ) : (
                     <Grid container spacing={3} flexWrap="nowrap">
-                        <Grid size={{ xs: 12, sm: 8 }}>
+                        <Grid size={8}>
                             {showAddressSelection && (
                                 <Card sx={{ mb: 3 }}>
                                     <CardHeader
@@ -1547,94 +875,13 @@ export default function Cart({
                                         }
                                     />
                                     <CardContent>
-                                        {/* Tampilkan alamat yang dipilih atau pesan placeholder */}
-                                        {selectedAddress ? (
-                                            (() => {
-                                                const selectedAddressObject =
-                                                    deliveryAddresses.find(
-                                                        (address) =>
-                                                            address.id.toString() ===
-                                                            selectedAddress
-                                                    );
-                                                if (!selectedAddressObject)
-                                                    return (
-                                                        <Typography
-                                                            variant="body2"
-                                                            color="text.secondary"
-                                                            align="center"
-                                                        >
-                                                            Silakan pilih alamat
-                                                            pengiriman.
-                                                        </Typography>
-                                                    );
-                                                return (
-                                                    <Box
-                                                        sx={{
-                                                            p: 2,
-                                                            border: "1px solid",
-                                                            borderColor:
-                                                                "divider",
-                                                            borderRadius: 1,
-                                                        }}
-                                                    >
-                                                        <Typography variant="subtitle1">
-                                                            {
-                                                                selectedAddressObject.name
-                                                            }
-                                                        </Typography>
-                                                        <Typography
-                                                            variant="body2"
-                                                            color="text.secondary"
-                                                        >
-                                                            Penerima:{" "}
-                                                            {
-                                                                selectedAddressObject.recipient_name
-                                                            }{" "}
-                                                            <br />
-                                                            No. Telp:{" "}
-                                                            {
-                                                                selectedAddressObject.recipient_telp_no
-                                                            }{" "}
-                                                            <br />
-                                                            Alamat:{" "}
-                                                            {
-                                                                selectedAddressObject.address
-                                                            }{" "}
-                                                            <br />
-                                                            {selectedAddressObject
-                                                                .subdistrict
-                                                                ?.name
-                                                                ? `${selectedAddressObject.subdistrict.name}, `
-                                                                : ""}
-                                                            {selectedAddressObject
-                                                                .district?.name
-                                                                ? `${selectedAddressObject.district.name}, `
-                                                                : ""}
-                                                            {selectedAddressObject
-                                                                .city?.name
-                                                                ? `${selectedAddressObject.city.name}, `
-                                                                : ""}
-                                                            {selectedAddressObject
-                                                                .province?.name
-                                                                ? `${selectedAddressObject.province.name}`
-                                                                : ""}
-                                                            <br />
-                                                            Kode Pos:{" "}
-                                                            {selectedAddressObject.postal_code_id ||
-                                                                "-"}
-                                                        </Typography>
-                                                    </Box>
-                                                );
-                                            })()
-                                        ) : (
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                align="center"
-                                            >
-                                                Silakan pilih alamat pengiriman.
-                                            </Typography>
-                                        )}
+                                        <DeliveryAddressDisplay
+                                            selectedAddressObject={deliveryAddresses.find(
+                                                (address) =>
+                                                    address.id.toString() ===
+                                                    selectedAddress
+                                            )}
+                                        />
                                     </CardContent>
                                 </Card>
                             )}
@@ -1671,287 +918,24 @@ export default function Cart({
                                                 {cartItems?.map((item) => (
                                                     <TableRow key={item.id}>
                                                         <TableCell>
-                                                            <Stack
-                                                                direction="row"
-                                                                spacing={2}
-                                                                alignItems="center"
-                                                            >
-                                                                <Avatar
-                                                                    variant="rounded"
-                                                                    src={
-                                                                        item
-                                                                            .product
-                                                                            ?.image
-                                                                    }
-                                                                    sx={{
-                                                                        width: {
-                                                                            xs: 50,
-                                                                            sm: 80,
-                                                                        },
-                                                                        height: {
-                                                                            xs: 50,
-                                                                            sm: 80,
-                                                                        },
-                                                                    }}
-                                                                />
-                                                                <Box>
-                                                                    <Typography
-                                                                        variant="subtitle1"
-                                                                        sx={{
-                                                                            fontSize:
-                                                                                {
-                                                                                    xs: "0.9rem",
-                                                                                    sm: "1rem",
-                                                                                },
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                ?.name
-                                                                        }
-                                                                    </Typography>
-                                                                    <Stack
-                                                                        direction="row"
-                                                                        spacing={
-                                                                            1
-                                                                        }
-                                                                        alignItems="center"
-                                                                    >
-                                                                        <Typography
-                                                                            variant="body2"
-                                                                            color="text.secondary"
-                                                                        >
-                                                                            Rp{" "}
-                                                                            {getPriceByQuantity(
-                                                                                item
-                                                                                    .product
-                                                                                    ?.price_tiers,
-                                                                                quantities[
-                                                                                    item
-                                                                                        .id
-                                                                                ] ||
-                                                                                    item.quantity
-                                                                            )?.toLocaleString()}
-                                                                            /
-                                                                            {item
-                                                                                .product
-                                                                                ?.unit
-                                                                                ?.unit ||
-                                                                                "unit"}
-                                                                        </Typography>
-                                                                        {getDiscountPercentage(
-                                                                            item
-                                                                                .product
-                                                                                ?.price_tiers,
-                                                                            quantities[
-                                                                                item
-                                                                                    .id
-                                                                            ] ||
-                                                                                item.quantity
-                                                                        ) >
-                                                                            0 && (
-                                                                            <Chip
-                                                                                label={`Diskon ${getDiscountPercentage(
-                                                                                    item
-                                                                                        .product
-                                                                                        ?.price_tiers,
-                                                                                    quantities[
-                                                                                        item
-                                                                                            .id
-                                                                                    ] ||
-                                                                                        item.quantity
-                                                                                )}%`}
-                                                                                color="success"
-                                                                                size="small"
-                                                                            />
-                                                                        )}
-                                                                    </Stack>
-                                                                    {item
-                                                                        .product
-                                                                        ?.price_tiers
-                                                                        ?.length >
-                                                                        0 && (
-                                                                        <Tooltip
-                                                                            title={
-                                                                                <Box>
-                                                                                    <Typography variant="subtitle2">
-                                                                                        Tier
-                                                                                        Harga:
-                                                                                    </Typography>
-                                                                                    {item.product.price_tiers.map(
-                                                                                        (
-                                                                                            tier,
-                                                                                            index
-                                                                                        ) => (
-                                                                                            <Typography
-                                                                                                key={
-                                                                                                    index
-                                                                                                }
-                                                                                                variant="body2"
-                                                                                            >
-                                                                                                {tier.label ||
-                                                                                                    `${
-                                                                                                        tier.min_quantity
-                                                                                                    }-${
-                                                                                                        tier.max_quantity ||
-                                                                                                        "∞"
-                                                                                                    } ${
-                                                                                                        item
-                                                                                                            .product
-                                                                                                            ?.unit
-                                                                                                            ?.unit ||
-                                                                                                        "unit"
-                                                                                                    }`}
-
-                                                                                                :
-                                                                                                Rp{" "}
-                                                                                                {tier.price.toLocaleString()}
-
-                                                                                                /
-                                                                                                {item
-                                                                                                    .product
-                                                                                                    ?.unit
-                                                                                                    ?.unit ||
-                                                                                                    "unit"}
-                                                                                            </Typography>
-                                                                                        )
-                                                                                    )}
-                                                                                </Box>
-                                                                            }
-                                                                        >
-                                                                            <Typography
-                                                                                variant="caption"
-                                                                                color="text.secondary"
-                                                                                sx={{
-                                                                                    cursor: "help",
-                                                                                }}
-                                                                            >
-                                                                                Lihat
-                                                                                tier
-                                                                                harga
-                                                                            </Typography>
-                                                                        </Tooltip>
-                                                                    )}
-                                                                </Box>
-                                                            </Stack>
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <Stack
-                                                                direction="row"
-                                                                spacing={1}
-                                                                alignItems="center"
-                                                                justifyContent="center"
-                                                            >
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={() =>
-                                                                        handleQuantityChange(
-                                                                            item.id,
-                                                                            -1
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <RemoveIcon />
-                                                                </IconButton>
-                                                                <TextField
-                                                                    value={
-                                                                        quantities[
-                                                                            item
-                                                                                .id
-                                                                        ] ||
-                                                                        item.quantity
-                                                                    }
-                                                                    onChange={(
-                                                                        e
-                                                                    ) =>
-                                                                        handleQuantityInput(
-                                                                            item.id,
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                    type="number"
-                                                                    size="small"
-                                                                    sx={{
-                                                                        width: {
-                                                                            xs: "60px",
-                                                                            sm: "80px",
-                                                                        },
-                                                                    }} /* Responsive width */
-                                                                    inputProps={{
-                                                                        min: 1,
-                                                                        style: {
-                                                                            textAlign:
-                                                                                "center",
-                                                                        } /* Remove fixed width here */,
-                                                                    }}
-                                                                    InputProps={{
-                                                                        endAdornment:
-                                                                            (
-                                                                                <InputAdornment position="end">
-                                                                                    <Typography
-                                                                                        variant="caption"
-                                                                                        color="text.secondary"
-                                                                                    >
-                                                                                        {item
-                                                                                            .product
-                                                                                            ?.unit
-                                                                                            ?.unit ||
-                                                                                            "unit"}
-                                                                                    </Typography>
-                                                                                </InputAdornment>
-                                                                            ),
-                                                                    }}
-                                                                />
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={() =>
-                                                                        handleQuantityChange(
-                                                                            item.id,
-                                                                            1
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <AddIcon />
-                                                                </IconButton>
-                                                            </Stack>
-                                                        </TableCell>
-                                                        <TableCell align="right">
-                                                            <Typography variant="subtitle1">
-                                                                Rp{" "}
-                                                                {(
-                                                                    (quantities[
-                                                                        item.id
-                                                                    ] ||
-                                                                        item.quantity) *
-                                                                    getPriceByQuantity(
-                                                                        item
-                                                                            .product
-                                                                            ?.price_tiers,
-                                                                        quantities[
-                                                                            item
-                                                                                .id
-                                                                        ] ||
-                                                                            item.quantity
-                                                                    )
-                                                                )?.toLocaleString()}
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <IconButton
-                                                                color="error"
-                                                                aria-label="hapus"
-                                                                size="small"
-                                                                onClick={() =>
-                                                                    handleDeleteItem(
-                                                                        item.id
-                                                                    )
+                                                            <CartItemCard
+                                                                item={item}
+                                                                quantities={
+                                                                    quantities
                                                                 }
-                                                            >
-                                                                <DeleteIcon />
-                                                            </IconButton>
+                                                                handleQuantityChange={
+                                                                    handleQuantityChange
+                                                                }
+                                                                handleQuantityInput={
+                                                                    handleQuantityInput
+                                                                }
+                                                                handleDeleteItem={
+                                                                    handleDeleteItem
+                                                                }
+                                                                isMobile={
+                                                                    isMobile
+                                                                }
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -1962,22 +946,9 @@ export default function Cart({
                             </Card>
                         </Grid>
 
-                        <Grid size={{ sm: 4, md: 4 }}>
-                            <Stack
-                                spacing={3}
-                                sx={{}} // Removed sticky positioning
-                            >
+                        <Grid size={4}>
+                            <Stack spacing={3}>
                                 <Card>
-                                    {/* <CardHeader
-                                            title={
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <LocalShippingIcon />
-                                                    <Typography variant="h6">
-                                                        Pilih Pengiriman
-                                                    </Typography>
-                                                </Stack>
-                                            }
-                                        /> */}
                                     <CardContent>
                                         <FormControl fullWidth>
                                             <InputLabel id="delivery-service-label">
@@ -2002,6 +973,33 @@ export default function Cart({
                                                 )}
                                             </Select>
                                         </FormControl>
+                                        {showWAButton && !shippingCostConfirmed && (
+                                            <Button
+                                                variant="outlined"
+                                                fullWidth
+                                                startIcon={<WhatsAppIcon />}
+                                                href={`https://wa.me/6285782004645?text=${encodeURIComponent(
+                                                    "Halo Sagansa, saya ingin konfirmasi pesanan saya dan menanyakan biaya pengiriman."
+                                                )}`}
+                                                target="_blank"
+                                                sx={{
+                                                    mt: 2,
+                                                    mb: 1,
+                                                    py: 1,
+                                                    borderRadius: 2,
+                                                    fontWeight: "bold",
+                                                    borderColor: "#25D366",
+                                                    color: "#25D366",
+                                                    "&:hover": {
+                                                        borderColor: "#128C7E",
+                                                        bgcolor:
+                                                            "rgba(37, 211, 102, 0.05)",
+                                                    },
+                                                }}
+                                            >
+                                                Chat WA Admin
+                                            </Button>
+                                        )}
                                     </CardContent>
                                 </Card>
 
@@ -2009,224 +1007,49 @@ export default function Cart({
                                 {selectedDelivery &&
                                     selectedDelivery !== "33" &&
                                     shippingCostConfirmed && (
-                                        <Card sx={{ mb: 3 }}>
-                                            <CardContent>
-                                                <Typography
-                                                    variant="subtitle1"
-                                                    gutterBottom
-                                                >
-                                                    Pembayaran Ongkos Kirim
-                                                </Typography>
-                                                <FormControl
-                                                    component="fieldset"
-                                                    fullWidth
-                                                >
-                                                    <FormLabel component="legend">
-                                                        Metode Pembayaran Ongkos
-                                                        Kirim
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        row
-                                                        aria-label="shipping-payment-method"
-                                                        name="shipping-payment-method"
-                                                        value={
-                                                            shippingPaymentMethod
-                                                        }
-                                                        onChange={(e) =>
-                                                            setShippingPaymentMethod(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    >
-                                                        <FormControlLabel
-                                                            value="via_us"
-                                                            control={<Radio />}
-                                                            label="Dibayarkan melalui kami"
-                                                        />
-                                                        <FormControlLabel
-                                                            value="to_courier"
-                                                            control={<Radio />}
-                                                            label="Dibayarkan langsung pembeli ke kurir"
-                                                        />
-                                                    </RadioGroup>
-                                                </FormControl>
-
-                                                {/* Container for dynamic shipping cost input/alert */}
-                                                <Box
-                                                    sx={{
-                                                        minHeight: "80px",
-                                                        mt: 2,
-                                                    }}
-                                                >
-                                                    {" "}
-                                                    {/* Reserve space */}
-                                                    {shippingPaymentMethod ===
-                                                    "via_us" ? (
-                                                        <TextField
-                                                            label="Nominal Biaya Pengiriman"
-                                                            type="number"
-                                                            fullWidth
-                                                            value={
-                                                                shippingCostAmount
-                                                            }
-                                                            onChange={(e) =>
-                                                                setShippingCostAmount(
-                                                                    parseFloat(
-                                                                        e.target
-                                                                            .value
-                                                                    ) || 0
-                                                                )
-                                                            }
-                                                            InputProps={{
-                                                                startAdornment:
-                                                                    (
-                                                                        <InputAdornment position="start">
-                                                                            Rp
-                                                                        </InputAdornment>
-                                                                    ),
-                                                            }}
-                                                            inputProps={{
-                                                                min: 0,
-                                                            }}
-                                                        />
-                                                    ) : shippingPaymentMethod ===
-                                                      "to_courier" ? (
-                                                        <Alert severity="info">
-                                                            Nominal ongkos kirim
-                                                            dibayarkan langsung
-                                                            ke kurir saat
-                                                            pesanan diterima.
-                                                        </Alert>
-                                                    ) : null}
-                                                </Box>
-                                            </CardContent>
-                                        </Card>
+                                        <ShippingPaymentMethodSelector
+                                            shippingPaymentMethod={
+                                                shippingPaymentMethod
+                                            }
+                                            setShippingPaymentMethod={
+                                                setShippingPaymentMethod
+                                            }
+                                            shippingCostAmount={
+                                                shippingCostAmount
+                                            }
+                                            setShippingCostAmount={
+                                                setShippingCostAmount
+                                            }
+                                        />
                                     )}
 
                                 {/* Card Metode Pembayaran */}
-                                <Card sx={{ mb: 3 }}>
-                                    <CardContent>
-                                        <FormControl fullWidth>
-                                            <InputLabel id="payment-method-label">
-                                                Metode Pembayaran
-                                            </InputLabel>
-                                            <Select
-                                                labelId="payment-method-label"
-                                                id="payment-method"
-                                                value={selectedPaymentMethod}
-                                                label="Metode Pembayaran"
-                                                onChange={(e) =>
-                                                    setSelectedPaymentMethod(
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                <MenuItem value="manual_transfer">
-                                                    Transfer Manual
-                                                </MenuItem>
-                                                <MenuItem value="midtrans">
-                                                    Midtrans
-                                                </MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                    </CardContent>
-                                </Card>
+                                <PaymentMethodSelector
+                                    selectedPaymentMethod={
+                                        selectedPaymentMethod
+                                    }
+                                    setSelectedPaymentMethod={
+                                        setSelectedPaymentMethod
+                                    }
+                                />
 
                                 {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
                                 {selectedPaymentMethod ===
                                     "manual_transfer" && (
-                                    <Card sx={{ mb: 3 }}>
-                                        <CardContent>
-                                            <FormControl fullWidth>
-                                                <InputLabel id="transfer-account-label">
-                                                    Rekening Tujuan
-                                                </InputLabel>
-                                                <Select
-                                                    labelId="transfer-account-label"
-                                                    id="transfer-account"
-                                                    value={
-                                                        selectedTransferAccount
-                                                    }
-                                                    label="Rekening Tujuan"
-                                                    onChange={(e) =>
-                                                        setSelectedTransferAccount(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    {transferToAccounts &&
-                                                        transferToAccounts.map(
-                                                            (acc) => (
-                                                                <MenuItem
-                                                                    key={acc.id}
-                                                                    value={
-                                                                        acc.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        acc.bank
-                                                                            ?.name
-                                                                    }{" "}
-                                                                    -{" "}
-                                                                    {acc.number}{" "}
-                                                                    - {acc.name}
-                                                                </MenuItem>
-                                                            )
-                                                        )}
-                                                </Select>
-                                            </FormControl>
-
-                                            {/* Tampilkan upload bukti transfer jika rekening sudah dipilih dan Card ini tampil */}
-                                            {selectedTransferAccount && (
-                                                <Box mt={3}>
-                                                    <Typography
-                                                        variant="subtitle2"
-                                                        gutterBottom
-                                                    >
-                                                        Bukti Transfer
-                                                    </Typography>
-                                                    <Button
-                                                        variant="contained"
-                                                        component="label"
-                                                        fullWidth
-                                                    >
-                                                        Upload Gambar
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            hidden
-                                                            onChange={(e) =>
-                                                                handleFileChange(
-                                                                    e
-                                                                )
-                                                            }
-                                                        />
-                                                    </Button>
-                                                    {transferProof && (
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{ mt: 1 }}
-                                                        >
-                                                            File:{" "}
-                                                            {transferProof.name}
-                                                        </Typography>
-                                                    )}
-                                                </Box>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                    <ManualTransferDetails
+                                        selectedTransferAccount={
+                                            selectedTransferAccount
+                                        }
+                                        setSelectedTransferAccount={
+                                            setSelectedTransferAccount
+                                        }
+                                        transferToAccounts={transferToAccounts}
+                                        handleFileChange={handleFileChange}
+                                        transferProof={transferProof}
+                                    />
                                 )}
 
                                 <Card>
-                                    {/* <CardHeader
-                                            title={
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Typography variant="h6">
-                                                        Rencana Tanggal Pengiriman
-                                                    </Typography>
-                                                </Stack>
-                                            }
-                                        /> */}
                                     <CardContent>
                                         <TextField
                                             label="Tanggal Pengiriman"
@@ -2247,164 +1070,30 @@ export default function Cart({
                                     </CardContent>
                                 </Card>
 
-                                <Card>
-                                    <CardHeader
-                                        title={
-                                            <Typography variant="h6">
-                                                Ringkasan Belanja
-                                            </Typography>
-                                        }
-                                    />
-                                    <CardContent>
-                                        <Stack spacing={2}>
-                                            <Box
-                                                sx={{
-                                                    display: "flex",
-                                                    justifyContent:
-                                                        "space-between",
-                                                }}
-                                            >
-                                                <Typography>
-                                                    Subtotal
-                                                </Typography>
-                                                <Typography>
-                                                    Rp{" "}
-                                                    {subtotal.toLocaleString()}
-                                                </Typography>
-                                            </Box>
-                                            {selectedDelivery &&
-                                                selectedDelivery !== "33" &&
-                                                shippingCostConfirmed && (
-                                                    <Box
-                                                        sx={{
-                                                            display: "flex",
-                                                            justifyContent:
-                                                                "space-between",
-                                                        }}
-                                                    >
-                                                        <Typography>
-                                                            Ongkos Kirim
-                                                        </Typography>
-                                                        <Typography>
-                                                            Rp{" "}
-                                                            {shippingCostAmount.toLocaleString()}
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                            >
-                                                {selectedDelivery &&
-                                                selectedDelivery !== "33" &&
-                                                !shippingCostConfirmed
-                                                    ? "*) Silakan konfirmasi biaya pengiriman dengan admin"
-                                                    : ""}
-                                            </Typography>
-                                            <Divider />
-                                            <Box sx={{ width: "100%" }}>
-                                                <Box
-                                                    sx={{
-                                                        display: "flex",
-                                                        justifyContent:
-                                                            "flex-start",
-                                                    }}
-                                                >
-                                                    <Typography
-                                                        variant="h6"
-                                                        sx={{
-                                                            fontWeight: "bold",
-                                                        }}
-                                                    >
-                                                        Grand Total
-                                                    </Typography>
-                                                </Box>
-                                                <Box
-                                                    sx={{
-                                                        display: "flex",
-                                                        justifyContent:
-                                                            "flex-end",
-                                                    }}
-                                                >
-                                                    <Typography
-                                                        variant="h6"
-                                                        color="primary"
-                                                        sx={{
-                                                            fontWeight: "bold",
-                                                        }}
-                                                    >
-                                                        Rp{" "}
-                                                        {total.toLocaleString()}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                            <Button
-                                                variant="contained"
-                                                size="large"
-                                                startIcon={
-                                                    <ShoppingCartCheckoutIcon />
-                                                }
-                                                fullWidth
-                                                sx={{ mt: 2 }}
-                                                disabled={
-                                                    !selectedDelivery || // Metode pengiriman wajib dipilih
-                                                    !selectedPaymentMethod || // Metode pembayaran wajib dipilih
-                                                    (selectedPaymentMethod ===
-                                                        "manual_transfer" && // Jika transfer manual:
-                                                        (selectedDelivery ===
-                                                            "33" ||
-                                                            (selectedDelivery !==
-                                                                "33" &&
-                                                                shippingCostConfirmed &&
-                                                                shippingPaymentMethod ===
-                                                                    "via_us")) && // Hanya wajib jika self-pickup ATAU pengiriman, ongkir dikonfirmasi, dan bayar via kami
-                                                        (!selectedTransferAccount ||
-                                                            !transferProof)) || // Rekening tujuan & bukti transfer wajib jika kondisi di atas terpenuhi
-                                                    (selectedDelivery !==
-                                                        "33" && // Jika pengiriman (bukan ambil sendiri):
-                                                        !selectedAddress) || // Alamat pengiriman wajib
-                                                    (selectedDelivery !==
-                                                        "33" &&
-                                                        shippingCostConfirmed && // Jika pengiriman, ongkir dikonfirmasi:
-                                                        shippingPaymentMethod ===
-                                                            "via_us" &&
-                                                        shippingCostAmount <= 0) // Jika bayar via kami, nominal ongkir > 0 wajib
-                                                }
-                                                onClick={handleCheckout}
-                                            >
-                                                Checkout
-                                            </Button>
-                                            {!selectedDelivery && (
-                                                <Typography
-                                                    variant="caption"
-                                                    color="error"
-                                                >
-                                                    Silakan pilih metode
-                                                    pengiriman.
-                                                </Typography>
-                                            )}
-                                            {!selectedPaymentMethod && (
-                                                <Typography
-                                                    variant="caption"
-                                                    color="error"
-                                                >
-                                                    Silakan pilih metode
-                                                    pembayaran.
-                                                </Typography>
-                                            )}
-                                            {showAddressSelection &&
-                                                !selectedAddress && (
-                                                    <Typography
-                                                        variant="caption"
-                                                        color="error"
-                                                    >
-                                                        Silakan pilih alamat
-                                                        pengiriman.
-                                                    </Typography>
-                                                )}
-                                        </Stack>
-                                    </CardContent>
-                                </Card>
+                                <OrderSummaryCard
+                                    subtotal={subtotal}
+                                    selectedDelivery={selectedDelivery}
+                                    shippingCostConfirmed={
+                                        shippingCostConfirmed
+                                    }
+                                    shippingPaymentMethod={
+                                        shippingPaymentMethod
+                                    }
+                                    shippingCostAmount={shippingCostAmount}
+                                    total={total}
+                                    handleCheckout={handleCheckout}
+                                    isProcessing={isProcessing}
+                                    selectedPaymentMethod={
+                                        selectedPaymentMethod
+                                    }
+                                    selectedTransferAccount={
+                                        selectedTransferAccount
+                                    }
+                                    transferProof={transferProof}
+                                    showAddressSelection={showAddressSelection}
+                                    selectedAddress={selectedAddress}
+                                    deliveryServices={deliveryServices}
+                                />
                             </Stack>
                         </Grid>
                     </Grid>

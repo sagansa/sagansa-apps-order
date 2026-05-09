@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
+    protected $connection = 'mysql';
+
     use HasFactory;
     use SoftDeletes;
 

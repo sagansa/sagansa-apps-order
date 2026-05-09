@@ -9,6 +9,8 @@ class SalesOrder extends Model
 {
     use HasFactory;
 
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'for',
         'delivery_date',
@@ -18,10 +20,6 @@ class SalesOrder extends Model
         'image_payment',
         'payment_status',
         'delivery_status',
-        'status', // Added for overall order status
-        'midtrans_snap_token',
-        'midtrans_transaction_id',
-        'midtrans_status',
         'shipping_cost',
         'store_id',
         'receipt_no',

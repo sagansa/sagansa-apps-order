@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PriceTier extends Model
 {
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'product_id',
         'min_quantity',

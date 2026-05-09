@@ -8,12 +8,25 @@ use App\Http\Controllers\EngineeringController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
-Route::get('/', [WelcomeController::class, 'index']);
+Route::get('/', [OrderController::class, 'index'])->name('order.index');
+
+Route::get('/order', function (Request $request) {
+    $filters = collect($request->query())
+        ->reject(function ($value, $key) {
+            return match ($key) {
+                'category', 'unit' => $value === null || $value === '' || $value === 'all',
+                'min_price', 'max_price', 'search' => $value === null || $value === '' || $value === '0',
+                default => $value === null || $value === '',
+            };
+        })
+        ->all();
+
+    return redirect()->route('order.index', $filters);
+});
 
 Route::get('/food', function () {
     return Inertia::render('WelcomeFood');
@@ -22,8 +35,6 @@ Route::get('/food', function () {
 Route::get('/engineering', [EngineeringController::class, 'index']);
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
-
-Route::get('/order', [OrderController::class, 'index'])->name('order.index');
 
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 
@@ -36,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
 
+    Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
     Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 
     // Route for checkout success is now handled by CartController directly
@@ -55,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Delivery Address routes
-    Route::resource('delivery-address', DeliveryAddressController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('delivery-address', DeliveryAddressController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('/transaction-history', [OrderController::class, 'orderHistory'])->name('transaction.history');
 
@@ -63,6 +75,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/order/{order}/update-payment', [OrderController::class, 'updatePayment'])->name('order.update-payment');
     Route::post('/sales-order/{salesOrder}/set-manual-transfer', [OrderController::class, 'setManualTransfer'])->name('sales-order.set-manual-transfer');
+
+    // Moved from api.php as per user request
+    Route::get('/api/orders/{id}', [OrderController::class, 'show'])->name('api.orders.show');
 });
 
 require __DIR__.'/auth.php';

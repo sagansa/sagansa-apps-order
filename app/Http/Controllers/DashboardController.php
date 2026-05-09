@@ -32,7 +32,6 @@ class DashboardController extends Controller
             ->limit(5) // Limit to 5 recent orders
             ->get()
             ->map(function ($order) {
-                // Re-use status mapping from OrderController if possible, or define here
                 $deliveryStatusMapping = [
                     1 => 'Belum dikirim',
                     2 => 'Diproses',
@@ -41,14 +40,6 @@ class DashboardController extends Controller
                     5 => 'Perbaiki',
                     6 => 'Dikembalikan',
                 ];
-                // paymentStatusMapping is not used in Dashboard.jsx for recent orders status,
-                // so we don't need to return it here.
-                // $paymentStatusMapping = [
-                //     1 => 'Dibayar',
-                //     2 => 'Valid',
-                //     3 => 'Tidak valid',
-                //     4 => 'Belum dibayar',
-                // ];
 
                 $combinedString = (string)$order->total_price . (string)$order->id;
                 if ($order->delivery_date) {
@@ -61,7 +52,7 @@ class DashboardController extends Controller
                     'order_number' => $orderNumber,
                     'date' => $order->delivery_date ? $order->delivery_date : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
                     'total' => 'Rp ' . number_format($order->total_price, 0, ',', '.'),
-                    'status' => $deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui', // Using delivery status for display
+                    'status' => $deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
                 ];
             });
 
@@ -93,14 +84,14 @@ class DashboardController extends Controller
             }])
             ->groupBy('product_id')
             ->orderByDesc('order_count')
-            ->limit(5) // Limit to 5 frequently ordered products
+            ->limit(5)
             ->get()
             ->map(function ($item) {
                 return [
-                    'id' => $item->product->id,
-                    'name' => $item->product->name,
+                    'id' => $item->product->id ?? null,
+                    'name' => $item->product->name ?? 'Produk Tidak Diketahui',
                     'order_count' => $item->order_count,
-                    'image' => $item->product->image,
+                    'image' => $item->product->image ?? null,
                 ];
             });
 

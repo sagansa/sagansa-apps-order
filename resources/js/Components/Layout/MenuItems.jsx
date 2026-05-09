@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { List, ListItem, ListItemText } from '@mui/material';
 
 export default function MenuItems({ isAuthenticated, onItemClick }) {
