@@ -2,7 +2,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "dotenv -e .env vite build",
+        "build": "dotenv -e .env vite build && cp public/build/.vite/manifest.json public/build/manifest.json && cp public/build/manifest.json public/build/manifest.json.backup",
         "dev": "dotenv -e .env vite"
     },
     "devDependencies": {
