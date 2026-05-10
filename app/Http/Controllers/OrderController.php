@@ -25,6 +25,7 @@ class OrderController extends Controller
         Log::info('OrderController@index request:', $request->all());
 
         $products = Product::with(['unit', 'onlineCategory', 'priceTiers'])
+            ->withCount('detailSalesOrders') // Menghitung total transaksi per produk
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
             })
@@ -51,6 +52,7 @@ class OrderController extends Controller
             ->when(request('search'), function ($query) {
                 $query->where('name', 'like', '%' . request('search') . '%');
             })
+            ->orderByDesc('detail_sales_orders_count') // Urutkan dari yang paling banyak dibeli
             ->get();
 
         $categories = OnlineCategory::all();
