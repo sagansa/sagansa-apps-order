@@ -29,36 +29,17 @@ export default function BaseLayout({
     secondaryColor,
     ...rest
 }) {
-    const [mode, setMode] = useState(() => {
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme) {
-            return savedTheme;
-        } else {
-            // Determine initial mode based on time of day (e.g., 6 AM to 6 PM is light)
-            const hour = new Date().getHours();
-            return hour >= 6 && hour < 18 ? "light" : "dark";
-        }
-    });
+    const [mode, setMode] = useState("dark");
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    useEffect(() => {
+        setMode("dark"); // Force dark mode
+    }, []);
 
     useEffect(() => {
         localStorage.setItem("theme", mode);
     }, [mode]);
 
-    // Optional: Add an effect to update mode if time passes a threshold while app is open
-    useEffect(() => {
-        const checkTimeForTheme = () => {
-            const hour = new Date().getHours();
-            const newMode = hour >= 6 && hour < 18 ? "light" : "dark";
-            // Only update if current mode is not manually set and needs to change
-            if (!localStorage.getItem("theme") && newMode !== mode) {
-                setMode(newMode);
-            }
-        };
-
-        const intervalId = setInterval(checkTimeForTheme, 60 * 60 * 1000); // Check every hour
-        return () => clearInterval(intervalId);
-    }, [mode]); // Dependency on mode to re-evaluate interval if mode changes manually
 
     const theme = useMemo(() => {
         const actualMode = mode === "dark" ? "dark" : "light";
@@ -120,7 +101,7 @@ export default function BaseLayout({
                 }}
                 {...rest}
             >
-                <AppBar position="static" color="primary">
+                <AppBar position="static" sx={{ bgcolor: 'background.default', backgroundImage: 'none' }} elevation={0}>
                     <Container maxWidth="lg">
                         <Toolbar>
                             <IconButton
@@ -201,17 +182,6 @@ export default function BaseLayout({
                             <Box sx={{ flexGrow: 1 }} />
 
                             <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <IconButton
-                                    sx={{ ml: 1 }}
-                                    onClick={toggleDarkMode}
-                                    color="inherit"
-                                >
-                                    {mode === "dark" ? (
-                                        <Brightness7Icon />
-                                    ) : (
-                                        <Brightness4Icon />
-                                    )}
-                                </IconButton>
 
                                 <UserMenu
                                     user={user}
