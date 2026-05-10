@@ -269,7 +269,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                 ) : (
                                     <Grid container spacing={1.5}> {/* Tighter spacing between product cards */}
                                         {products.length > 0 ? products.map((product) => (
-                                            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2.4 }} key={product.id}> {/* 5 columns on lg screens (12/5 = 2.4) */}
+                                            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2.4, xl: 2.4 }} key={product.id}> {/* 5 columns on lg and xl screens (12/5 = 2.4) */}
                                                 <Card
                                                     elevation={0}
                                                     sx={{
