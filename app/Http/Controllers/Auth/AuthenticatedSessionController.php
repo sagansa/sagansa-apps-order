@@ -16,8 +16,16 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        if (!session()->has('url.intended')) {
+            $previousUrl = url()->previous();
+            // Pastikan bukan halaman login itu sendiri agar tidak looping
+            if ($previousUrl !== route('login') && $previousUrl !== url('/')) {
+                session()->put('url.intended', $previousUrl);
+            }
+        }
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
