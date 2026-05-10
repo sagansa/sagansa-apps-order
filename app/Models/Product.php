@@ -47,7 +47,11 @@ class Product extends Model
 
     public function getImageUrlAttribute($value)
     {
-        return $value ?: 'https://placehold.co/600x400?text=No+Image';
+        if (!$value) {
+            return 'https://placehold.co/600x400?text=No+Image';
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($value);
     }
 
     public static function boot()
