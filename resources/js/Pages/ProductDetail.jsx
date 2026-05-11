@@ -220,6 +220,36 @@ export default function ProductDetail({ auth, product }) {
                                     Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                 </Typography>
 
+                                {product.price_tiers && product.price_tiers.length > 0 && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold', mb: 1 }}>
+                                            Grosir:
+                                        </Typography>
+                                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                            {product.price_tiers.map((tier, idx) => (
+                                                <Chip 
+                                                    key={idx}
+                                                    label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
+                                                    size="small"
+                                                    sx={{ 
+                                                        bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                            ? '#C6A96B' 
+                                                            : 'rgba(255,255,255,0.05)',
+                                                        color: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                            ? '#000' 
+                                                            : 'text.secondary',
+                                                        border: '1px solid',
+                                                        borderColor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                            ? '#C6A96B' 
+                                                            : 'rgba(255,255,255,0.1)',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+
                                 <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
 
                                 <Box sx={{ width: '100%' }}>

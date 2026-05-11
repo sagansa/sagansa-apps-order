@@ -10,6 +10,7 @@ use App\Models\DeliveryAddress;
 use App\Models\TransferToAccount;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
+use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -155,8 +156,25 @@ class CartController extends Controller
                     Log::info('Image payment stored at: ' . $imagePaymentPath);
                 }
 
-                // Calculate total price
-                $subtotal = array_reduce($validated['items'], fn ($sum, $item) => $sum + ($item['quantity'] * $item['price']), 0);
+                // Calculate total price and prepare items with correct prices from backend
+                $processedItems = [];
+                $subtotal = 0;
+
+                foreach ($validated['items'] as $itemData) {
+                    $product = Product::findOrFail($itemData['product_id']);
+                    $price = $product->getPriceByQuantity($itemData['quantity']);
+                    $itemSubtotal = $price * $itemData['quantity'];
+                    
+                    $processedItems[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $itemData['quantity'],
+                        'price' => $price,
+                        'subtotal' => $itemSubtotal,
+                    ];
+                    
+                    $subtotal += $itemSubtotal;
+                }
+
                 $totalPrice = $subtotal + $shippingCost;
 
                 $orderData = [
@@ -179,13 +197,13 @@ class CartController extends Controller
                 Log::info('SalesOrder created successfully with ID: ' . $order->id);
 
 
-                foreach ($validated['items'] as $item) {
+                foreach ($processedItems as $item) {
                     DetailSalesOrder::create([
                         'sales_order_id' => $order->id,
                         'product_id' => $item['product_id'],
                         'quantity' => $item['quantity'],
                         'unit_price' => $item['price'],
-                        'subtotal_price' => $item['quantity'] * $item['price'],
+                        'subtotal_price' => $item['subtotal'],
                     ]);
                 }
                 Log::info('DetailSalesOrder created successfully for order ID: ' . $order->id);

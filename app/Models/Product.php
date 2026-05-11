@@ -83,4 +83,18 @@ class Product extends Model
     {
         return $this->hasMany(PriceTier::class)->orderBy('min_quantity');
     }
+
+    public function getPriceByQuantity($quantity)
+    {
+        $tier = $this->priceTiers()
+            ->where('min_quantity', '<=', $quantity)
+            ->where(function ($query) use ($quantity) {
+                $query->whereNull('max_quantity')
+                    ->orWhere('max_quantity', '>=', $quantity);
+            })
+            ->orderByDesc('min_quantity')
+            ->first();
+
+        return $tier ? $tier->price : ($this->online_price ?? 0);
+    }
 }
