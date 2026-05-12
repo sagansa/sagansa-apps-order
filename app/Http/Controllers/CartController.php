@@ -287,10 +287,13 @@ class CartController extends Controller
     }
     public function midtransCallback(Request $request)
     {
+        Log::info('Midtrans Callback Received:', $request->all());
+
         $serverKey = config('services.midtrans.server_key');
         $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 
         if ($hashed !== $request->signature_key) {
+            Log::error('Midtrans Callback: Invalid Signature');
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
@@ -299,6 +302,7 @@ class CartController extends Controller
         $order = SalesOrder::find($orderId);
 
         if (!$order) {
+            Log::error('Midtrans Callback: Order Not Found - ' . $orderId);
             return response()->json(['message' => 'Order not found'], 404);
         }
 
@@ -306,21 +310,30 @@ class CartController extends Controller
         $type = $request->payment_type;
         $fraud = $request->fraud_status;
 
+        // Update transaction ID if available
+        if ($request->transaction_id) {
+            $order->midtrans_transaction_id = $request->transaction_id;
+        }
+
         if ($transactionStatus == 'capture') {
             if ($type == 'credit_card') {
                 if ($fraud == 'challenge') {
-                    $order->update(['payment_status' => 4]); // Pending/Challenge
+                    $order->payment_status = 4; // Menunggu Pembayaran (Challenge)
                 } else {
-                    $order->update(['payment_status' => 1]); // Paid
+                    $order->payment_status = 2; // Valid / Sudah Dibayar
                 }
             }
         } else if ($transactionStatus == 'settlement') {
-            $order->update(['payment_status' => 1]); // Paid
+            $order->payment_status = 2; // Valid / Sudah Dibayar
         } else if ($transactionStatus == 'pending') {
-            $order->update(['payment_status' => 4]); // Unpaid
+            $order->payment_status = 4; // Menunggu Pembayaran
         } else if ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            $order->update(['payment_status' => 3]); // Invalid/Failed
+            $order->payment_status = 3; // Gagal / Batal
         }
+
+        $order->save();
+
+        Log::info('Midtrans Callback: Order ' . $orderId . ' updated to status ' . $order->payment_status);
 
         return response()->json(['message' => 'Success']);
     }

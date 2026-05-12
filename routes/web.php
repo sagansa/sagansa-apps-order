@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
+Route::post('/midtrans/callback', [CartController::class, 'midtransCallback'])->name('midtrans.callback');
+
 Route::get('/', [OrderController::class, 'index'])->name('order.index');
 
 Route::get('/order', function (Request $request) {
