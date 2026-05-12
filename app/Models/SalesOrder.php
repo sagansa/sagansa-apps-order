@@ -29,6 +29,8 @@ class SalesOrder extends Model
         'notes',
         'total_price',
         'received_by',
+        'payment_method',
+        'admin_fee',
     ];
 
     // Accessor for image_payment

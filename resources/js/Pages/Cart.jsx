@@ -57,6 +57,7 @@ export default function Cart({
     deliveryServices,
     deliveryAddresses,
     transferToAccounts,
+    midtransMethods,
 }) {
     const theme = useTheme();
     const isMobile = useMediaQuery("(max-width: 768px)"); // Mobile layout starts at 768px
@@ -114,6 +115,10 @@ export default function Cart({
             .then((response) => response.json())
             .then((data) => setProvinces(data));
     }, []);
+
+    useEffect(() => {
+        console.log("DEBUG: selectedPaymentMethod changed to:", selectedPaymentMethod);
+    }, [selectedPaymentMethod]);
 
     // Effect to handle shipping cost confirmation when delivery service changes
     useEffect(() => {
@@ -539,7 +544,7 @@ export default function Cart({
 
             formData.append("shipping_payment_method", shippingPaymentMethod);
             formData.append("payment_status", paymentStatus);
-            formData.append("payment_method", "manual_transfer");
+            formData.append("payment_method", selectedPaymentMethod);
 
             // Ubah format items
             const items = cartItems.map((item) => ({
@@ -559,14 +564,40 @@ export default function Cart({
             });
 
             // --- API Call ---
-            router.post(route("cart.checkout"), formData, {
-                onError: (errors) => {
-                    console.error("Error:", errors);
-                    const errorString = Object.values(errors).join("\n");
-                    alert(`Terjadi kesalahan saat checkout:\n${errorString}`);
-                },
-                onFinish: () => setIsProcessing(false),
-            });
+            if (selectedPaymentMethod !== "manual_transfer") {
+                const response = await axios.post(
+                    route("cart.checkout"),
+                    formData
+                );
+                const { snap_token, order_id } = response.data;
+
+                window.snap.pay(snap_token, {
+                    onSuccess: function (result) {
+                        router.visit(route("transaction-history"));
+                    },
+                    onPending: function (result) {
+                        router.visit(route("transaction-history"));
+                    },
+                    onError: function (result) {
+                        alert("Pembayaran gagal!");
+                    },
+                    onClose: function () {
+                        alert("Anda menutup popup tanpa menyelesaikan pembayaran.");
+                        router.visit(route("transaction-history"));
+                    },
+                });
+            } else {
+                router.post(route("cart.checkout"), formData, {
+                    onError: (errors) => {
+                        console.error("Error:", errors);
+                        const errorString = Object.values(errors).join("\n");
+                        alert(
+                            `Terjadi kesalahan saat checkout:\n${errorString}`
+                        );
+                    },
+                    onFinish: () => setIsProcessing(false),
+                });
+            }
         } catch (error) {
             console.error("Unhandled checkout error:", error);
             alert("Terjadi kesalahan yang tidak terduga.");
@@ -777,6 +808,9 @@ export default function Cart({
                                 setSelectedPaymentMethod={
                                     setSelectedPaymentMethod
                                 }
+                                midtransMethods={midtransMethods}
+                                subtotal={subtotal}
+                                shippingCostAmount={shippingCostAmount}
                             />
 
                             {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
@@ -832,6 +866,7 @@ export default function Cart({
                                 showAddressSelection={showAddressSelection}
                                 selectedAddress={selectedAddress}
                                 deliveryServices={deliveryServices}
+                                midtransMethods={midtransMethods}
                             />
                         </Stack>
                     </Stack>
@@ -1031,6 +1066,9 @@ export default function Cart({
                                     setSelectedPaymentMethod={
                                         setSelectedPaymentMethod
                                     }
+                                    midtransMethods={midtransMethods}
+                                    subtotal={subtotal}
+                                    shippingCostAmount={shippingCostAmount}
                                 />
 
                                 {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
@@ -1093,6 +1131,7 @@ export default function Cart({
                                     showAddressSelection={showAddressSelection}
                                     selectedAddress={selectedAddress}
                                     deliveryServices={deliveryServices}
+                                    midtransMethods={midtransMethods}
                                 />
                             </Stack>
                         </Grid>

@@ -39,12 +39,14 @@ class CartController extends Controller
             $address->is_used_in_orders = $address->salesOrders()->count() > 0;
         });
         $transferToAccounts = TransferToAccount::with('bank')->get();
+        $midtransMethods = config('services.midtrans.fees');
 
         return Inertia::render('Cart', [
             'cartItems' => $cartItems,
             'deliveryServices' => $deliveryServices,
             'deliveryAddresses' => $deliveryAddresses,
             'transferToAccounts' => $transferToAccounts,
+            'midtransMethods' => $midtransMethods,
         ]);
     }
 
@@ -109,6 +111,7 @@ class CartController extends Controller
                     'image_payment' => 'nullable|image|max:2048',
                     'shipping_cost' => 'nullable|numeric|min:0',
                     'payment_status' => 'required|integer|in:1,4,5',
+                    'payment_method' => 'required|string|in:manual_transfer,bca_va,mandiri_va,bni_va,bri_va,permata_va,other_va,qris,gopay,shopeepay,credit_card',
                     'shipping_payment_method' => 'nullable|string|in:via_us,to_courier',
                     'items' => 'required|array|min:1',
                     'items.*.product_id' => 'required|exists:products,id',
@@ -128,27 +131,39 @@ class CartController extends Controller
                 $imagePaymentPath = null;
 
                 // Conditional Logic Refactor
-                if ($isSelfPickup) {
-                    $deliveryAddressId = null;
-                    $shippingCost = 0;
-                    if (empty($transferAccountId)) {
-                        return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih untuk metode ambil sendiri.']);
-                    }
-                    if ($paymentStatus == 1 && !$request->hasFile('image_payment')) {
-                        return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
-                    }
-                } else { // Delivery
-                    if (empty($deliveryAddressId)) {
-                        return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
-                    }
-                    if ($paymentStatus == 1 && $shippingPaymentMethod === 'via_us' && $shippingCost > 0) {
+                if ($validated['payment_method'] === 'manual_transfer') {
+                    if ($isSelfPickup) {
+                        $deliveryAddressId = null;
+                        $shippingCost = 0;
                         if (empty($transferAccountId)) {
-                            return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih.']);
+                            return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih untuk metode ambil sendiri.']);
                         }
-                        if (!$request->hasFile('image_payment')) {
-                            return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload.']);
+                        if ($paymentStatus == 1 && !$request->hasFile('image_payment')) {
+                            return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
+                        }
+                    } else { // Delivery
+                        if (empty($deliveryAddressId)) {
+                            return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
+                        }
+                        if ($paymentStatus == 1 && $shippingPaymentMethod === 'via_us' && $shippingCost > 0) {
+                            if (empty($transferAccountId)) {
+                                return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih.']);
+                            }
+                            if (!$request->hasFile('image_payment')) {
+                                return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload.']);
+                            }
                         }
                     }
+                } else { // Midtrans
+                    if ($isSelfPickup) {
+                        $deliveryAddressId = null;
+                        $shippingCost = 0;
+                    } else {
+                        if (empty($deliveryAddressId)) {
+                            return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
+                        }
+                    }
+                    $paymentStatus = 4; // 'Belum dibayar' for Midtrans initially
                 }
 
                 if ($request->hasFile('image_payment')) {
@@ -176,6 +191,25 @@ class CartController extends Controller
                 }
 
                 $totalPrice = $subtotal + $shippingCost;
+                $paymentMethod = $validated['payment_method'] ?? 'manual_transfer';
+                
+                // Calculate dynamic admin fee
+                $adminFee = 0;
+                if ($paymentMethod !== 'manual_transfer') {
+                    $midtransFees = config('services.midtrans.fees');
+                    if (isset($midtransFees[$paymentMethod])) {
+                        $method = $midtransFees[$paymentMethod];
+                        if ($method['type'] === 'fixed') {
+                            $adminFee = $method['value'];
+                        } elseif ($method['type'] === 'percentage') {
+                            $adminFee = round($totalPrice * $method['value']);
+                        } elseif ($method['type'] === 'mix') {
+                            $adminFee = round($totalPrice * $method['percent']) + $method['fixed'];
+                        }
+                    }
+                }
+
+                $grandTotal = $totalPrice + $adminFee;
 
                 $orderData = [
                     'ordered_by_id' => $this->cartUserId($request),
@@ -183,9 +217,11 @@ class CartController extends Controller
                     'delivery_address_id' => $deliveryAddressId,
                     'transfer_to_account_id' => $transferAccountId,
                     'delivery_date' => $validated['delivery_date'],
-                    'total_price' => $totalPrice,
+                    'total_price' => $grandTotal,
                     'shipping_cost' => $shippingCost,
+                    'admin_fee' => $adminFee,
                     'payment_status' => $paymentStatus,
+                    'payment_method' => $paymentMethod,
                     'delivery_status' => '1',
                     'image_payment' => $imagePaymentPath,
                     'notes' => $request->notes,
@@ -211,7 +247,20 @@ class CartController extends Controller
                 Cart::where('user_id', $this->cartUserId($request))->delete();
                 Log::info('Cart cleared for user ID: ' . $request->user()->id);
 
-                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders']);
+                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders', 'orderedBy']);
+
+                if ($paymentMethod !== 'manual_transfer') {
+                    $midtransService = new \App\Services\MidtransService();
+                    // Pass the orderedBy relation as user for customer_details
+                    $order->user = $order->orderedBy;
+                    $snapToken = $midtransService->getSnapToken($order);
+                    
+                    return response()->json([
+                        'message' => 'Pesanan berhasil dibuat!',
+                        'snap_token' => $snapToken,
+                        'order_id' => $order->id,
+                    ]);
+                }
 
                 return Inertia::render('CheckoutSuccess', [
                     'message' => 'Pesanan berhasil dibuat!',
@@ -235,5 +284,44 @@ class CartController extends Controller
             // Return a generic error response to the user
             return response()->json(['message' => 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'], 500);
         }
+    }
+    public function midtransCallback(Request $request)
+    {
+        $serverKey = config('services.midtrans.server_key');
+        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
+
+        if ($hashed !== $request->signature_key) {
+            return response()->json(['message' => 'Invalid signature'], 403);
+        }
+
+        // Midtrans order_id is usually "ORDERID-TIMESTAMP"
+        $orderId = explode('-', $request->order_id)[0];
+        $order = SalesOrder::find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        $transactionStatus = $request->transaction_status;
+        $type = $request->payment_type;
+        $fraud = $request->fraud_status;
+
+        if ($transactionStatus == 'capture') {
+            if ($type == 'credit_card') {
+                if ($fraud == 'challenge') {
+                    $order->update(['payment_status' => 4]); // Pending/Challenge
+                } else {
+                    $order->update(['payment_status' => 1]); // Paid
+                }
+            }
+        } else if ($transactionStatus == 'settlement') {
+            $order->update(['payment_status' => 1]); // Paid
+        } else if ($transactionStatus == 'pending') {
+            $order->update(['payment_status' => 4]); // Unpaid
+        } else if ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+            $order->update(['payment_status' => 3]); // Invalid/Failed
+        }
+
+        return response()->json(['message' => 'Success']);
     }
 }
