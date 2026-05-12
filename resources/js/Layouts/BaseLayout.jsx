@@ -40,6 +40,22 @@ export default function BaseLayout({
         localStorage.setItem("theme", mode);
     }, [mode]);
 
+    useEffect(() => {
+        if (isAuthenticated && !user.email_verified_at) {
+            const pollInterval = setInterval(() => {
+                import('@inertiajs/react').then(({ router }) => {
+                    router.reload({ 
+                        only: ['auth'],
+                        preserveScroll: true,
+                        preserveState: true
+                    });
+                });
+            }, 10000);
+
+            return () => clearInterval(pollInterval);
+        }
+    }, [isAuthenticated, user?.email_verified_at]);
+
 
     const theme = useMemo(() => {
         const actualMode = mode === "dark" ? "dark" : "light";
@@ -231,6 +247,51 @@ export default function BaseLayout({
                         }}
                     >
                         <Container maxWidth="lg">{header}</Container>
+                    </Box>
+                )}
+
+                {isAuthenticated && !user.email_verified_at && (
+                    <Box
+                        sx={{
+                            bgcolor: "rgba(198, 169, 107, 0.1)",
+                            borderBottom: "1px solid rgba(198, 169, 107, 0.2)",
+                            py: 1.5,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 2,
+                            px: 2,
+                        }}
+                    >
+                        <Typography
+                            variant="body2"
+                            sx={{ color: "#C6A96B", fontWeight: "500" }}
+                        >
+                            Email Anda belum terverifikasi. Silakan cek inbox Anda.
+                        </Typography>
+                        <Button
+                            size="small"
+                            onClick={() => {
+                                import('@inertiajs/react').then(({ router }) => {
+                                    router.post(route('verification.send'), {}, {
+                                        onSuccess: () => alert('Email verifikasi telah dikirim ulang.')
+                                    });
+                                });
+                            }}
+                            sx={{
+                                color: "#0A0A0A",
+                                bgcolor: "#C6A96B",
+                                textTransform: "none",
+                                fontWeight: "bold",
+                                px: 2,
+                                borderRadius: 1.5,
+                                "&:hover": {
+                                    bgcolor: "#D4AF37",
+                                },
+                            }}
+                        >
+                            Kirim Ulang
+                        </Button>
                     </Box>
                 )}
 
