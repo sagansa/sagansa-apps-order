@@ -93,7 +93,7 @@ class MidtransService
                 'id' => $detail->product_id,
                 'price' => (int) $detail->unit_price,
                 'quantity' => $detail->quantity,
-                'name' => substr($detail->product->name, 0, 50),
+                'name' => substr($detail->product->name ?? 'Produk', 0, 50),
             ];
         }
 
