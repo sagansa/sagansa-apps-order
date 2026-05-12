@@ -65,7 +65,20 @@ class MidtransService
             $params['enabled_payments'] = $paymentMapping[$order->payment_method];
         }
 
-        return Snap::getSnapToken($params);
+        try {
+            \Illuminate\Support\Facades\Log::info('Generating Midtrans Snap Token with params:', $params);
+            $snapToken = Snap::getSnapToken($params);
+            \Illuminate\Support\Facades\Log::info('Snap Token generated successfully:', ['token' => $snapToken]);
+            return $snapToken;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Midtrans Snap Generation Error:', [
+                'message' => $e->getMessage(),
+                'params' => $params,
+                'server_key_exists' => !empty(config('services.midtrans.server_key')),
+                'is_production' => config('services.midtrans.is_production')
+            ]);
+            throw new \Exception("Midtrans Error: " . $e->getMessage());
+        }
     }
 
     private function getItemDetails($order, $adminFee)
