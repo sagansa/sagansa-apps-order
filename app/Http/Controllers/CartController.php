@@ -247,7 +247,7 @@ class CartController extends Controller
                 Cart::where('user_id', $this->cartUserId($request))->delete();
                 Log::info('Cart cleared for user ID: ' . $request->user()->id);
 
-                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders', 'orderedBy']);
+                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders.product', 'orderedBy']);
 
                 if ($paymentMethod !== 'manual_transfer') {
                     $midtransService = new \App\Services\MidtransService();
