@@ -193,23 +193,6 @@ const OrderSummaryCard = ({
                         {isProcessing ? "Processing..." : "Konfirmasi Pesanan"}
                     </Button>
                     
-                    <Stack spacing={1}>
-                        {!selectedDelivery && (
-                            <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
-                                • Silakan pilih metode pengiriman.
-                            </Typography>
-                        )}
-                        {!selectedPaymentMethod && (
-                            <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
-                                • Silakan pilih metode pembayaran.
-                            </Typography>
-                        )}
-                        {showAddressSelection && !selectedAddress && (
-                            <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
-                                • Silakan pilih alamat pengiriman.
-                            </Typography>
-                        )}
-                    </Stack>
                 </Stack>
             </CardContent>
         </Card>
