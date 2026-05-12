@@ -573,17 +573,17 @@ export default function Cart({
 
                 window.snap.pay(snap_token, {
                     onSuccess: function (result) {
-                        router.visit(route("transaction-history"));
+                        router.visit(route("transaction.history"));
                     },
                     onPending: function (result) {
-                        router.visit(route("transaction-history"));
+                        router.visit(route("transaction.history"));
                     },
                     onError: function (result) {
                         alert("Pembayaran gagal!");
                     },
                     onClose: function () {
                         alert("Anda menutup popup tanpa menyelesaikan pembayaran.");
-                        router.visit(route("transaction-history"));
+                        router.visit(route("transaction.history"));
                     },
                 });
             } else {
