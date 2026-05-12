@@ -26,6 +26,7 @@ const OrderSummaryCard = ({
     showAddressSelection,
     selectedAddress,
     deliveryServices,
+    midtransMethods = {},
 }) => {
     const isSelfPickup = selectedDelivery === "33";
     const deliveryMethod = deliveryServices.find(
@@ -34,7 +35,26 @@ const OrderSummaryCard = ({
     const isDelivery = deliveryMethod && deliveryMethod.id != 33;
 
     const isManualTransfer = selectedPaymentMethod === "manual_transfer";
+    const isMidtrans = selectedPaymentMethod !== "manual_transfer" && selectedPaymentMethod !== "";
     const isViaUsShipping = shippingPaymentMethod === "via_us";
+
+    // Calculate dynamic midtrans fee
+    const midtransFee = (() => {
+        if (!isMidtrans) return 0;
+        const method = midtransMethods[selectedPaymentMethod];
+        if (!method) return 0;
+
+        const totalForFee = subtotal + shippingCostAmount;
+
+        if (method.type === 'fixed') {
+            return method.value;
+        } else if (method.type === 'percentage') {
+            return Math.round(totalForFee * method.value);
+        } else if (method.type === 'mix') {
+            return Math.round(totalForFee * method.percent) + method.fixed;
+        }
+        return 0;
+    })();
 
     // Determine if manual transfer details (account and proof) are required for validation
     const manualTransferDetailsRequired =
@@ -98,6 +118,15 @@ const OrderSummaryCard = ({
                             </Box>
                         )}
                     
+                    {isMidtrans && (
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                            <Typography color="text.secondary">Biaya Layanan/Admin</Typography>
+                            <Typography sx={{ fontWeight: 'bold' }}>
+                                Rp {Number(midtransFee).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                            </Typography>
+                        </Box>
+                    )}
+                    
                     <Divider sx={{ borderStyle: 'dashed' }} />
                     
                     <Box sx={{ width: "100%", pt: 1 }}>
@@ -120,10 +149,26 @@ const OrderSummaryCard = ({
                                     letterSpacing: '-1px'
                                 }}
                             >
-                                Rp {Number(total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                Rp {Number(total + midtransFee).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                             </Typography>
                         </Stack>
                     </Box>
+
+                    {isCheckoutDisabled && (
+                        <Box sx={{ mt: 2, p: 2, bgcolor: 'error.main', color: 'white', borderRadius: 2 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                                Belum bisa konfirmasi karena:
+                                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                                    {!selectedDelivery && <li>Metode Pengiriman belum dipilih</li>}
+                                    {!selectedPaymentMethod && <li>Metode Pembayaran belum dipilih</li>}
+                                    {manualTransferDetailsRequired && !selectedTransferAccount && <li>Rekening tujuan belum dipilih</li>}
+                                    {manualTransferDetailsRequired && !transferProof && <li>Bukti transfer belum diupload</li>}
+                                    {isDelivery && !selectedAddress && <li>Alamat pengiriman belum dipilih</li>}
+                                    {isDelivery && shippingCostConfirmed && isViaUsShipping && shippingCostAmount <= 0 && <li>Nominal ongkir belum valid</li>}
+                                </ul>
+                            </Typography>
+                        </Box>
+                    )}
                     
                     <Button
                         variant="contained"

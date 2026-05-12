@@ -40,14 +40,19 @@ return [
         'server_key' => env('MIDTRANS_SERVER_KEY'),
         'client_key' => env('MIDTRANS_CLIENT_KEY'),
         'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'is_sanitized' => env('MIDTRANS_IS_SANITIZED', true),
+        'is_3ds' => env('MIDTRANS_IS_3DS', true),
         'fees' => [
-            'default' => ['percentage' => 0.02, 'fixed' => 0], // 2% + 0 fixed
-            'gopay' => ['percentage' => 0.02, 'fixed' => 0], // 1.5%
-            'dana' => ['percentage' => 0.015, 'fixed' => 0], // 1.5%
-            'qris'  => ['percentage' => 0.007, 'fixed' => 0], // 1.5%
-            'shopeepay' => ['percentage' => 0.02, 'fixed' => 0], // 1.5%
-            'bank_transfer' => ['percentage' => 0, 'fixed' => 4000], // Example: Rp 4,000 fixed fee
-            'credit_card' => ['percentage' => 0.029, 'fixed' => 2000], // 2.9% + Rp 2,500 fixed
+            'bca_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'BCA Virtual Account'],
+            'mandiri_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'Mandiri Virtual Account'],
+            'bni_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'BNI Virtual Account'],
+            'bri_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'BRI Virtual Account'],
+            'permata_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'Permata Virtual Account'],
+            'other_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'Bank Transfer (VA Lainnya)'],
+            'qris'  => ['type' => 'percentage', 'value' => 0.007, 'label' => 'QRIS (Gopay, Dana, OVO, dll)'],
+            'gopay' => ['type' => 'percentage', 'value' => 0.02, 'label' => 'GoPay'],
+            'shopeepay' => ['type' => 'percentage', 'value' => 0.02, 'label' => 'ShopeePay'],
+            'credit_card' => ['type' => 'mix', 'percent' => 0.029, 'fixed' => 2220, 'label' => 'Kartu Kredit'],
         ],
     ],
 
