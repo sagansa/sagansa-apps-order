@@ -40,10 +40,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
     Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
@@ -54,8 +57,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Route for checkout success is now handled by CartController directly
     Route::get('/checkout-success', function () {
-        // This route is primarily for Inertia.js to handle client-side navigation
-        // The data is passed directly from CartController::checkout
         return Inertia::render('CheckoutSuccess');
     })->name('checkout.success');
 

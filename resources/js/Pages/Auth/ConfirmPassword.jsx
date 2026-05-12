@@ -1,9 +1,9 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Head, useForm } from '@inertiajs/react';
+import {
+    TextField, Button, Box, Typography, Container, Paper
+} from '@mui/material';
 
 export default function ConfirmPassword() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -12,7 +12,6 @@ export default function ConfirmPassword() {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('password.confirm'), {
             onFinish: () => reset('password'),
         });
@@ -20,36 +19,82 @@ export default function ConfirmPassword() {
 
     return (
         <GuestLayout>
-            <Head title="Confirm Password" />
+            <Head title="Konfirmasi Kata Sandi" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
-            </div>
+            <Container component="main" maxWidth="xs">
+                <Paper
+                    elevation={0}
+                    sx={{
+                        mt: 8,
+                        p: 4,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        backgroundColor: '#1A1A1A',
+                        borderRadius: 4,
+                        border: '1px solid #333333',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+                    }}
+                >
+                    <ApplicationLogo sx={{ mb: 2, width: 70, height: 70 }} />
+                    <Typography component="h1" variant="h4" sx={{ fontWeight: '700', color: '#FFFFFF', letterSpacing: '-0.05em', textAlign: 'center' }}>
+                        Konfirmasi Sandi
+                    </Typography>
+                    
+                    <Typography variant="body2" sx={{ mt: 2, mb: 4, color: '#A0A0A0', textAlign: 'center', lineHeight: 1.6 }}>
+                        Ini adalah area aman. Harap konfirmasi kata sandi Anda sebelum melanjutkan.
+                    </Typography>
 
-            <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                    <Box component="form" onSubmit={submit} sx={{ width: '100%' }}>
+                        <TextField
+                            required
+                            fullWidth
+                            id="password"
+                            label="Kata Sandi"
+                            type="password"
+                            name="password"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            error={!!errors.password}
+                            helperText={errors.password}
+                            autoFocus
+                            variant="outlined"
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    color: '#FFFFFF',
+                                    '& fieldset': { borderColor: '#444444' },
+                                    '&:hover fieldset': { borderColor: '#C5A059' },
+                                    '&.Mui-focused fieldset': { borderColor: '#C5A059' },
+                                },
+                                '& .MuiInputLabel-root': { color: '#888888' },
+                                '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
+                            }}
+                        />
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
-                    </PrimaryButton>
-                </div>
-            </form>
+                        <Button
+                            type="submit"
+                            fullWidth
+                            variant="contained"
+                            disabled={processing}
+                            sx={{ 
+                                mt: 4,
+                                py: 1.5,
+                                borderRadius: 2,
+                                textTransform: 'none',
+                                fontWeight: '700',
+                                backgroundColor: '#C5A059',
+                                color: '#000000',
+                                boxShadow: 'none',
+                                '&:hover': { backgroundColor: '#D4AF37', boxShadow: '0 4px 15px rgba(197, 160, 89, 0.4)' },
+                                '&:disabled': { backgroundColor: '#444444', color: '#888888' }
+                            }}
+                        >
+                            Konfirmasi
+                        </Button>
+                    </Box>
+                </Paper>
+            </Container>
         </GuestLayout>
     );
 }

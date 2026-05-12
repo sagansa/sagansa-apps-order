@@ -23,40 +23,45 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title="Masuk" />
 
             <Container component="main" maxWidth="xs">
                 <Paper
                     component="form"
                     onSubmit={submit}
+                    elevation={0}
                     sx={{
                         mt: 8,
                         p: 4,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        backgroundColor: '#1A1A1A',
+                        borderRadius: 4,
+                        border: '1px solid #333333',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
                     }}
                 >
-                    <ApplicationLogo sx={{ mb: 1, width: 60, height: 60 }} /> {/* Smaller logo */}
-                    <Typography component="h1" variant="h5">
-                        Welcome Back
+                    <ApplicationLogo sx={{ mb: 2, width: 70, height: 70 }} />
+                    <Typography component="h1" variant="h4" sx={{ fontWeight: '700', color: '#FFFFFF', letterSpacing: '-0.05em' }}>
+                        Selamat Datang
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}> {/* Reduced margin */}
-                        Sign in to continue
+                    <Typography variant="body2" sx={{ mb: 4, color: '#A0A0A0' }}>
+                        Silakan masuk untuk melanjutkan pesanan Anda.
                     </Typography>
 
                     {status && (
-                        <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
+                        <Alert severity="success" sx={{ width: '100%', mb: 3, borderRadius: 2 }}>
                             {status}
                         </Alert>
                     )}
 
-                    <Stack spacing={2} sx={{ width: '100%' }}>
+                    <Stack spacing={3} sx={{ width: '100%' }}>
                         <TextField
                             required
                             fullWidth
                             id="email"
-                            label="Email Address"
+                            label="Alamat Email"
                             name="email"
                             autoComplete="email"
                             autoFocus
@@ -64,14 +69,16 @@ export default function Login({ status, canResetPassword }) {
                             onChange={(e) => setData('email', e.target.value)}
                             error={!!errors.email}
                             helperText={errors.email}
-                            // variant="filled"
                             sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'transparent',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    color: '#FFFFFF',
+                                    '& fieldset': { borderColor: '#444444' },
+                                    '&:hover fieldset': { borderColor: '#C5A059' },
+                                    '&.Mui-focused fieldset': { borderColor: '#C5A059' },
                                 },
-                                '& .MuiInputLabel-outlined.Mui-focused': {
-                                    color: 'text.primary',
-                                },
+                                '& .MuiInputLabel-root': { color: '#888888' },
+                                '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
                             }}
                         />
 
@@ -79,7 +86,7 @@ export default function Login({ status, canResetPassword }) {
                             required
                             fullWidth
                             name="password"
-                            label="Password"
+                            label="Kata Sandi"
                             type="password"
                             id="password"
                             autoComplete="current-password"
@@ -87,27 +94,31 @@ export default function Login({ status, canResetPassword }) {
                             onChange={(e) => setData('password', e.target.value)}
                             error={!!errors.password}
                             helperText={errors.password}
-                            // variant="filled"
                             sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'transparent',
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    color: '#FFFFFF',
+                                    '& fieldset': { borderColor: '#444444' },
+                                    '&:hover fieldset': { borderColor: '#C5A059' },
+                                    '&.Mui-focused fieldset': { borderColor: '#C5A059' },
                                 },
-                                '& .MuiInputLabel-outlined.Mui-focused': {
-                                    color: 'text.primary',
-                                },
+                                '& .MuiInputLabel-root': { color: '#888888' },
+                                '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
                             }}
                         />
 
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={data.remember}
-                                    onChange={(e) => setData('remember', e.target.checked)}
-                                    color="primary"
-                                />
-                            }
-                            label="Remember me"
-                        />
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={data.remember}
+                                        onChange={(e) => setData('remember', e.target.checked)}
+                                        sx={{ color: '#444444', '&.Mui-checked': { color: '#C5A059' } }}
+                                    />
+                                }
+                                label={<Typography variant="body2" sx={{ color: '#A0A0A0' }}>Ingat saya</Typography>}
+                            />
+                        </Box>
                     </Stack>
 
                     <Button
@@ -115,23 +126,48 @@ export default function Login({ status, canResetPassword }) {
                         fullWidth
                         variant="contained"
                         disabled={processing}
-                        sx={{ mt: 3, mb: 2 }}
+                        sx={{ 
+                            mt: 4, 
+                            mb: 3, 
+                            py: 1.5,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: '700',
+                            backgroundColor: '#C5A059',
+                            color: '#000000',
+                            boxShadow: 'none',
+                            '&:hover': { backgroundColor: '#D4AF37', boxShadow: '0 4px 15px rgba(197, 160, 89, 0.4)' },
+                            '&:disabled': { backgroundColor: '#444444', color: '#888888' }
+                        }}
                     >
-                        Sign In
+                        Masuk Sekarang
                     </Button>
 
-                    <Grid container justifyContent="space-between">
-                        <Grid>
+                    <Grid container direction="column" alignItems="center" spacing={1}>
+                        <Grid item>
                             {canResetPassword && (
-                                <MuiLink component={Link} href={route('password.request')} variant="body2">
-                                    Forgot password?
+                                <MuiLink 
+                                    component={Link} 
+                                    href={route('password.request')} 
+                                    variant="body2"
+                                    sx={{ color: '#C5A059', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                >
+                                    Lupa kata sandi?
                                 </MuiLink>
                             )}
                         </Grid>
-                        <Grid>
-                            <MuiLink component={Link} href={route('register')} variant="body2">
-                                {"Don't have an account? Sign Up"}
-                            </MuiLink>
+                        <Grid item sx={{ mt: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#A0A0A0' }}>
+                                Belum punya akun?{' '}
+                                <MuiLink 
+                                    component={Link} 
+                                    href={route('register')} 
+                                    variant="body2"
+                                    sx={{ color: '#C5A059', fontWeight: '600', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                >
+                                    Daftar Gratis
+                                </MuiLink>
+                            </Typography>
                         </Grid>
                     </Grid>
                 </Paper>
