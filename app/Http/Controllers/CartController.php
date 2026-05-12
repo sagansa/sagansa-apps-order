@@ -252,7 +252,7 @@ class CartController extends Controller
                 if ($paymentMethod !== 'manual_transfer') {
                     $midtransService = new \App\Services\MidtransService();
                     // Pass the orderedBy relation as user for customer_details
-                    $order->user = $order->orderedBy;
+                    $order->user = $request->user();
                     $snapToken = $midtransService->getSnapToken($order);
                     
                     return response()->json([
