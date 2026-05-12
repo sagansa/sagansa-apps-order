@@ -1,12 +1,21 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import {
     Button, Box, Typography, Container, Alert, Paper
 } from '@mui/material';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
+
+    useEffect(() => {
+        const pollInterval = setInterval(() => {
+            router.reload({ preserveScroll: true });
+        }, 5000);
+
+        return () => clearInterval(pollInterval);
+    }, []);
 
     const submit = (e) => {
         e.preventDefault();
