@@ -27,7 +27,6 @@ class MidtransService
     public function _configureMidtrans()
     {
         Config::$serverKey = $this->serverKey;
-        Config::$merchantId = $this->merchantId;
         Config::$isProduction = $this->isProduction;
         Config::$isSanitized = $this->isSanitized;
         Config::$is3ds = $this->is3ds;
