@@ -69,16 +69,20 @@ class MidtransService
         }
 
         try {
-            \Illuminate\Support\Facades\Log::info('Generating Midtrans Snap Token with params:', $params);
+            // Log only the first 5 characters of the server key for debugging (security safe)
+            $keyPrefix = substr(config('services.midtrans.server_key'), 0, 5);
+            \Illuminate\Support\Facades\Log::info('Attempting Snap Token generation:', [
+                'merchant_id' => config('services.midtrans.merchant_id'),
+                'server_key_prefix' => $keyPrefix . '...',
+                'gross_amount' => $params['transaction_details']['gross_amount']
+            ]);
+
             $snapToken = Snap::getSnapToken($params);
-            \Illuminate\Support\Facades\Log::info('Snap Token generated successfully:', ['token' => $snapToken]);
             return $snapToken;
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Midtrans Snap Generation Error:', [
                 'message' => $e->getMessage(),
-                'params' => $params,
-                'server_key_exists' => !empty(config('services.midtrans.server_key')),
-                'is_production' => config('services.midtrans.is_production')
+                'server_key_prefix' => substr(config('services.midtrans.server_key'), 0, 5) . '...',
             ]);
             throw new \Exception("Midtrans Error: " . $e->getMessage());
         }
@@ -89,11 +93,15 @@ class MidtransService
         $items = [];
 
         foreach ($order->detailSalesOrders as $detail) {
+            // Sanitize name: remove non-alphanumeric except space, dot, comma, dash
+            $name = $detail->product->name ?? 'Produk';
+            $cleanName = preg_replace('/[^a-zA-Z0-0\s\.,\-]/', '', $name);
+
             $items[] = [
                 'id' => $detail->product_id,
                 'price' => (int) $detail->unit_price,
                 'quantity' => $detail->quantity,
-                'name' => substr($detail->product->name ?? 'Produk', 0, 50),
+                'name' => substr($cleanName, 0, 50),
             ];
         }
 
