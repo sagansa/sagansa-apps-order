@@ -7,6 +7,7 @@ use Midtrans\Snap;
 
 class MidtransService
 {
+    protected $merchantId;
     protected $serverKey;
     protected $isProduction;
     protected $isSanitized;
@@ -14,6 +15,7 @@ class MidtransService
 
     public function __construct()
     {
+        $this->merchantId = config('services.midtrans.merchant_id');
         $this->serverKey = config('services.midtrans.server_key');
         $this->isProduction = config('services.midtrans.is_production');
         $this->isSanitized = config('services.midtrans.is_sanitized');
@@ -25,6 +27,7 @@ class MidtransService
     public function _configureMidtrans()
     {
         Config::$serverKey = $this->serverKey;
+        Config::$merchantId = $this->merchantId;
         Config::$isProduction = $this->isProduction;
         Config::$isSanitized = $this->isSanitized;
         Config::$is3ds = $this->is3ds;
