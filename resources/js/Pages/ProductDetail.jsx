@@ -18,7 +18,12 @@ import {
     Tooltip,
     Chip,
     Tab,
-    Tabs,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -27,6 +32,7 @@ import {
     Share as ShareIcon,
     ArrowBack as ArrowBackIcon,
     FavoriteBorder as FavoriteBorderIcon,
+    Discount as DiscountIcon,
 } from '@mui/icons-material';
 import { getPriceByQuantity } from '@/Utils/cartCalculations';
 
@@ -221,15 +227,24 @@ export default function ProductDetail({ auth, product }) {
                                 </Typography>
 
                                 {product.price_tiers && product.price_tiers.length > 0 && (
-                                    <Box sx={{ mt: 1 }}>
-                                        <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold', mb: 1 }}>
-                                            Grosir:
-                                        </Typography>
+                                    <Box sx={{ 
+                                        mt: 1, 
+                                        p: 1.5, 
+                                        borderRadius: 2, 
+                                        bgcolor: 'rgba(198, 169, 107, 0.05)',
+                                        border: '1px dashed rgba(198, 169, 107, 0.3)'
+                                    }}>
+                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                            <DiscountIcon sx={{ fontSize: 18, color: '#C6A96B' }} />
+                                            <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
+                                                Tersedia Harga Grosir
+                                            </Typography>
+                                        </Stack>
                                         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                                             {product.price_tiers.map((tier, idx) => (
                                                 <Chip 
                                                     key={idx}
-                                                    label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
+                                                    label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} pcs : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
                                                     size="small"
                                                     sx={{ 
                                                         bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
@@ -272,6 +287,7 @@ export default function ProductDetail({ auth, product }) {
                                         }}
                                     >
                                         <Tab label="Detail" />
+                                        {product.price_tiers?.length > 0 && <Tab label="Harga Grosir" />}
                                         <Tab label="Spesifikasi" />
                                         <Tab label="Info Penting" />
                                     </Tabs>
@@ -292,12 +308,53 @@ export default function ProductDetail({ auth, product }) {
                                             </Typography>
                                         </Stack>
                                     </TabPanel>
-                                    <TabPanel value={tabValue} index={1}>
+
+                                    {product.price_tiers?.length > 0 && (
+                                        <TabPanel value={tabValue} index={1}>
+                                            <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 'bold', mb: 2 }}>
+                                                Daftar Harga Bertingkat
+                                            </Typography>
+                                            <TableContainer component={Paper} sx={{ bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                                                <Table size="small">
+                                                    <TableHead sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
+                                                        <TableRow>
+                                                            <TableCell sx={{ color: 'text.secondary', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Min. Jumlah</TableCell>
+                                                            <TableCell sx={{ color: 'text.secondary', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Max. Jumlah</TableCell>
+                                                            <TableCell sx={{ color: 'text.secondary', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Harga per Unit</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {product.price_tiers.map((tier, idx) => (
+                                                            <TableRow 
+                                                                key={idx}
+                                                                sx={{ 
+                                                                    bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                                        ? 'rgba(198, 169, 107, 0.1)' 
+                                                                        : 'transparent'
+                                                                }}
+                                                            >
+                                                                <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{tier.min_quantity}</TableCell>
+                                                                <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{tier.max_quantity || '∞'}</TableCell>
+                                                                <TableCell sx={{ color: '#C6A96B', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                    Rp {Number(tier.price).toLocaleString('id-ID')}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 2, display: 'block' }}>
+                                                * Harga akan otomatis berubah di keranjang sesuai dengan jumlah yang Anda beli.
+                                            </Typography>
+                                        </TabPanel>
+                                    )}
+
+                                    <TabPanel value={tabValue} index={product.price_tiers?.length > 0 ? 2 : 1}>
                                         <Typography variant="body2" color="text.secondary">
                                             Spesifikasi produk belum tersedia.
                                         </Typography>
                                     </TabPanel>
-                                    <TabPanel value={tabValue} index={2}>
+                                    <TabPanel value={tabValue} index={product.price_tiers?.length > 0 ? 3 : 2}>
                                         <Typography variant="body2" color="text.secondary">
                                             Informasi penting terkait pengiriman dan kebijakan pengembalian.
                                         </Typography>
