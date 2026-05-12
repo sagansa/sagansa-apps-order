@@ -18,6 +18,7 @@ import {
     Tooltip,
     Chip,
     Tab,
+    Tabs,
     Table,
     TableBody,
     TableCell,
