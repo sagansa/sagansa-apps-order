@@ -22,71 +22,86 @@ export default function UpdateProfileInformation({
 
     return (
         <Box component="section">
-            <Box component="header" sx={{ mb: 3 }}>
-                <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
-                    Profile Information
+            <Box component="header" sx={{ mb: 4 }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: '600', color: '#FFFFFF', letterSpacing: '-0.025em' }}>
+                    Informasi Profil
                 </Typography>
 
-                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                    Update your account's profile information and email address.
+                <Typography variant="body2" sx={{ mt: 1, color: '#A0A0A0' }}>
+                    Perbarui informasi profil akun dan alamat email Anda.
                 </Typography>
             </Box>
 
             <Box
                 component="form"
                 onSubmit={submit}
-                sx={{ mt: 4 }}
+                sx={{ mt: 2 }}
             >
-                    <Stack spacing={3}>
-                        <TextField
-                            id="name"
-                            label="Name"
-                            // variant="filled" // Use outlined variant for better appearance
-                            fullWidth
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            required
-                            autoFocus
-                            autoComplete="name"
-                            error={!!errors.name}
-                            helperText={errors.name}
-                            sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'transparent', // Remove blue border on focus
-                                },
-                                '& .MuiInputLabel-outlined.Mui-focused': {
-                                    color: 'text.primary', // Keep label color consistent or default
-                                },
-                            }}
-                        />
+                <Stack spacing={3}>
+                    <TextField
+                        id="name"
+                        label="Nama Lengkap"
+                        variant="outlined"
+                        fullWidth
+                        value={data.name}
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                        autoComplete="name"
+                        error={!!errors.name}
+                        helperText={errors.name}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                color: '#FFFFFF',
+                                '& fieldset': { borderColor: '#444444' },
+                                '&:hover fieldset': { borderColor: '#C5A059' },
+                                '&.Mui-focused fieldset': { borderColor: '#C5A059' },
+                            },
+                            '& .MuiInputLabel-root': { color: '#888888' },
+                            '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
+                        }}
+                    />
 
-                        <TextField
-                            id="email"
-                            label="Email"
-                            type="email"
-                            variant="filled" // Use outlined variant for better appearance
-                            fullWidth
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            required
-                            autoComplete="username"
-                            error={!!errors.email}
-                            helperText={errors.email}
-                            sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'transparent', // Remove blue border on focus
-                                },
-                                '& .MuiInputLabel-outlined.Mui-focused': {
-                                    color: 'text.primary', // Keep label color consistent or default
-                                },
-                            }}
-                        />
+                    <TextField
+                        id="email"
+                        label="Alamat Email"
+                        type="email"
+                        variant="outlined"
+                        fullWidth
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        required
+                        autoComplete="username"
+                        error={!!errors.email}
+                        helperText={errors.email}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                color: '#FFFFFF',
+                                '& fieldset': { borderColor: '#444444' },
+                                '&:hover fieldset': { borderColor: '#C5A059' },
+                                '&.Mui-focused fieldset': { borderColor: '#C5A059' },
+                            },
+                            '& .MuiInputLabel-root': { color: '#888888' },
+                            '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
+                        }}
+                    />
                 </Stack>
 
                 {mustVerifyEmail && user.email_verified_at === null && (
-                    <Box sx={{ mt: 3 }}>
-                        <Typography variant="body2" sx={{ mt: 2, color: 'text.primary' }}>
-                            Your email address is unverified.
+                    <Alert 
+                        severity="info" 
+                        sx={{ 
+                            mt: 3, 
+                            borderRadius: 2,
+                            backgroundColor: 'rgba(197, 160, 89, 0.1)',
+                            border: '1px solid rgba(197, 160, 89, 0.2)',
+                            color: '#C5A059',
+                            '& .MuiAlert-icon': { color: '#C5A059' }
+                        }}
+                    >
+                        <Typography variant="body2">
+                            Alamat email Anda belum terverifikasi.
                             <MuiLink
                                 component={Link}
                                 href={route('verification.send')}
@@ -94,28 +109,49 @@ export default function UpdateProfileInformation({
                                 as="button"
                                 sx={{
                                     ml: 1,
-                                    color: 'primary.main',
+                                    fontWeight: '600',
+                                    color: '#C5A059',
                                     textDecoration: 'underline',
-                                    '&:hover': { textDecoration: 'underline', color: 'primary.dark' },
+                                    '&:hover': { color: '#D4AF37' },
                                     background: 'none',
                                     border: 'none',
+                                    p: 0,
                                     cursor: 'pointer',
+                                    fontSize: 'inherit'
                                 }}
                             >
-                                Click here to re-send the verification email.
+                                Klik di sini untuk mengirim ulang email verifikasi.
                             </MuiLink>
                         </Typography>
 
                         {status === 'verification-link-sent' && (
-                            <Alert severity="success" sx={{ mt: 2 }}>
-                                A new verification link has been sent to your email address.
-                            </Alert>
+                            <Typography variant="caption" sx={{ display: 'block', mt: 1, fontWeight: 'medium', color: '#4CAF50' }}>
+                                Tautan verifikasi baru telah dikirim ke alamat email Anda.
+                            </Typography>
                         )}
-                    </Box>
+                    </Alert>
                 )}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 4 }}>
-                    <Button variant="contained" disabled={processing}>Save</Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 5 }}>
+                    <Button 
+                        type="submit"
+                        variant="contained" 
+                        disabled={processing}
+                        sx={{ 
+                            px: 4, 
+                            py: 1.2, 
+                            borderRadius: 2, 
+                            textTransform: 'none',
+                            fontWeight: '700',
+                            backgroundColor: '#C5A059',
+                            color: '#000000',
+                            boxShadow: 'none',
+                            '&:hover': { backgroundColor: '#D4AF37', boxShadow: '0 4px 15px rgba(197, 160, 89, 0.4)' },
+                            '&:disabled': { backgroundColor: '#444444', color: '#888888' }
+                        }}
+                    >
+                        Simpan Perubahan
+                    </Button>
 
                     <Transition
                         show={recentlySuccessful}
@@ -124,8 +160,8 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <Typography variant="body2" color="text.secondary">
-                            Saved.
+                        <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 'medium' }}>
+                            Berhasil disimpan.
                         </Typography>
                     </Transition>
                 </Box>

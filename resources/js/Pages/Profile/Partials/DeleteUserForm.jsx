@@ -46,18 +46,33 @@ export default function DeleteUserForm() {
 
     return (
         <Box component="section">
-            <Box component="header" sx={{ mb: 3 }}>
-                <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
-                    Delete Account
+            <Box component="header" sx={{ mb: 4 }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: '600', color: 'error.main', letterSpacing: '-0.025em' }}>
+                    Hapus Akun
                 </Typography>
 
-                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                    Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', opacity: 0.8 }}>
+                    Setelah akun Anda dihapus, semua sumber daya dan datanya akan dihapus secara permanen. Sebelum menghapus akun Anda, harap unduh data atau informasi apa pun yang ingin Anda simpan.
                 </Typography>
             </Box>
 
-            <Button variant="contained" color="error" onClick={confirmUserDeletion}>
-                Delete Account
+            <Button 
+                variant="contained" 
+                color="error" 
+                onClick={confirmUserDeletion}
+                sx={{ 
+                    mt: 2,
+                    px: 4, 
+                    py: 1, 
+                    borderRadius: 2, 
+                    textTransform: 'none',
+                    fontWeight: '600',
+                    boxShadow: 'none',
+                    backgroundColor: 'error.main',
+                    '&:hover': { backgroundColor: 'error.dark', boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)' }
+                }}
+            >
+                Hapus Akun
             </Button>
 
             <Dialog
@@ -65,21 +80,24 @@ export default function DeleteUserForm() {
                 onClose={closeModal}
                 maxWidth="sm"
                 fullWidth
+                PaperProps={{
+                    sx: { borderRadius: 3, p: 1 }
+                }}
             >
                 <DialogTitle>
-                    <Typography variant="h6" component="h2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
-                        Are you sure you want to delete your account?
+                    <Typography variant="h6" component="h2" sx={{ fontWeight: '600', color: 'text.primary' }}>
+                        Apakah Anda yakin ingin menghapus akun?
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                        Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.
+                        Setelah akun Anda dihapus, semua sumber daya dan datanya akan dihapus secara permanen. Harap masukkan kata sandi Anda untuk mengonfirmasi bahwa Anda ingin menghapus akun Anda secara permanen.
                     </Typography>
 
                     <Box sx={{ mt: 3 }}>
                         <TextField
                             id="password"
-                            label="Password"
+                            label="Kata Sandi"
                             type="password"
                             name="password"
                             fullWidth
@@ -90,28 +108,37 @@ export default function DeleteUserForm() {
                             helperText={errors.password}
                             variant="outlined"
                             sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'transparent',
-                                },
-                                '& .MuiInputLabel-outlined.Mui-focused': {
-                                    color: 'text.primary',
-                                },
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                }
                             }}
                         />
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ p: 3, pt: 0 }}>
-                    <Button variant="outlined" onClick={closeModal}>
-                        Cancel
+                <DialogActions sx={{ p: 3, pt: 1, gap: 1 }}>
+                    <Button 
+                        variant="outlined" 
+                        onClick={closeModal}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: '600', px: 3 }}
+                    >
+                        Batal
                     </Button>
                     <Button
                         variant="contained"
                         color="error"
                         onClick={deleteUser}
                         disabled={processing}
-                        sx={{ ml: 1 }}
+                        sx={{ 
+                            borderRadius: 2, 
+                            textTransform: 'none', 
+                            fontWeight: '600', 
+                            boxShadow: 'none',
+                            px: 3,
+                            backgroundColor: 'error.main',
+                            '&:hover': { backgroundColor: 'error.dark' }
+                        }}
                     >
-                        Delete Account
+                        Hapus Akun
                     </Button>
                 </DialogActions>
             </Dialog>
