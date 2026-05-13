@@ -31,6 +31,16 @@ class SalesOrder extends Model
         'received_by',
         'payment_method',
         'admin_fee',
+        'status',
+        'midtrans_status',
+        'midtrans_snap_token',
+        'midtrans_transaction_id',
+        'shipping_payment_method',
+    ];
+
+    // Default value: orders from apps/order are always 'for=1' (customer orders)
+    protected $attributes = [
+        'for' => '1',
     ];
 
     // Accessor for image_payment
