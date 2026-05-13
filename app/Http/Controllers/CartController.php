@@ -212,19 +212,20 @@ class CartController extends Controller
                 $grandTotal = $totalPrice + $adminFee;
 
                 $orderData = [
-                    'ordered_by_id' => $this->cartUserId($request),
-                    'delivery_service_id' => $validated['delivery_service_id'],
-                    'delivery_address_id' => $deliveryAddressId,
-                    'transfer_to_account_id' => $transferAccountId,
-                    'delivery_date' => $validated['delivery_date'],
-                    'total_price' => $grandTotal,
-                    'shipping_cost' => $shippingCost,
-                    'admin_fee' => $adminFee,
-                    'payment_status' => $paymentStatus,
-                    'payment_method' => $paymentMethod,
-                    'delivery_status' => '1',
-                    'image_payment' => $imagePaymentPath,
-                    'notes' => $request->notes,
+                    'for'                   => '1', // Customer order via apps/order
+                    'ordered_by_id'         => $this->cartUserId($request),
+                    'delivery_service_id'   => $validated['delivery_service_id'],
+                    'delivery_address_id'   => $deliveryAddressId,
+                    'transfer_to_account_id'=> $transferAccountId,
+                    'delivery_date'         => $validated['delivery_date'],
+                    'total_price'           => $grandTotal,
+                    'shipping_cost'         => $shippingCost,
+                    'admin_fee'             => $adminFee,
+                    'payment_status'        => $paymentStatus,
+                    'payment_method'        => $paymentMethod,
+                    'delivery_status'       => '1',
+                    'image_payment'         => $imagePaymentPath,
+                    'notes'                 => $request->notes,
                 ];
 
                 Log::info('Data for SalesOrder creation:', $orderData);
