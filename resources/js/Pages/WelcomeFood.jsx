@@ -223,8 +223,8 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                                         {product.name}
                                     </Typography>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                                            Rp {product.online_price?.toLocaleString()}/{product.unit}
+                                        <Typography variant={auth?.user ? "h6" : "body2"} sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                                            {auth?.user ? `Rp ${product.online_price?.toLocaleString()}/${product.unit}` : 'Login untuk melihat harga'}
                                         </Typography>
                                     </Box>
                                 </Card>

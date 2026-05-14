@@ -346,7 +346,13 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         </Box>
                                                         {/* Container for prices */}
                                                         <Box sx={{ mt: 'auto' }}>
-                                                            {product.price_tiers && product.price_tiers.length > 0 ? (
+                                                            {!auth?.user ? (
+                                                                <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: 'rgba(198, 169, 107, 0.05)', p: 0.75, borderRadius: 1, minHeight: '38px', justifyContent: 'center' }}>
+                                                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', textAlign: 'center' }}>
+                                                                        Login untuk melihat harga
+                                                                    </Typography>
+                                                                </Box>
+                                                            ) : product.price_tiers && product.price_tiers.length > 0 ? (
                                                                 <Box sx={{ bgcolor: 'rgba(198, 169, 107, 0.05)', p: 0.75, borderRadius: 1 }}>
                                                                     {product.price_tiers.slice(0, 2).map((tier, index) => (
                                                                         <Box
@@ -370,7 +376,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                             ) : Number(product.online_price) > 0 ? (
                                                                 <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: 'rgba(198, 169, 107, 0.05)', p: 0.75, borderRadius: 1 }}>
                                                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                                                        Per {product.unit.unit}
+                                                                        Per {product.unit?.unit}
                                                                     </Typography>
                                                                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#C6A96B', fontSize: '0.9rem' }}>
                                                                         Rp {Number(product.online_price || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
