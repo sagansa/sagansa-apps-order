@@ -41,7 +41,7 @@ export default function BaseLayout({
     }, [mode]);
 
     useEffect(() => {
-        if (isAuthenticated && !user.email_verified_at) {
+        if (isAuthenticated && user && !user.email_verified_at) {
             const pollInterval = setInterval(() => {
                 import('@inertiajs/react').then(({ router }) => {
                     router.reload({ 
@@ -63,11 +63,11 @@ export default function BaseLayout({
             palette: {
                 mode: actualMode,
                 primary: {
-                    main: primaryColor ?? "#C6A96B",
+                    main: typeof primaryColor === 'string' ? primaryColor : "#C6A96B",
                     contrastText: "#0A0A0A",
                 },
                 secondary: {
-                    main: secondaryColor ?? "#0A0A0A",
+                    main: typeof secondaryColor === 'string' ? secondaryColor : "#0A0A0A",
                     contrastText: "#FFFFFF",
                 },
                 background: {

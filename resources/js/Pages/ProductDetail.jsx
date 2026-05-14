@@ -56,6 +56,22 @@ function TabPanel(props) {
 }
 
 export default function ProductDetail({ auth, product }) {
+    const Layout = auth?.user ? AuthenticatedLayout : CustomerLayout;
+
+    if (!product) {
+        return (
+            <Layout user={auth?.user}>
+                <Head title="Product Not Found" />
+                <Container sx={{ py: 8, textAlign: 'center' }}>
+                    <Typography variant="h4" color="white">Produk tidak ditemukan</Typography>
+                    <Button component={Link} href={route('order.index')} sx={{ mt: 2, color: '#C6A96B' }}>
+                        Kembali ke Katalog
+                    </Button>
+                </Container>
+            </Layout>
+        );
+    }
+
     const [quantity, setQuantity] = useState(1);
     const [tabValue, setTabValue] = useState(0);
 
@@ -118,20 +134,21 @@ export default function ProductDetail({ auth, product }) {
         setQuantity(Math.max(1, newValue));
     };
 
-    const mainImage = (product.images && product.images.length > 0
+    const mainImage = (product?.images && product.images.length > 0
         ? product.images[0].image_url
-        : product.image_url) || '/images/no_image.png';
+        : product?.image_url) || '/images/no_image.png';
 
-    const Layout = auth?.user ? AuthenticatedLayout : CustomerLayout;
+
+
 
     return (
         <Layout user={auth?.user}>
             <Head>
-                <title>{product.name} - Sagansa</title>
-                <meta name="description" content={product.description ? product.description.substring(0, 160) : `Beli ${product.name} berkualitas tinggi di Sagansa.`} />
-                <meta name="keywords" content={`${product.name}, sagansa, supplier, grosir, bahan makanan, sparepart`} />
-                <meta property="og:title" content={`${product.name} - Sagansa`} />
-                <meta property="og:description" content={product.description ? product.description.substring(0, 160) : `Beli ${product.name} berkualitas tinggi di Sagansa.`} />
+                <title>{product?.name ? `${product.name} - Sagansa` : 'Detail Produk - Sagansa'}</title>
+                <meta name="description" content={product?.description ? product.description.substring(0, 160) : `Beli ${product?.name || 'produk'} berkualitas tinggi di Sagansa.`} />
+                <meta name="keywords" content={`${product?.name || ''}, sagansa, supplier, grosir, bahan makanan, sparepart`} />
+                <meta property="og:title" content={product?.name ? `${product.name} - Sagansa` : 'Sagansa'} />
+                <meta property="og:description" content={product?.description ? product.description.substring(0, 160) : `Beli ${product?.name || 'produk'} berkualitas tinggi di Sagansa.`} />
                 <meta property="og:image" content={mainImage} />
                 <meta property="og:type" content="product" />
                 <meta name="twitter:card" content="summary_large_image" />
