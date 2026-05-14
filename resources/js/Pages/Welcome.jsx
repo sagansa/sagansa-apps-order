@@ -14,7 +14,14 @@ export default function Welcome({ auth, products, categories }) {
             primaryColor={primaryGreen}
             secondaryColor={secondaryGreen}
         >
-            <Head title="Welcome" />
+            <Head>
+                <title>Sagansa - Solusi Food Supply & Engineering Terpercaya</title>
+                <meta name="description" content="Sagansa adalah perusahaan yang berkomitmen memberikan solusi terbaik dalam bidang food supply dan engineering untuk mendukung pertumbuhan bisnis Anda." />
+                <meta name="keywords" content="sagansa, food supply, engineering, supplier makanan, bahan makanan restoran, layanan teknis, manufaktur" />
+                <meta property="og:title" content="Sagansa - Solusi Food Supply & Engineering Terpercaya" />
+                <meta property="og:description" content="Menyediakan bahan makanan berkualitas tinggi dan layanan engineering profesional. Kami siap menjadi mitra terpercaya Anda." />
+                <meta property="og:type" content="website" />
+            </Head>
             {/* Hero Section */}
                 <Box
                     sx={{

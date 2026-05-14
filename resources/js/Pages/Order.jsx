@@ -152,7 +152,13 @@ export default function Order({ auth, products = [], categories = [], units = []
                 </Box>
             }
         >
-            <Head title="Order" />
+            <Head>
+                <title>Katalog Produk - Sagansa</title>
+                <meta name="description" content="Jelajahi berbagai produk makanan dan layanan engineering berkualitas dari Sagansa. Dapatkan penawaran terbaik dan harga grosir." />
+                <meta name="keywords" content="katalog sagansa, produk sagansa, beli bahan makanan, peralatan engineering" />
+                <meta property="og:title" content="Katalog Produk - Sagansa" />
+                <meta property="og:description" content="Jelajahi berbagai produk makanan dan layanan engineering berkualitas dari Sagansa. Dapatkan penawaran terbaik dan harga grosir." />
+            </Head>
 
             <Box sx={{ py: 2 }}> {/* Reduced vertical padding */}
                 <Container maxWidth="xl"> {/* Increased maxWidth to xl */}

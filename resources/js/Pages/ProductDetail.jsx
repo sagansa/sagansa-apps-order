@@ -126,7 +126,16 @@ export default function ProductDetail({ auth, product }) {
 
     return (
         <Layout user={auth?.user}>
-            <Head title={product.name} />
+            <Head>
+                <title>{product.name} - Sagansa</title>
+                <meta name="description" content={product.description ? product.description.substring(0, 160) : `Beli ${product.name} berkualitas tinggi di Sagansa.`} />
+                <meta name="keywords" content={`${product.name}, sagansa, supplier, grosir, bahan makanan, sparepart`} />
+                <meta property="og:title" content={`${product.name} - Sagansa`} />
+                <meta property="og:description" content={product.description ? product.description.substring(0, 160) : `Beli ${product.name} berkualitas tinggi di Sagansa.`} />
+                <meta property="og:image" content={mainImage} />
+                <meta property="og:type" content="product" />
+                <meta name="twitter:card" content="summary_large_image" />
+            </Head>
             <Toaster />
 
             <Box sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
