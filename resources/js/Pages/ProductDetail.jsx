@@ -223,46 +223,56 @@ export default function ProductDetail({ auth, product }) {
                                     </Typography>
                                 </Stack>
 
-                                <Typography variant="h3" sx={{ fontWeight: '900', color: '#fff', mt: 1 }}>
-                                    Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                                </Typography>
+                                {auth?.user ? (
+                                    <>
+                                        <Typography variant="h3" sx={{ fontWeight: '900', color: '#fff', mt: 1 }}>
+                                            Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                        </Typography>
 
-                                {product.price_tiers && product.price_tiers.length > 0 && (
-                                    <Box sx={{ 
-                                        mt: 1, 
-                                        p: 1.5, 
-                                        borderRadius: 2, 
-                                        bgcolor: 'rgba(198, 169, 107, 0.05)',
-                                        border: '1px dashed rgba(198, 169, 107, 0.3)'
-                                    }}>
-                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                            <DiscountIcon sx={{ fontSize: 18, color: '#C6A96B' }} />
-                                            <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
-                                                Tersedia Harga Grosir
-                                            </Typography>
-                                        </Stack>
-                                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                                            {product.price_tiers.map((tier, idx) => (
-                                                <Chip 
-                                                    key={idx}
-                                                    label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} pcs : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
-                                                    size="small"
-                                                    sx={{ 
-                                                        bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
-                                                            ? '#C6A96B' 
-                                                            : 'rgba(255,255,255,0.05)',
-                                                        color: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
-                                                            ? '#000' 
-                                                            : 'text.secondary',
-                                                        border: '1px solid',
-                                                        borderColor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
-                                                            ? '#C6A96B' 
-                                                            : 'rgba(255,255,255,0.1)',
-                                                        fontWeight: 'bold'
-                                                    }}
-                                                />
-                                            ))}
-                                        </Stack>
+                                        {product.price_tiers && product.price_tiers.length > 0 && (
+                                            <Box sx={{ 
+                                                mt: 1, 
+                                                p: 1.5, 
+                                                borderRadius: 2, 
+                                                bgcolor: 'rgba(198, 169, 107, 0.05)',
+                                                border: '1px dashed rgba(198, 169, 107, 0.3)'
+                                            }}>
+                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                    <DiscountIcon sx={{ fontSize: 18, color: '#C6A96B' }} />
+                                                    <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
+                                                        Tersedia Harga Grosir
+                                                    </Typography>
+                                                </Stack>
+                                                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                                    {product.price_tiers.map((tier, idx) => (
+                                                        <Chip 
+                                                            key={idx}
+                                                            label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} pcs : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
+                                                            size="small"
+                                                            sx={{ 
+                                                                bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                                    ? '#C6A96B' 
+                                                                    : 'rgba(255,255,255,0.05)',
+                                                                color: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                                    ? '#000' 
+                                                                    : 'text.secondary',
+                                                                border: '1px solid',
+                                                                borderColor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity) 
+                                                                    ? '#C6A96B' 
+                                                                    : 'rgba(255,255,255,0.1)',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </Stack>
+                                            </Box>
+                                        )}
+                                    </>
+                                ) : (
+                                    <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+                                        <Typography variant="subtitle1" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
+                                            Silakan login untuk melihat harga dan penawaran grosir.
+                                        </Typography>
                                     </Box>
                                 )}
 
@@ -288,7 +298,7 @@ export default function ProductDetail({ auth, product }) {
                                         }}
                                     >
                                         <Tab label="Detail" />
-                                        {product.price_tiers?.length > 0 && <Tab label="Harga Grosir" />}
+                                        {auth?.user && product.price_tiers?.length > 0 && <Tab label="Harga Grosir" />}
                                         <Tab label="Spesifikasi" />
                                         <Tab label="Info Penting" />
                                     </Tabs>
@@ -310,7 +320,7 @@ export default function ProductDetail({ auth, product }) {
                                         </Stack>
                                     </TabPanel>
 
-                                    {product.price_tiers?.length > 0 && (
+                                    {auth?.user && product.price_tiers?.length > 0 && (
                                         <TabPanel value={tabValue} index={1}>
                                             <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 'bold', mb: 2 }}>
                                                 Daftar Harga Bertingkat
@@ -417,12 +427,14 @@ export default function ProductDetail({ auth, product }) {
                                         </Typography>
                                     </Stack>
 
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                                        <Typography variant="h6" sx={{ fontWeight: '900', color: '#fff' }}>
-                                            Rp {Number(currentPrice * quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                                        </Typography>
-                                    </Box>
+                                    {auth?.user && (
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="body2" color="text.secondary">Subtotal</Typography>
+                                            <Typography variant="h6" sx={{ fontWeight: '900', color: '#fff' }}>
+                                                Rp {Number(currentPrice * quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                            </Typography>
+                                        </Box>
+                                    )}
 
                                     <Stack spacing={1.5}>
                                         <Button
