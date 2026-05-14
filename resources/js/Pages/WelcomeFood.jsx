@@ -22,7 +22,14 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                 </Box>
             }
         >
-            <Head title="Sagansa Food" />
+            <Head>
+                <title>Sagansa Food - Supplier Bahan Makanan Terpercaya</title>
+                <meta name="description" content="Sagansa Food adalah supplier bahan makanan terkemuka yang menyediakan bahan berkualitas tinggi untuk restoran, hotel, dan katering." />
+                <meta name="keywords" content="sagansa food, supplier makanan, bahan makanan, grosir makanan restoran, hotel katering, bahan masakan" />
+                <meta property="og:title" content="Sagansa Food - Supplier Bahan Makanan Terpercaya" />
+                <meta property="og:description" content="Menyediakan bahan makanan berkualitas tinggi untuk restoran, hotel, dan katering dengan jaringan pasokan luas dan pengalaman lebih dari 10 tahun." />
+                <meta property="og:type" content="website" />
+            </Head>
             {/* Hero Section */}
             <Box
                 sx={{
