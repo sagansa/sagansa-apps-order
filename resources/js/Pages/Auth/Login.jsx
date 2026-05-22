@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import MuiLink from '@mui/material/Link'; // Import MUI Link for consistent styling
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, flash }) {
     const [showManual, setShowManual] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
@@ -51,6 +51,18 @@ export default function Login({ status, canResetPassword }) {
                     <Typography variant="body2" sx={{ mb: 4, color: '#A0A0A0', textAlign: 'center' }}>
                         Masuk lebih cepat dan aman dengan akun Google Anda.
                     </Typography>
+
+                    {flash?.error && (
+                        <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+                            {flash.error}
+                        </Alert>
+                    )}
+
+                    {status && (
+                        <Alert severity="success" sx={{ width: '100%', mb: 3 }}>
+                            {status}
+                        </Alert>
+                    )}
 
                     <Button
                         fullWidth

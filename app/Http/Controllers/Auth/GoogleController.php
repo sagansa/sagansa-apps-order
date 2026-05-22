@@ -64,6 +64,11 @@ class GoogleController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
 
         } catch (Exception $e) {
+            Log::error('Google OAuth callback failed.', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
             return redirect()->route('login')->with('error', 'Login Google gagal: ' . $e->getMessage());
         }
     }
