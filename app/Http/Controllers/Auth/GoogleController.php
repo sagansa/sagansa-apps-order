@@ -10,6 +10,7 @@ use Laravel\Socialite\Facades\Socialite;
 use Exception;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class GoogleController extends Controller
 {
@@ -37,21 +38,33 @@ class GoogleController extends Controller
         try {
             $googleUser = Socialite::driver('google')->user();
             
-            $user = User::where('google_id', $googleUser->id)
-                ->orWhere('email', $googleUser->email)
+            $hasGoogleIdColumn = Schema::connection('mysql_auth')->hasColumn('users', 'google_id');
+
+            $user = User::query()
+                ->when(
+                    $hasGoogleIdColumn,
+                    fn ($query) => $query->where('google_id', $googleUser->id)->orWhere('email', $googleUser->email),
+                    fn ($query) => $query->where('email', $googleUser->email),
+                )
                 ->first();
 
             if (!$user) {
-                $user = User::create([
+                $userData = [
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
-                    'google_id' => $googleUser->id,
-                    'avatar' => $googleUser->avatar,
+                    'email_verified_at' => now(),
                     'password' => null,
-                ]);
+                ];
+
+                if ($hasGoogleIdColumn) {
+                    $userData['google_id'] = $googleUser->id;
+                    $userData['avatar'] = $googleUser->avatar;
+                }
+
+                $user = User::create($userData);
                 $user->markEmailAsVerified();
             } else {
-                if (!$user->google_id) {
+                if ($hasGoogleIdColumn && !$user->google_id) {
                     $user->update([
                         'google_id' => $googleUser->id,
                         'avatar' => $googleUser->avatar,
