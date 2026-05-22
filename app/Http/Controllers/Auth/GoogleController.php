@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Exception;
 use Inertia\Inertia;
@@ -14,6 +15,18 @@ class GoogleController extends Controller
 {
     public function redirectToGoogle()
     {
+        if (!config('services.google.client_id') || !config('services.google.client_secret') || !config('services.google.redirect')) {
+            Log::error('Google OAuth is not configured.', [
+                'has_client_id' => (bool) config('services.google.client_id'),
+                'has_client_secret' => (bool) config('services.google.client_secret'),
+                'has_redirect' => (bool) config('services.google.redirect'),
+            ]);
+
+            return redirect()
+                ->route('login')
+                ->with('error', 'Login Google belum dikonfigurasi di server.');
+        }
+
         $url = Socialite::driver('google')->redirect()->getTargetUrl();
         \Illuminate\Support\Facades\Log::info('Google Redirect URL:', ['url' => $url]);
         return Socialite::driver('google')->redirect();

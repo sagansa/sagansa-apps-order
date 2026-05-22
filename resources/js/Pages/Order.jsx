@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
+import Footer from '@/Components/Footer';
 import { useState, useEffect, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import {
@@ -146,9 +147,14 @@ export default function Order({ auth, products = [], categories = [], units = []
                     alignItems: { xs: 'flex-start', sm: 'center' },
                     gap: 2
                 }}>
-                    <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', color: 'white' }}>
-                        Order
-                    </Typography>
+                    <Box>
+                        <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
+                            Sagansa Order
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5, color: 'rgba(255, 255, 255, 0.72)' }}>
+                            Katalog produk dan pemesanan online Sagansa
+                        </Typography>
+                    </Box>
                     <TextField
                         placeholder="Cari produk..."
                         variant="outlined"
@@ -179,11 +185,11 @@ export default function Order({ auth, products = [], categories = [], units = []
             }
         >
             <Head>
-                <title>Katalog Produk - Sagansa</title>
-                <meta name="description" content="Jelajahi berbagai produk makanan dan layanan engineering berkualitas dari Sagansa. Dapatkan penawaran terbaik dan harga grosir." />
-                <meta name="keywords" content="katalog sagansa, produk sagansa, beli bahan makanan, peralatan engineering" />
-                <meta property="og:title" content="Katalog Produk - Sagansa" />
-                <meta property="og:description" content="Jelajahi berbagai produk makanan dan layanan engineering berkualitas dari Sagansa. Dapatkan penawaran terbaik dan harga grosir." />
+                <title>Sagansa Order - Katalog Produk Sagansa</title>
+                <meta name="description" content="Sagansa Order adalah aplikasi pemesanan online Sagansa untuk katalog produk makanan dan layanan engineering berkualitas." />
+                <meta name="keywords" content="sagansa order, sagansa, katalog sagansa, produk sagansa, beli bahan makanan, peralatan engineering" />
+                <meta property="og:title" content="Sagansa Order - Katalog Produk Sagansa" />
+                <meta property="og:description" content="Sagansa Order adalah aplikasi pemesanan online Sagansa untuk katalog produk makanan dan layanan engineering berkualitas." />
             </Head>
 
             <Box sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
@@ -359,6 +365,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                     )}
                 </Container>
             </Box>
+            <Footer />
             <Toaster /> {/* Add Toaster component here */}
         </Layout>
     );
