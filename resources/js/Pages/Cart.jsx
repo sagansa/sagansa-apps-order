@@ -326,6 +326,7 @@ export default function Cart({
     };
 
     const subtotal = calculateSubtotal();
+    const normalizedShippingCostAmount = Number(shippingCostAmount) || 0;
 
 
     // Calculate total including shipping cost and Midtrans fee if applicable
@@ -334,7 +335,7 @@ export default function Cart({
         selectedDelivery !== "33" &&
         shippingCostConfirmed &&
         shippingPaymentMethod === "via_us"
-            ? subtotal + shippingCostAmount
+            ? subtotal + normalizedShippingCostAmount
             : subtotal;
 
     const handleDeliveryChange = (e) => {
@@ -487,7 +488,7 @@ export default function Cart({
                 isDelivery &&
                 shippingCostConfirmed &&
                 shippingPaymentMethod === "via_us" &&
-                shippingCostAmount <= 0
+                normalizedShippingCostAmount <= 0
             ) {
                 alert(
                     "Mohon masukkan nominal biaya pengiriman yang valid (lebih dari 0) jika dibayarkan melalui kami."
@@ -525,7 +526,7 @@ export default function Cart({
                 isDelivery &&
                 shippingCostConfirmed &&
                 shippingPaymentMethod === "via_us"
-                    ? shippingCostAmount
+                    ? normalizedShippingCostAmount
                     : 0;
 
             formData.append("shipping_cost", finalShippingCostForBackend);

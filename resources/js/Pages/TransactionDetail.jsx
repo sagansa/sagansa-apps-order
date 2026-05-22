@@ -585,7 +585,6 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                         )}
                         {order.image_delivery && (
                             <Grid
-                                item
                                 sx={{
                                     gridColumn: { xs: "span 12", md: "span 6" },
                                 }}
@@ -697,12 +696,19 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                             fullWidth
                             size="small"
                             value={data.shipping_cost}
-                            onChange={(e) =>
+                            onFocus={(e) => {
+                                if (Number(data.shipping_cost) === 0) {
+                                    setData("shipping_cost", "");
+                                    e.target.select();
+                                }
+                            }}
+                            onChange={(e) => {
+                                const value = e.target.value;
                                 setData(
                                     "shipping_cost",
-                                    parseFloat(e.target.value)
-                                )
-                            }
+                                    value === "" ? "" : Number(value)
+                                );
+                            }}
                             error={!!errors.shipping_cost}
                             helperText={errors.shipping_cost}
                             sx={{ mb: 2 }}

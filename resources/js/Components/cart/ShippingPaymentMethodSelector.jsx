@@ -60,11 +60,18 @@ const ShippingPaymentMethodSelector = ({
                                 type="number"
                                 fullWidth
                                 value={shippingCostAmount}
-                                onChange={(e) =>
+                                onFocus={(e) => {
+                                    if (Number(shippingCostAmount) === 0) {
+                                        setShippingCostAmount("");
+                                        e.target.select();
+                                    }
+                                }}
+                                onChange={(e) => {
+                                    const value = e.target.value;
                                     setShippingCostAmount(
-                                        parseFloat(e.target.value) || 0
-                                    )
-                                }
+                                        value === "" ? "" : Number(value)
+                                    );
+                                }}
                                 InputProps={{
                                     startAdornment: (
                                         <InputAdornment position="start">

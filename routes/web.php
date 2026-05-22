@@ -83,4 +83,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/orders/{id}', [OrderController::class, 'show'])->name('api.orders.show');
 });
 
+Route::get('/privacy-policy', function () {
+    return Inertia::render('Legal/PrivacyPolicy');
+})->name('privacy.policy');
+
+Route::get('/terms-of-service', function () {
+    return Inertia::render('Legal/TermsOfService');
+})->name('terms.service');
+
 require __DIR__.'/auth.php';
