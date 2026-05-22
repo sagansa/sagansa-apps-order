@@ -37,6 +37,7 @@ const OrderSummaryCard = ({
     const isManualTransfer = selectedPaymentMethod === "manual_transfer";
     const isMidtrans = selectedPaymentMethod !== "manual_transfer" && selectedPaymentMethod !== "";
     const isViaUsShipping = shippingPaymentMethod === "via_us";
+    const normalizedShippingCostAmount = Number(shippingCostAmount) || 0;
 
     // Calculate dynamic midtrans fee
     const midtransFee = (() => {
@@ -44,7 +45,7 @@ const OrderSummaryCard = ({
         const method = midtransMethods[selectedPaymentMethod];
         if (!method) return 0;
 
-        const totalForFee = subtotal + shippingCostAmount;
+        const totalForFee = subtotal + normalizedShippingCostAmount;
 
         if (method.type === 'fixed') {
             return method.value;
@@ -71,7 +72,7 @@ const OrderSummaryCard = ({
         (isDelivery &&
             shippingCostConfirmed &&
             isViaUsShipping &&
-            shippingCostAmount <= 0);
+            normalizedShippingCostAmount <= 0);
 
     return (
         <Card
@@ -113,7 +114,7 @@ const OrderSummaryCard = ({
                                     Ongkos Kirim
                                 </Typography>
                                 <Typography sx={{ fontWeight: 'bold' }}>
-                                    Rp {Number(shippingCostAmount).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                    Rp {normalizedShippingCostAmount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                 </Typography>
                             </Box>
                         )}
@@ -164,7 +165,7 @@ const OrderSummaryCard = ({
                                     {manualTransferDetailsRequired && !selectedTransferAccount && <li>Rekening tujuan belum dipilih</li>}
                                     {manualTransferDetailsRequired && !transferProof && <li>Bukti transfer belum diupload</li>}
                                     {isDelivery && !selectedAddress && <li>Alamat pengiriman belum dipilih</li>}
-                                    {isDelivery && shippingCostConfirmed && isViaUsShipping && shippingCostAmount <= 0 && <li>Nominal ongkir belum valid</li>}
+                                    {isDelivery && shippingCostConfirmed && isViaUsShipping && normalizedShippingCostAmount <= 0 && <li>Nominal ongkir belum valid</li>}
                                 </ul>
                             </Typography>
                         </Box>
