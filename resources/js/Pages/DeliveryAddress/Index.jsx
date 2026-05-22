@@ -35,6 +35,7 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedSubdistrict, setSelectedSubdistrict] = useState("");
     const [postalCodeId, setPostalCodeId] = useState("");
+    const [postalCodeValue, setPostalCodeValue] = useState("");
 
     useEffect(() => {
         fetch(route("locations.provinces"))
@@ -48,6 +49,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
         setSelectedCity("");
         setSelectedDistrict("");
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setCities([]);
         setDistricts([]);
         setSubdistricts([]);
@@ -64,6 +67,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
         setSelectedCity(cityId);
         setSelectedDistrict("");
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setDistricts([]);
         setSubdistricts([]);
 
@@ -78,6 +83,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
         const districtId = e.target.value;
         setSelectedDistrict(districtId);
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setSubdistricts([]);
 
         if (districtId) {
@@ -90,6 +97,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
     const handleSubdistrictChange = (e) => {
         const subdistrictId = e.target.value;
         setSelectedSubdistrict(subdistrictId);
+        setPostalCodeId("");
+        setPostalCodeValue("");
 
         if (subdistrictId) {
             fetch(
@@ -99,9 +108,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
             )
                 .then((response) => response.json())
                 .then((data) => {
-                    if (data && data.postal_code) {
-                        setPostalCodeId(data.postal_code);
-                    }
+                    setPostalCodeId(data?.id || "");
+                    setPostalCodeValue(data?.postal_code || "");
                 });
         }
     };
@@ -115,6 +123,7 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
         setSelectedDistrict("");
         setSelectedSubdistrict("");
         setPostalCodeId("");
+        setPostalCodeValue("");
         setCities([]);
         setDistricts([]);
         setSubdistricts([]);
@@ -127,7 +136,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
         setSelectedCity(address.city_id);
         setSelectedDistrict(address.district_id);
         setSelectedSubdistrict(address.subdistrict_id);
-        setPostalCodeId(address.postal_code);
+        setPostalCodeId(address.postal_code_id || "");
+        setPostalCodeValue(address.postal_code?.postal_code || "");
 
         // Fetch cities
         fetch(route("locations.cities", { province_id: address.province_id }))
@@ -351,6 +361,8 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
                         selectedSubdistrict={selectedSubdistrict}
                         postalCodeId={postalCodeId}
                         setPostalCodeId={setPostalCodeId}
+                        postalCodeValue={postalCodeValue}
+                        setPostalCodeValue={setPostalCodeValue}
                         handleProvinceChange={handleProvinceChange}
                         handleCityChange={handleCityChange}
                         handleDistrictChange={handleDistrictChange}

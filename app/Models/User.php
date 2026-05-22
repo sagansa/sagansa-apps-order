@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -16,6 +17,15 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $connection = 'mysql_auth';
 
     protected $appends = ['cart_count'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (!$user->uuid) {
+                $user->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function carts()
     {
@@ -38,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google_id',
         'avatar',
+        'phone_number',
+        'uuid',
     ];
 
     /**
