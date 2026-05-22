@@ -31,11 +31,11 @@ export default function Footer() {
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <PhoneIcon fontSize="small" />
-                                <Typography variant="body2">+62 85775644322</Typography>
+                                <Typography variant="body2">+62 85782004645</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <EmailIcon fontSize="small" />
-                                <Typography variant="body2">info@sagansa.id</Typography>
+                                <Typography variant="body2">admin@sagansa.id</Typography>
                             </Box>
                         </Box>
                     </Grid>
@@ -43,25 +43,25 @@ export default function Footer() {
                     <Grid size={{ xs: 12, md: 3 }}>
                         <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Layanan</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/food" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {/* <Link href="/food" style={{ color: 'inherit', textDecoration: 'none' }}>
                                 <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Food</Typography>
                             </Link>
                             <Link href="/engineering" style={{ color: 'inherit', textDecoration: 'none' }}>
                                 <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Engineering</Typography>
-                            </Link>
+                            </Link> */}
                         </Box>
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 3 }}>
                         <Typography variant="h6" sx={{ mb: 2, color: theme.palette.primary.main }}>Dukungan</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {/* <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
                                 <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>FAQ</Typography>
-                            </Link>
-                            <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            </Link> */}
+                            <Link href={route('terms.service')} style={{ color: 'inherit', textDecoration: 'none' }}>
                                 <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Syarat & Ketentuan</Typography>
                             </Link>
-                            <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            <Link href={route('privacy.policy')} style={{ color: 'inherit', textDecoration: 'none' }}>
                                 <Typography variant="body2" sx={{ '&:hover': { color: theme.palette.primary.main } }}>Kebijakan Privasi</Typography>
                             </Link>
                         </Box>

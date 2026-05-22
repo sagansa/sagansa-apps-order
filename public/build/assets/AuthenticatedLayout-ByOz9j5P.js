@@ -1,0 +1,1 @@
+import{K as u,j as a}from"./app-CI1Qve_1.js";import{B as i}from"./BaseLayout-BzImlF6X.js";function m({header:t,children:r,primaryColor:s,secondaryColor:e}){const o=u().props.auth.user;return a.jsx(i,{children:r,header:t,isAuthenticated:!0,user:o,primaryColor:s,secondaryColor:e})}export{m as A};
