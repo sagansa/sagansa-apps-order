@@ -48,11 +48,6 @@ class GoogleController extends Controller
 
             Auth::login($user);
 
-            // Jika nomor telepon belum ada, minta lengkapi profil
-            if (!$user->phone_number) {
-                return redirect()->route('complete-profile');
-            }
-
             return redirect()->intended(route('dashboard', absolute: false));
 
         } catch (Exception $e) {
@@ -68,12 +63,12 @@ class GoogleController extends Controller
     public function updateProfile(Request $request)
     {
         $request->validate([
-            'phone_number' => ['required', 'string', 'max:20', 'regex:/^([0-9\s\-\+\(\)]*)$/'],
+            'phone_number' => ['nullable', 'string', 'max:20', 'regex:/^([0-9\s\-\+\(\)]*)$/'],
         ]);
 
         $user = Auth::user();
         $user->update([
-            'phone_number' => $request->phone_number,
+            'phone_number' => $request->filled('phone_number') ? $request->phone_number : null,
         ]);
 
         return redirect()->intended(route('dashboard', absolute: false));

@@ -553,6 +553,7 @@ export default function DeliveryAddressManagerModal({
                             !selectedCity ||
                             !selectedDistrict ||
                             !selectedSubdistrict ||
+                            !postalCodeId ||
                             !formData.name.trim() ||
                             !formData.recipient_name.trim() ||
                             !formData.recipient_telp_no.trim() ||

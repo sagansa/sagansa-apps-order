@@ -74,7 +74,7 @@ export default function PrivacyPolicy({ auth }) {
                             <ul>
                                 <li><strong>Informasi Profil Google:</strong> Nama lengkap, alamat email, dan foto profil yang Anda berikan melalui Google OAuth.</li>
                                 <li><strong>Informasi Transaksi:</strong> Detail pesanan Anda, riwayat pembelian, dan alamat pengiriman.</li>
-                                <li><strong>Informasi Kontak:</strong> Nomor telepon yang Anda berikan secara sukarela untuk memproses pesanan dan verifikasi WhatsApp.</li>
+                                <li><strong>Informasi Kontak:</strong> Nomor telepon yang Anda berikan secara sukarela untuk membantu komunikasi terkait pesanan.</li>
                             </ul>
                         </Typography>
 
@@ -88,7 +88,7 @@ export default function PrivacyPolicy({ auth }) {
                             <ul>
                                 <li>Memverifikasi identitas Anda dan membuat akun.</li>
                                 <li>Memproses dan melacak pesanan Anda secara akurat.</li>
-                                <li>Mengirimkan notifikasi terkait status pesanan melalui email atau WhatsApp.</li>
+                                <li>Mengirimkan notifikasi terkait status pesanan melalui email atau kanal komunikasi yang tersedia.</li>
                                 <li>Meningkatkan kualitas layanan dan pengalaman pengguna di platform kami.</li>
                             </ul>
                         </Typography>

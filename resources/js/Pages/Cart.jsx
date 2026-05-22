@@ -81,6 +81,7 @@ export default function Cart({
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedSubdistrict, setSelectedSubdistrict] = useState("");
     const [postalCodeId, setPostalCodeId] = useState("");
+    const [postalCodeValue, setPostalCodeValue] = useState("");
     const [openAddressManagerModal, setOpenAddressManagerModal] =
         useState(false);
     const [selectedTransferAccount, setSelectedTransferAccount] = useState("");
@@ -140,6 +141,8 @@ export default function Cart({
         setSelectedCity("");
         setSelectedDistrict("");
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setCities([]);
         setDistricts([]);
         setSubdistricts([]);
@@ -156,6 +159,8 @@ export default function Cart({
         setSelectedCity(cityId);
         setSelectedDistrict("");
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setDistricts([]);
         setSubdistricts([]);
 
@@ -170,6 +175,8 @@ export default function Cart({
         const districtId = e.target.value;
         setSelectedDistrict(districtId);
         setSelectedSubdistrict("");
+        setPostalCodeId("");
+        setPostalCodeValue("");
         setSubdistricts([]);
 
         if (districtId) {
@@ -182,6 +189,8 @@ export default function Cart({
     const handleSubdistrictChange = (e) => {
         const subdistrictId = e.target.value;
         setSelectedSubdistrict(subdistrictId);
+        setPostalCodeId("");
+        setPostalCodeValue("");
 
         if (subdistrictId) {
             fetch(
@@ -191,9 +200,8 @@ export default function Cart({
             )
                 .then((response) => response.json())
                 .then((data) => {
-                    if (data && data.postal_code) {
-                        setPostalCodeId(data.postal_code);
-                    }
+                    setPostalCodeId(data?.id || "");
+                    setPostalCodeValue(data?.postal_code || "");
                 });
         }
     };
@@ -363,7 +371,8 @@ export default function Cart({
         setSelectedCity(address.city_id);
         setSelectedDistrict(address.district_id);
         setSelectedSubdistrict(address.subdistrict_id);
-        setPostalCodeId(address.postal_code);
+        setPostalCodeId(address.postal_code_id || "");
+        setPostalCodeValue(address.postal_code?.postal_code || "");
 
         // Fetch cities
         fetch(
@@ -1241,8 +1250,7 @@ export default function Cart({
                         <TextField
                             label="Kode Pos"
                             fullWidth
-                            value={postalCodeId}
-                            onChange={(e) => setPostalCodeId(e.target.value)}
+                            value={postalCodeValue}
                             inputProps={{ maxLength: 5 }}
                             disabled={true}
                         />
@@ -1329,6 +1337,8 @@ export default function Cart({
                 selectedSubdistrict={selectedSubdistrict}
                 postalCodeId={postalCodeId}
                 setPostalCodeId={setPostalCodeId}
+                postalCodeValue={postalCodeValue}
+                setPostalCodeValue={setPostalCodeValue}
             />
         </AuthenticatedLayout>
     );

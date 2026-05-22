@@ -24,6 +24,8 @@ export default function DeliveryAddressForm({
     selectedSubdistrict,
     postalCodeId,
     setPostalCodeId,
+    postalCodeValue,
+    setPostalCodeValue,
     handleProvinceChange,
     handleCityChange,
     handleDistrictChange,
@@ -58,6 +60,7 @@ export default function DeliveryAddressForm({
                 address: editingAddress.address,
             });
             setPostalCodeId(editingAddress.postal_code_id); // Update parent state for postal code
+            setPostalCodeValue?.(editingAddress.postal_code?.postal_code || "");
         } else {
             reset(); // Clear form on new address
         }
@@ -222,8 +225,7 @@ export default function DeliveryAddressForm({
                 <TextField
                     label="Kode Pos"
                     fullWidth
-                    value={postalCodeId} // This is controlled by parent component
-                    onChange={(e) => setPostalCodeId(e.target.value)} // This updates parent state
+                    value={postalCodeValue || ""}
                     inputProps={{ maxLength: 5 }}
                     disabled={true} // Postal code is auto-filled
                     error={!!errors.postal_code_id}

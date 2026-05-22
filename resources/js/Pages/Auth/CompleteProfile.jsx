@@ -1,38 +1,13 @@
-import { useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import {
-    TextField, Button, Box, Typography, Container, Paper, Stack, Divider, Alert
+    TextField, Button, Box, Typography, Container, Paper, Stack
 } from '@mui/material';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 export default function CompleteProfile() {
-    const { auth } = usePage().props;
-    const [isWaClicked, setIsWaClicked] = useState(false);
-    
     const { data, setData, post, processing, errors } = useForm({
         phone_number: '',
     });
-
-    const adminPhone = '628111923572'; // Ganti dengan nomor Admin Sagansa (format 62...)
-
-    const handleVerifyWA = () => {
-        if (!data.phone_number) {
-            alert('Silakan masukkan nomor telepon terlebih dahulu.');
-            return;
-        }
-
-        const message = encodeURIComponent(
-            `Halo Sagansa, saya ingin memverifikasi nomor WhatsApp saya.\n\n` +
-            `Nama: ${auth.user.name}\n` +
-            `Email: ${auth.user.email}\n` +
-            `Nomor WA: ${data.phone_number}`
-        );
-        
-        window.open(`https://wa.me/${adminPhone}?text=${message}`, '_blank');
-        setIsWaClicked(true);
-    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -59,25 +34,24 @@ export default function CompleteProfile() {
                     }}
                 >
                     <Typography component="h1" variant="h4" sx={{ fontWeight: '900', color: '#C5A059', mb: 1, textAlign: 'center' }}>
-                        Langkah Terakhir
+                        Lengkapi Profil
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 4, color: '#A0A0A0', textAlign: 'center' }}>
-                        Demi keamanan dan kelancaran pengiriman, mohon lengkapi nomor WhatsApp Anda.
+                        Nomor telepon bersifat opsional dan dapat membantu komunikasi pesanan.
                     </Typography>
 
                     <Box component="form" onSubmit={submit} sx={{ width: '100%' }}>
                         <Stack spacing={3}>
                             <TextField
-                                required
                                 fullWidth
                                 id="phone_number"
-                                label="Nomor WhatsApp"
+                                label="Nomor Telepon (Opsional)"
                                 name="phone_number"
                                 placeholder="Contoh: 08123456789"
                                 value={data.phone_number}
                                 onChange={(e) => setData('phone_number', e.target.value)}
                                 error={!!errors.phone_number}
-                                helperText={errors.phone_number || "Gunakan nomor yang aktif di WhatsApp"}
+                                helperText={errors.phone_number || 'Boleh dikosongkan.'}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: 2,
@@ -91,68 +65,48 @@ export default function CompleteProfile() {
                                 }}
                             />
 
-                            <Divider sx={{ borderColor: '#333333' }}>
-                                <Typography variant="caption" sx={{ color: '#444444', px: 1 }}>VERIFIKASI</Typography>
-                            </Divider>
-
-                            {!isWaClicked ? (
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    onClick={handleVerifyWA}
-                                    startIcon={<WhatsAppIcon />}
-                                    sx={{
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        textTransform: 'none',
-                                        fontWeight: '700',
-                                        borderColor: '#25D366',
-                                        color: '#25D366',
-                                        '&:hover': { 
-                                            borderColor: '#128C7E', 
-                                            backgroundColor: 'rgba(37, 211, 102, 0.05)' 
-                                        }
-                                    }}
-                                >
-                                    Verifikasi via WhatsApp (Gratis)
-                                </Button>
-                            ) : (
-                                <Alert 
-                                    severity="success" 
-                                    icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                                    sx={{ 
-                                        backgroundColor: 'rgba(37, 211, 102, 0.1)', 
-                                        color: '#25D366',
-                                        borderRadius: 2,
-                                        '& .MuiAlert-icon': { color: '#25D366' }
-                                    }}
-                                >
-                                    Terima kasih! Pastikan Anda sudah mengirim pesan verifikasi di WhatsApp.
-                                </Alert>
-                            )}
-
                             <Button
                                 type="submit"
                                 fullWidth
                                 variant="contained"
-                                disabled={processing || (!isWaClicked && !data.phone_number)}
-                                sx={{ 
-                                    mt: 2,
+                                disabled={processing}
+                                sx={{
                                     py: 1.8,
                                     borderRadius: 3,
                                     textTransform: 'none',
                                     fontWeight: '900',
                                     fontSize: '1rem',
-                                    backgroundColor: isWaClicked ? '#C5A059' : '#333333',
+                                    backgroundColor: '#C5A059',
                                     color: '#000000',
-                                    boxShadow: isWaClicked ? '0 4px 15px rgba(197, 160, 89, 0.4)' : 'none',
-                                    '&:hover': { 
-                                        backgroundColor: isWaClicked ? '#D4AF37' : '#444444',
+                                    boxShadow: '0 4px 15px rgba(197, 160, 89, 0.4)',
+                                    '&:hover': {
+                                        backgroundColor: '#D4AF37',
                                     },
-                                    transition: 'all 0.3s ease'
+                                    '&:disabled': {
+                                        backgroundColor: '#444444',
+                                        color: '#888888',
+                                        boxShadow: 'none',
+                                    },
                                 }}
                             >
                                 Simpan dan Lanjutkan
+                            </Button>
+
+                            <Button
+                                component={Link}
+                                href={route('dashboard')}
+                                fullWidth
+                                variant="text"
+                                sx={{
+                                    color: '#A0A0A0',
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        color: '#C5A059',
+                                        backgroundColor: 'transparent',
+                                    },
+                                }}
+                            >
+                                Lewati
                             </Button>
                         </Stack>
                     </Box>

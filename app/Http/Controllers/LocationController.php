@@ -47,11 +47,12 @@ class LocationController extends Controller
     public function postalCode(Request $request)
     {
         $postalCode = PostalCode::where('subdistrict_id', $request->subdistrict_id)
-            ->select('postal_code')
+            ->select('id', 'postal_code')
             ->first();
 
         return response()->json([
-            'postal_code' => $postalCode ? $postalCode->postal_code : null
+            'id' => $postalCode?->id,
+            'postal_code' => $postalCode?->postal_code,
         ]);
     }
 }
