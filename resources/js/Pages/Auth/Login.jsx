@@ -3,7 +3,7 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
-    TextField, Button, Checkbox, FormControlLabel, Box, Typography,
+    TextField, Button, Box, Typography,
     Container, Alert, Paper, Stack, Grid, Divider
 } from '@mui/material';
 import MuiLink from '@mui/material/Link'; // Import MUI Link for consistent styling
@@ -13,7 +13,6 @@ export default function Login({ status, canResetPassword, flash }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
-        remember: false,
     });
 
     const submit = (e) => {
@@ -173,16 +172,9 @@ export default function Login({ status, canResetPassword, flash }) {
                                 />
                                 
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={data.remember}
-                                                onChange={(e) => setData('remember', e.target.checked)}
-                                                sx={{ color: '#444444', '&.Mui-checked': { color: '#C5A059' } }}
-                                            />
-                                        }
-                                        label={<Typography variant="body2" sx={{ color: '#A0A0A0' }}>Ingat saya</Typography>}
-                                    />
+                                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>
+                                        Login akan disimpan di perangkat ini.
+                                    </Typography>
                                     {canResetPassword && (
                                         <MuiLink 
                                             component={Link} 
