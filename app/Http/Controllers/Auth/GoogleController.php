@@ -72,7 +72,7 @@ class GoogleController extends Controller
                 }
             }
 
-            Auth::login($user);
+            Auth::login($user, true);
 
             return redirect()->intended(route('dashboard', absolute: false));
 
