@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PublicStorageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -46,13 +47,13 @@ class SalesOrder extends Model
     // Accessor for image_payment
     public function getImagePaymentAttribute($value)
     {
-        return $value ? asset('storage/' . $value) : null;
+        return PublicStorageUrl::from($value);
     }
 
     // Accessor for image_delivery
     public function getImageDeliveryAttribute($value)
     {
-        return $value ? asset('storage/' . $value) : null;
+        return PublicStorageUrl::from($value);
     }
 
     public function deliveryService()
