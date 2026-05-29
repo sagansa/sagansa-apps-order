@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PublicStorageUrl;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -48,13 +49,10 @@ class Product extends Model
 
     public function getImageUrlAttribute()
     {
-        $path = $this->attributes['image'] ?? null;
-
-        if (!$path) {
-            return 'https://placehold.co/600x400?text=No+Image';
-        }
-
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        return PublicStorageUrl::from(
+            $this->attributes['image'] ?? null,
+            'https://placehold.co/600x400?text=No+Image'
+        );
     }
 
     public static function boot()
