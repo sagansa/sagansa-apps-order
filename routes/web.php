@@ -52,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
 
-    Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout.form');
     Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 
     // Route for checkout success is now handled by CartController directly
