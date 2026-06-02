@@ -55,9 +55,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout.form');
     Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 
-    // Route for checkout success is now handled by CartController directly
-    Route::get('/checkout-success', function () {
-        return Inertia::render('CheckoutSuccess');
+    Route::get('/checkout-success', function (Request $request) {
+        $orderId = $request->query('order');
+        $salesOrder = null;
+
+        if ($orderId) {
+            $salesOrder = \App\Models\SalesOrder::with(['transferToAccount.bank'])
+                ->where('ordered_by_id', $request->user()->id)
+                ->find($orderId);
+        }
+
+        return Inertia::render('CheckoutSuccess', [
+            'sales_order' => $salesOrder,
+        ]);
     })->name('checkout.success');
 
     // Location routes

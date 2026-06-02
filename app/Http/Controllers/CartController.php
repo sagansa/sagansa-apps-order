@@ -263,10 +263,7 @@ class CartController extends Controller
                     ]);
                 }
 
-                return Inertia::render('CheckoutSuccess', [
-                    'message' => 'Pesanan berhasil dibuat!',
-                    'sales_order' => $order,
-                ]);
+                return redirect()->route('checkout.success', ['order' => $order->id]);
             });
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Checkout Validation Error:', [
@@ -282,8 +279,13 @@ class CartController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
             ]);
-            // Return a generic error response to the user
-            return response()->json(['message' => 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'], 500);
+            if ($request->expectsJson() && ! $request->header('X-Inertia')) {
+                return response()->json(['message' => 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'], 500);
+            }
+
+            return back()
+                ->withErrors(['checkout' => 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'])
+                ->withInput();
         }
     }
     public function midtransCallback(Request $request)
