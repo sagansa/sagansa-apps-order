@@ -32,6 +32,16 @@ class PublicStorageUrl
             $path = Str::after($path, 'storage/');
         }
 
-        return Storage::disk('public')->url($path);
+        $url = Storage::disk('public')->url($path);
+
+        if (Str::startsWith($url, '//')) {
+            return 'https:' . $url;
+        }
+
+        if (! Str::startsWith($url, ['http://', 'https://', '/'])) {
+            return 'https://' . ltrim($url, '/');
+        }
+
+        return $url;
     }
 }
