@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Support\PublicStorageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SalesOrder extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $connection = 'mysql';
 
@@ -42,6 +44,10 @@ class SalesOrder extends Model
     // Default value: orders from apps/order are always 'for=1' (customer orders)
     protected $attributes = [
         'for' => '1',
+    ];
+
+    protected $casts = [
+        'deleted_at' => 'datetime',
     ];
 
     // Accessor for image_payment
