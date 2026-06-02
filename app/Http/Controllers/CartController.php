@@ -223,6 +223,7 @@ class CartController extends Controller
                     'admin_fee'             => $adminFee,
                     'payment_status'        => $paymentStatus,
                     'payment_method'        => $paymentMethod,
+                    'shipping_payment_method'=> $shippingPaymentMethod,
                     'delivery_status'       => '1',
                     'image_payment'         => $imagePaymentPath,
                     'notes'                 => $request->notes,
