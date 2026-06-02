@@ -60,7 +60,7 @@ const CartItemCard = ({
                 <Stack direction="row" spacing={2} alignItems="center">
                     <Avatar
                         variant="rounded"
-                        src={item.product?.image}
+                        src={item.product?.image_url || item.product?.image || "/images/no_image.png"}
                         sx={{
                             width: isMobile ? 70 : { xs: 60, sm: 90 },
                             height: isMobile ? 70 : { xs: 60, sm: 90 },
