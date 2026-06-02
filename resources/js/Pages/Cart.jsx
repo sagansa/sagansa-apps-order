@@ -86,6 +86,7 @@ export default function Cart({
         useState(false);
     const [selectedTransferAccount, setSelectedTransferAccount] = useState("");
     const [transferProof, setTransferProof] = useState(null); // This will hold the resized file
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [deliveryDate, setDeliveryDate] = useState(
         dayjs().format("YYYY-MM-DD")
     );
