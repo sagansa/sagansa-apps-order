@@ -13,6 +13,7 @@ use App\Models\DetailSalesOrder;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class CartController extends Controller
 {
@@ -223,11 +224,14 @@ class CartController extends Controller
                     'admin_fee'             => $adminFee,
                     'payment_status'        => $paymentStatus,
                     'payment_method'        => $paymentMethod,
-                    'shipping_payment_method'=> $shippingPaymentMethod,
                     'delivery_status'       => '1',
                     'image_payment'         => $imagePaymentPath,
                     'notes'                 => $request->notes,
                 ];
+
+                if (Schema::hasColumn('sales_orders', 'shipping_payment_method')) {
+                    $orderData['shipping_payment_method'] = $shippingPaymentMethod;
+                }
 
                 Log::info('Data for SalesOrder creation:', $orderData);
 
