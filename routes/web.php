@@ -13,6 +13,8 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 
 Route::post('/midtrans/callback', [CartController::class, 'midtransCallback'])->name('midtrans.callback');
+Route::post('/midtrans/recurring', [CartController::class, 'midtransRecurring'])->name('midtrans.recurring');
+Route::post('/midtrans/account-linking', [CartController::class, 'midtransAccountLinking'])->name('midtrans.account-linking');
 
 Route::get('/', [OrderController::class, 'index'])->name('order.index');
 
