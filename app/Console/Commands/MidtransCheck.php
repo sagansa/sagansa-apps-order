@@ -87,8 +87,8 @@ class MidtransCheck extends Command
         $this->newLine();
 
         return match (true) {
-            $code === 200 => $this->reportOk('Callback accepted the notification and updated the order.'),
-            $code === 404 => $this->reportOk('Signature VALIDATED (no 403). 404 only because order id ' . $this->option('order-id') . ' is not in the DB — the signature logic is correct.'),
+            $code === 200 => $this->reportOk('Callback accepted the notification (200). If the order id exists it was updated; otherwise it was acknowledged with a warning log.'),
+            $code === 404 => tap(self::FAILURE, fn() => $this->error('Got 404 — order-not-found still returns 404. Deploy the latest controller change (it should now return 200).')),
             $code === 403 => tap(self::FAILURE, fn() => $this->error('Signature FAILED (403). The server key the app uses does NOT match the key Midtrans signs with for this environment.')),
             default       => tap(self::FAILURE, fn() => $this->error("Unexpected status $code.")),
         };

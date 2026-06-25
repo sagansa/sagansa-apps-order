@@ -310,8 +310,16 @@ class CartController extends Controller
         $order = SalesOrder::find($orderId);
 
         if (!$order) {
-            Log::error('Midtrans Callback: Order Not Found - ' . $orderId);
-            return response()->json(['message' => 'Order not found'], 404);
+            // Return 200 (not 404) so Midtrans considers the notification
+            // delivered and stops retrying. Signature already validated above,
+            // so this is a legitimate notification for an order we don't have
+            // (e.g. Midtrans test notifications, or stale/other-environment
+            // order ids). Log it loudly for manual investigation.
+            Log::warning('Midtrans Callback: Order Not Found (acknowledging) - ' . $orderId, [
+                'midtrans_order_id' => $request->order_id,
+                'transaction_status' => $request->transaction_status,
+            ]);
+            return response()->json(['message' => 'Order not found']);
         }
 
         $transactionStatus = $request->transaction_status;
