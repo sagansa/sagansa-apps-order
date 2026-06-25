@@ -345,4 +345,33 @@ class CartController extends Controller
 
         return response()->json(['message' => 'Success']);
     }
+
+    /**
+     * GoPay Account Linking notification (Pay Account Notification URL).
+     *
+     * Midtrans posts here on successful/failed GoPay account linking. This app
+     * does not use account linking / recurring, so we simply acknowledge the
+     * notification with HTTP 200 to stop Midtrans from retrying. The payload
+     * has a different shape and signature scheme than transaction notifications,
+     * so it must NOT go through midtransCallback().
+     */
+    public function midtransAccountLinking(Request $request)
+    {
+        Log::info('Midtrans Account Linking Notification (unused feature):', $request->all());
+
+        return response()->json(['message' => 'OK']);
+    }
+
+    /**
+     * Recurring notification (Recurring Notification URL).
+     *
+     * Only fired for Midtrans Recurring / subscription transactions. This app
+     * does not use recurring, so just acknowledge with HTTP 200.
+     */
+    public function midtransRecurring(Request $request)
+    {
+        Log::info('Midtrans Recurring Notification (unused feature):', $request->all());
+
+        return response()->json(['message' => 'OK']);
+    }
 }
