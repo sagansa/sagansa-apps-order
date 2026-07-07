@@ -326,25 +326,34 @@ class CartController extends Controller
         $type = $request->payment_type;
         $fraud = $request->fraud_status;
 
-        // Update transaction ID if available
-        if ($request->transaction_id) {
-            $order->midtrans_transaction_id = $request->transaction_id;
+        $order->midtrans_transaction_id = $request->transaction_id;
+        $order->midtrans_status = $transactionStatus;
+        $order->midtrans_response = json_encode($request->all());
+
+        if ($type) {
+            $order->payment_method = $type;
         }
 
         if ($transactionStatus == 'capture') {
-            if ($type == 'credit_card') {
-                if ($fraud == 'challenge') {
-                    $order->payment_status = 4; // Menunggu Pembayaran (Challenge)
-                } else {
-                    $order->payment_status = 2; // Valid / Sudah Dibayar
-                }
+            if ($fraud == 'challenge') {
+                $order->payment_status = 4; // Menunggu Pembayaran (Challenge)
+                $order->status = 'challenge';
+            } else {
+                $order->payment_status = 2; // Valid / Sudah Dibayar
+                $order->status = 'paid';
             }
-        } else if ($transactionStatus == 'settlement') {
+        } elseif ($transactionStatus == 'settlement') {
             $order->payment_status = 2; // Valid / Sudah Dibayar
-        } else if ($transactionStatus == 'pending') {
+            $order->status = 'paid';
+        } elseif ($transactionStatus == 'pending') {
             $order->payment_status = 4; // Menunggu Pembayaran
-        } else if ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+            $order->status = 'pending';
+        } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
             $order->payment_status = 3; // Gagal / Batal
+            $order->status = 'cancelled';
+        } elseif ($transactionStatus == 'refund' || $transactionStatus == 'partial_refund') {
+            $order->payment_status = 3; // Gagal / Batal (refunded)
+            $order->status = 'cancelled';
         }
 
         $order->save();
