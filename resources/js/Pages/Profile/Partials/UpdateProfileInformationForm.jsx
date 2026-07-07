@@ -28,7 +28,7 @@ export default function UpdateProfileInformation({
                 </Typography>
 
                 <Typography variant="body2" sx={{ mt: 1, color: '#A0A0A0' }}>
-                    Perbarui informasi profil akun dan alamat email Anda.
+                    Perbarui nama profil akun Anda.
                 </Typography>
             </Box>
 
@@ -69,21 +69,15 @@ export default function UpdateProfileInformation({
                         variant="outlined"
                         fullWidth
                         value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
+                        disabled
                         autoComplete="username"
-                        error={!!errors.email}
-                        helperText={errors.email}
                         sx={{
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: 2,
-                                color: '#FFFFFF',
-                                '& fieldset': { borderColor: '#444444' },
-                                '&:hover fieldset': { borderColor: '#C5A059' },
-                                '&.Mui-focused fieldset': { borderColor: '#C5A059' },
+                                color: '#888888',
+                                '& fieldset': { borderColor: '#333333' },
                             },
-                            '& .MuiInputLabel-root': { color: '#888888' },
-                            '& .MuiInputLabel-root.Mui-focused': { color: '#C5A059' },
+                            '& .MuiInputLabel-root': { color: '#666666' },
                         }}
                     />
                 </Stack>

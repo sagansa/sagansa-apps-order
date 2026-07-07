@@ -23,11 +23,12 @@ import {
     IconButton,
     Snackbar,
     TextField,
+    Stack,
 } from "@mui/material";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { router } from "@inertiajs/react";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CloseIcon from "@mui/icons-material/Close";
@@ -36,9 +37,72 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-import { getDeliveryStatusColor } from "@/Utils/statusUtils";
+import { getDeliveryStatusColor, getPaymentStatusBgColor } from "@/Utils/statusUtils";
 import { formatTitleCase } from "@/Utils/stringUtils";
-import axios from "axios"; // Import axios for API calls
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import DownloadIcon from "@mui/icons-material/Download";
+import dayjs from "dayjs";
+
+const PAYMENT_METHOD_LABELS = {
+    manual_transfer: "Transfer Manual",
+    bca_va: "BCA Virtual Account",
+    mandiri_va: "Mandiri Virtual Account",
+    bni_va: "BNI Virtual Account",
+    bri_va: "BRI Virtual Account",
+    permata_va: "Permata Virtual Account",
+    other_va: "Virtual Account Lainnya",
+    qris: "QRIS",
+    gopay: "GoPay",
+    shopeepay: "ShopeePay",
+    credit_card: "Kartu Kredit",
+};
+
+function ExpiryCountdown({ expiryTime }) {
+    const [remaining, setRemaining] = useState("");
+    const [expired, setExpired] = useState(false);
+    const timer = useRef(null);
+
+    const formatDuration = (totalSeconds) => {
+        if (totalSeconds <= 0) return "Kedaluwarsa";
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        if (days > 0) return `${days} hari ${hours} jam`;
+        if (hours > 0) return `${hours} jam ${String(mins).padStart(2, "0")} menit`;
+        if (mins > 0) return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        return `${secs} detik`;
+    };
+
+    useEffect(() => {
+        const expiry = dayjs(expiryTime);
+        const tick = () => {
+            const now = dayjs();
+            const diff = expiry.diff(now, "second");
+            if (diff <= 0) {
+                setExpired(true);
+                setRemaining("Kedaluwarsa");
+                clearInterval(timer.current);
+                return;
+            }
+            setRemaining(formatDuration(diff));
+        };
+        tick();
+        timer.current = setInterval(tick, 1000);
+        return () => clearInterval(timer.current);
+    }, [expiryTime]);
+
+    if (!expiryTime) return null;
+
+    return (
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mt: 2, p: 1.5, borderRadius: 2, bgcolor: expired ? "error.main" : "warning.main", color: "#fff" }}>
+            <AccessTimeIcon fontSize="small" />
+            <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                {expired ? "Pembayaran kedaluwarsa" : `Sisa waktu: ${remaining}`}
+            </Typography>
+        </Box>
+    );
+}
 
 export default function DetailTransaction({ auth, order, transferToAccounts }) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -56,6 +120,20 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
     });
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
     const [isManualTransferSelected, setIsManualTransferSelected] = useState(false);
+    const [isPaymentExpired, setIsPaymentExpired] = useState(false);
+
+    useEffect(() => {
+        if (!order.midtrans_payment?.expiry_time) return;
+        const expiry = dayjs(order.midtrans_payment.expiry_time);
+        const tick = () => {
+            if (expiry.diff(dayjs(), "second") <= 0) {
+                setIsPaymentExpired(true);
+            }
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, [order.midtrans_payment?.expiry_time]);
 
     const handleSetManualTransfer = () => {
         setIsManualTransferSelected(true);
@@ -207,7 +285,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                 <Typography
                     variant="h4"
                     component="h2"
-                    sx={{ color: "text.primary" }}
+                    sx={{ fontWeight: 800, color: "white", lineHeight: 1.1 }}
                 >
                     Invoice Pesanan
                 </Typography>
@@ -215,7 +293,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
         >
             <Head title="Transaction Detail" />
 
-            <Box sx={{ py: 6, display: "flex", justifyContent: "center" }}>
+            <Box sx={{ py: 4, display: "flex", justifyContent: "center" }}>
                 <Paper
                     elevation={0}
                     sx={{
@@ -329,7 +407,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                             >
                                 Detail Pembayaran
                             </Typography>
-                            {order.transfer_to_account ? (
+                            {order.payment_method === "manual_transfer" && order.transfer_to_account ? (
                                 <Box sx={{ mb: 2 }}>
                                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                                         {order.transfer_to_account.bank?.name}
@@ -341,15 +419,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                         a.n. {order.transfer_to_account.account_name}
                                     </Typography>
                                 </Box>
-                            ) : (
-                                <Typography
-                                    variant="body1"
-                                    color="text.secondary"
-                                    sx={{ mb: 2 }}
-                                >
-                                    -
-                                </Typography>
-                            )}
+                            ) : null}
                             <Typography
                                 variant="subtitle2"
                                 color="text.secondary"
@@ -362,11 +432,18 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 size="small"
                                 sx={{ 
                                     fontWeight: 'bold',
-                                    bgcolor: order.payment_status_value === 1 ? 'success.dark' : 'warning.dark',
+                                    bgcolor: getPaymentStatusBgColor(order.payment_status_value),
                                     color: '#fff',
-                                    mb: 2
+                                    mb: 1
                                 }}
                             />
+
+                            {order.payment_method && order.payment_method !== 'manual_transfer' && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Pembayaran via{" "}
+                                    <strong>{PAYMENT_METHOD_LABELS[order.payment_method] || order.payment_method}</strong>
+                                </Typography>
+                            )}
 
                             <Typography
                                 variant="subtitle2"
@@ -449,6 +526,77 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                             </Box>
                         )}
 
+                    {/* Midtrans Payment Info */}
+                    {order.midtrans_payment && (
+                        <Box sx={{ mb: 3, p: 3, bgcolor: "rgba(198, 169, 107, 0.05)", borderRadius: 3, border: "1px dashed #C6A96B" }}>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                                Detail Pembayaran {PAYMENT_METHOD_LABELS[order.payment_method] || order.payment_method}
+                            </Typography>
+
+                            {!isPaymentExpired && (order.midtrans_payment.payment_type === "bank_transfer" ||
+                                order.midtrans_payment.payment_type === "permata_va" ||
+                                order.midtrans_payment.payment_type === "echannel") && (
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 2, p: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider", flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+                                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Nomor Virtual Account
+                                        </Typography>
+                                        <Typography sx={{ fontWeight: "bold", fontFamily: "monospace", letterSpacing: { xs: 1, sm: 2 }, fontSize: { xs: "1rem", sm: "1.25rem" }, wordBreak: "break-all" }}>
+                                            {order.midtrans_payment.va_numbers?.[0]?.va_number ||
+                                             order.midtrans_payment.permata_va_number ||
+                                             order.midtrans_payment.bill_key || "-"}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            )}
+
+                            {!isPaymentExpired && (order.midtrans_payment.payment_type === "qris" || order.midtrans_payment.payment_type === "gopay" || order.midtrans_payment.payment_type === "shopeepay") && (
+                                <Stack spacing={2} alignItems="center">
+                                    {(() => {
+                                        const qrUrl = order.midtrans_payment.actions?.find(a => a.name === "generate-qr-code-v2")?.url ||
+                                                     order.midtrans_payment.actions?.find(a => a.name === "generate-qr-code")?.url;
+                                        return qrUrl ? (
+                                            <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider", textAlign: "center" }}>
+                                                <img src={qrUrl} alt={order.payment_method} style={{ width: 180, height: "auto" }} />
+                                            </Box>
+                                        ) : null;
+                                    })()}
+                                </Stack>
+                            )}
+
+                            {/* Expiry Countdown */}
+                            {order.midtrans_payment.expiry_time && (
+                                <ExpiryCountdown expiryTime={order.midtrans_payment.expiry_time} />
+                            )}
+
+                            {isPaymentExpired && (
+                                <Box sx={{ textAlign: "center", py: 2 }}>
+                                    <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+                                        Waktu pembayaran telah habis.
+                                    </Typography>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => {
+                                            router.post(route("order.regenerate-payment", order.id), {}, {
+                                                preserveScroll: true,
+                                                onError: (errors) => alert(errors.payment || "Gagal membuat ulang pembayaran."),
+                                            });
+                                        }}
+                                        sx={{
+                                            py: 1,
+                                            px: 3,
+                                            borderRadius: 2,
+                                            fontWeight: "bold",
+                                            background: "linear-gradient(45deg, #C6A96B 30%, #D4AF37 90%)",
+                                        }}
+                                    >
+                                        Bayar Ulang
+                                    </Button>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+
                     {/* Tabel Produk */}
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                         Ringkasan Pesanan
@@ -488,6 +636,28 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                <TableRow>
+                                    <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>Subtotal</TableCell>
+                                    <TableCell align="right">
+                                        Rp {(order.total - (order.shipping_cost || 0) - (order.admin_fee || 0)).toLocaleString("id-ID")}
+                                    </TableCell>
+                                </TableRow>
+                                {order.shipping_cost > 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>Ongkos Kirim</TableCell>
+                                        <TableCell align="right">
+                                            Rp {Number(order.shipping_cost).toLocaleString("id-ID")}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {order.admin_fee > 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>Biaya Admin</TableCell>
+                                        <TableCell align="right">
+                                            Rp {Number(order.admin_fee).toLocaleString("id-ID")}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 <TableRow sx={{ bgcolor: 'rgba(198, 169, 107, 0.05)' }}>
                                     <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>Grand Total</TableCell>
                                     <TableCell align="right" sx={{ fontWeight: '900', color: '#C6A96B', fontSize: '1.2rem' }}>
@@ -498,7 +668,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                         </Table>
                     </TableContainer>
                     {/* Manual Transfer Details and Upload Button */}
-                    {order.payment_status_value !== 1 && (
+                    {order.payment_method === "manual_transfer" && order.payment_status_value !== 1 && (
                         <Box sx={{ mt: 2, p: 3, bgcolor: 'rgba(198, 169, 107, 0.05)', borderRadius: 3, border: '1px dashed #C6A96B' }}>
                             <Typography variant="subtitle1" sx={{ color: '#C6A96B', fontWeight: 'bold', mb: 2 }}>
                                 Detail Transfer Bank Manual
@@ -597,13 +767,7 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 </Typography>
                                 <Box sx={{ mt: 1 }}>
                                     <img
-                                        src={
-                                            order.image_delivery.startsWith(
-                                                "http"
-                                            )
-                                                ? order.image_delivery
-                                                : `/storage/${order.image_delivery}`
-                                        }
+                                        src={order.image_delivery}
                                         alt="Bukti Pengiriman"
                                         style={{
                                             width: "100%",

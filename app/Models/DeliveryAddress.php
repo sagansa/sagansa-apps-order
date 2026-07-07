@@ -82,7 +82,7 @@ class DeliveryAddress extends Model
             $address,
             $subdistrictName . ', ' . $districtName,
             $cityName . ', ' . $provinceName,
-            $this->postal_code_id,
+            $this->postalCode->postal_code ?? '',
         ]);
     }
 

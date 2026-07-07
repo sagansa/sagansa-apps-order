@@ -47,6 +47,7 @@ import CartItemCard from "@/Components/cart/CartItemCard";
 import DeliveryAddressDisplay from "@/Components/cart/DeliveryAddressDisplay";
 import ShippingPaymentMethodSelector from "@/Components/cart/ShippingPaymentMethodSelector";
 import PaymentMethodSelector from "@/Components/cart/PaymentMethodSelector";
+import CreditCardForm from "@/Components/cart/CreditCardForm";
 import ManualTransferDetails from "@/Components/cart/ManualTransferDetails";
 import OrderSummaryCard from "@/Components/cart/OrderSummaryCard";
 import { brandBlack, brandGold } from "@/constants/colors";
@@ -266,13 +267,20 @@ export default function Cart({
     };
 
     const handleQuantityChange = (itemId, change) => {
-        const newQuantity = Math.max(1, (quantities[itemId] || 1) + change);
+        const item = cartItems.find((i) => i.id === itemId);
+        const stock = item?.product?.current_stock;
+        const currentQty = quantities[itemId] || 1;
+        const newQuantity = Math.max(1, currentQty + change);
+
+        if (stock !== null && stock !== undefined && newQuantity > stock) {
+            return;
+        }
+
         setQuantities((prev) => ({
             ...prev,
             [itemId]: newQuantity,
         }));
 
-        // Update di database
         router.put(
             route("cart.update", itemId),
             {
@@ -286,7 +294,14 @@ export default function Cart({
     };
 
     const handleQuantityInput = (itemId, value) => {
-        const newValue = parseInt(value) || 1;
+        const item = cartItems.find((i) => i.id === itemId);
+        const stock = item?.product?.current_stock;
+        let newValue = parseInt(value) || 1;
+
+        if (stock !== null && stock !== undefined && newValue > stock) {
+            newValue = stock;
+        }
+
         const validValue = Math.max(1, newValue);
 
         setQuantities((prev) => ({
@@ -294,7 +309,6 @@ export default function Cart({
             [itemId]: validValue,
         }));
 
-        // Update di database
         router.put(
             route("cart.update", itemId),
             {
@@ -457,6 +471,8 @@ export default function Cart({
     };
 
     const [isProcessing, setIsProcessing] = useState(false);
+    const [cardToken, setCardToken] = useState(null);
+    const creditCardFormRef = useRef(null);
 
     const handleCheckout = async (event) => {
         event.preventDefault(); // Prevent default form submission behavior
@@ -576,27 +592,27 @@ export default function Cart({
 
             // --- API Call ---
             if (selectedPaymentMethod !== "manual_transfer") {
+                if (selectedPaymentMethod === "credit_card") {
+                    if (!creditCardFormRef.current) {
+                        alert("Form kartu kredit belum siap.");
+                        setIsProcessing(false);
+                        return;
+                    }
+                    const token = await creditCardFormRef.current.getToken();
+                    if (!token) {
+                        setIsProcessing(false);
+                        return;
+                    }
+                    formData.append("card_token", token);
+                }
+
                 const response = await axios.post(
                     route("cart.checkout"),
                     formData
                 );
-                const { snap_token, order_id } = response.data;
+                const { order_id } = response.data;
 
-                window.snap.pay(snap_token, {
-                    onSuccess: function (result) {
-                        router.visit(route("transaction.history"));
-                    },
-                    onPending: function (result) {
-                        router.visit(route("transaction.history"));
-                    },
-                    onError: function (result) {
-                        alert("Pembayaran gagal!");
-                    },
-                    onClose: function () {
-                        alert("Anda menutup popup tanpa menyelesaikan pembayaran.");
-                        router.visit(route("transaction.history"));
-                    },
-                });
+                router.visit(route("checkout.success", { order: order_id }));
             } else {
                 router.post(route("cart.checkout"), formData, {
                     onError: (errors) => {
@@ -623,7 +639,7 @@ export default function Cart({
                 <Typography
                     variant="h4"
                     component="h2"
-                    sx={{ color: "text.primary", fontWeight: "bold" }}
+                    sx={{ fontWeight: 800, color: "white", lineHeight: 1.1 }}
                 >
                     Checkout
                 </Typography>
@@ -656,7 +672,15 @@ export default function Cart({
                 ) : isMobile ? ( // If mobile (<= 768px), stack the sections vertically
                     <Stack spacing={3}>
                         {showAddressSelection && (
-                            <Card sx={{ mb: 3 }}>
+                            <Card
+                                elevation={0}
+                                sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                }}
+                            >
                                 <CardHeader
                                     title={
                                         <Stack
@@ -700,7 +724,15 @@ export default function Cart({
                                 </CardContent>
                             </Card>
                         )}
-                        <Card>
+                        <Card
+                            elevation={0}
+                            sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 4,
+                                overflow: "hidden",
+                            }}
+                        >
                             <CardHeader
                                 title={
                                     <Stack
@@ -742,7 +774,15 @@ export default function Cart({
                         </Card>
 
                         <Stack spacing={3} sx={{ position: "sticky", top: 24 }}>
-                            <Card>
+                            <Card
+                                elevation={0}
+                                sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                }}
+                            >
                                 <CardContent>
                                     <FormControl fullWidth>
                                         <InputLabel id="delivery-service-label">
@@ -824,6 +864,10 @@ export default function Cart({
                                 shippingCostAmount={shippingCostAmount}
                             />
 
+                            {selectedPaymentMethod === "credit_card" && (
+                                <CreditCardForm ref={creditCardFormRef} disabled={isProcessing} />
+                            )}
+
                             {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
                             {selectedPaymentMethod === "manual_transfer" && (
                                 <ManualTransferDetails
@@ -839,7 +883,15 @@ export default function Cart({
                                 />
                             )}
 
-                            <Card>
+                            <Card
+                                elevation={0}
+                                sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                }}
+                            >
                                 <CardContent>
                                     <TextField
                                         label="Tanggal Pengiriman"
@@ -885,7 +937,16 @@ export default function Cart({
                     <Grid container spacing={3} flexWrap="nowrap">
                         <Grid size={8}>
                             {showAddressSelection && (
-                                <Card sx={{ mb: 3 }}>
+                                <Card
+                                    elevation={0}
+                                    sx={{
+                                        mb: 3,
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                        borderRadius: 4,
+                                        overflow: "hidden",
+                                    }}
+                                >
                                     <CardHeader
                                         title={
                                             <Stack
@@ -931,7 +992,15 @@ export default function Cart({
                                     </CardContent>
                                 </Card>
                             )}
-                            <Card>
+                            <Card
+                                elevation={0}
+                                sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                }}
+                            >
                                 <CardHeader
                                     title={
                                         <Stack
@@ -994,7 +1063,15 @@ export default function Cart({
 
                         <Grid size={4}>
                             <Stack spacing={3}>
-                                <Card>
+                                <Card
+                                    elevation={0}
+                                    sx={{
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                        borderRadius: 4,
+                                        overflow: "hidden",
+                                    }}
+                                >
                                     <CardContent>
                                         <FormControl fullWidth>
                                             <InputLabel id="delivery-service-label">
@@ -1082,6 +1159,10 @@ export default function Cart({
                                     shippingCostAmount={shippingCostAmount}
                                 />
 
+                                {selectedPaymentMethod === "credit_card" && (
+                                    <CreditCardForm ref={creditCardFormRef} disabled={isProcessing} />
+                                )}
+
                                 {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
                                 {selectedPaymentMethod ===
                                     "manual_transfer" && (
@@ -1098,7 +1179,15 @@ export default function Cart({
                                     />
                                 )}
 
-                                <Card>
+                                <Card
+                                    elevation={0}
+                                    sx={{
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                        borderRadius: 4,
+                                        overflow: "hidden",
+                                    }}
+                                >
                                     <CardContent>
                                         <TextField
                                             label="Tanggal Pengiriman"

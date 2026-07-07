@@ -11,7 +11,13 @@ class DetailSalesOrder extends Model
 
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'sales_order_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+        'subtotal_price',
+    ];
 
     public function product()
     {

@@ -46,6 +46,8 @@ class LocationController extends Controller
 
     public function postalCode(Request $request)
     {
+        $request->validate(['subdistrict_id' => 'required|exists:subdistricts,id']);
+
         $postalCode = PostalCode::where('subdistrict_id', $request->subdistrict_id)
             ->select('id', 'postal_code')
             ->first();

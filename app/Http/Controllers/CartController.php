@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\DeliveryService;
 use App\Models\DeliveryAddress;
 use App\Models\TransferToAccount;
+use App\Services\MidtransService;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
 use App\Models\Product;
@@ -17,6 +18,54 @@ use Illuminate\Support\Facades\Schema;
 
 class CartController extends Controller
 {
+    public function __construct(
+        private MidtransService $midtransService
+    ) {}
+
+    public function getCardToken(Request $request)
+    {
+        $request->validate([
+            'card_number' => 'required|string',
+            'card_exp_month' => 'required|string',
+            'card_exp_year' => 'required|string',
+            'card_cvv' => 'required|string',
+        ]);
+
+        try {
+            $client = new \GuzzleHttp\Client();
+            $apiUrl = config('services.midtrans.is_production')
+                ? 'https://api.midtrans.com/v2/token'
+                : 'https://api.sandbox.midtrans.com/v2/token';
+
+            $body = [
+                'card_number' => $request->card_number,
+                'card_exp_month' => $request->card_exp_month,
+                'card_exp_year' => $request->card_exp_year,
+                'card_cvv' => $request->card_cvv,
+            ];
+
+            $response = $client->post($apiUrl, [
+                'headers' => [
+                    'Authorization' => 'Basic ' . base64_encode(config('services.midtrans.server_key') . ':'),
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => $body,
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+
+            Log::info('Card token response:', $data ?? ['error' => 'empty']);
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            Log::error('Card tokenization failed:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status_code' => '500',
+                'status_message' => 'Gagal mendapatkan token kartu: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
     private function cartUserId(Request $request): int
     {
         return $request->user()->id;
@@ -36,8 +85,14 @@ class CartController extends Controller
             ->get();
             
         // Add information about whether address has been used in orders
-        $deliveryAddresses->each(function ($address) {
-            $address->is_used_in_orders = $address->salesOrders()->count() > 0;
+        $usedAddressIds = SalesOrder::where('ordered_by_id', $cartUserId)
+            ->whereNotNull('delivery_address_id')
+            ->distinct()
+            ->pluck('delivery_address_id')
+            ->toArray();
+
+        $deliveryAddresses->each(function ($address) use ($usedAddressIds) {
+            $address->is_used_in_orders = in_array($address->id, $usedAddressIds);
         });
         $transferToAccounts = TransferToAccount::with('bank')->get();
         $midtransMethods = config('services.midtrans.fees');
@@ -79,6 +134,12 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1'
         ]);
 
+        $product = Product::available()->find($request->product_id);
+
+        if (!$product) {
+            return back()->withErrors(['product_id' => 'Produk sedang tidak tersedia karena stok habis.']);
+        }
+
         $existingCart = Cart::where('user_id', $cartUserId)
             ->where('product_id', $request->product_id)
             ->first();
@@ -109,10 +170,12 @@ class CartController extends Controller
                     'delivery_address_id' => 'nullable|exists:delivery_addresses,id,user_id,' . $this->cartUserId($request),
                     'transfer_to_account_id' => 'nullable|exists:transfer_to_accounts,id',
                     'delivery_date' => 'required|date|after_or_equal:today',
-                    'image_payment' => 'nullable|image|max:2048',
+                    'image_payment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
                     'shipping_cost' => 'nullable|numeric|min:0',
+                    'notes' => 'nullable|string|max:500',
                     'payment_status' => 'required|integer|in:1,4,5',
-                    'payment_method' => 'required|string|in:manual_transfer,bca_va,mandiri_va,bni_va,bri_va,permata_va,other_va,qris,gopay,shopeepay,credit_card',
+                    'payment_method' => 'required|string|in:manual_transfer,bca_va,mandiri_va,bni_va,bri_va,permata_va,other_va,qris,credit_card',
+                    'card_token' => 'nullable|string|required_if:payment_method,credit_card',
                     'shipping_payment_method' => 'nullable|string|in:via_us,to_courier',
                     'items' => 'required|array|min:1',
                     'items.*.product_id' => 'required|exists:products,id',
@@ -170,6 +233,22 @@ class CartController extends Controller
                 if ($request->hasFile('image_payment')) {
                     $imagePaymentPath = $request->file('image_payment')->store('payments', 'public');
                     Log::info('Image payment stored at: ' . $imagePaymentPath);
+                }
+
+                // Validate stock availability for all items first
+                $outOfStockProducts = [];
+                foreach ($validated['items'] as $itemData) {
+                    $product = Product::available()->find($itemData['product_id']);
+                    if (!$product) {
+                        $product = Product::find($itemData['product_id']);
+                        $outOfStockProducts[] = $product ? $product->name : 'ID#' . $itemData['product_id'];
+                    }
+                }
+
+                if ($outOfStockProducts) {
+                    $names = implode(', ', $outOfStockProducts);
+                    Log::warning('Checkout failed: products out of stock', ['products' => $outOfStockProducts]);
+                    return back()->withErrors(['items' => 'Produk berikut sedang tidak tersedia karena stok habis: ' . $names . '. Silakan hapus dari keranjang.']);
                 }
 
                 // Calculate total price and prepare items with correct prices from backend
@@ -256,14 +335,17 @@ class CartController extends Controller
                 $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders.product', 'orderedBy']);
 
                 if ($paymentMethod !== 'manual_transfer') {
-                    $midtransService = new \App\Services\MidtransService();
-                    // Pass the orderedBy relation as user for customer_details
-                    $order->user = $request->user();
-                    $snapToken = $midtransService->getSnapToken($order);
+                    $paymentResult = $this->midtransService->chargeCoreApi($order, $paymentMethod, $validated['card_token'] ?? null);
+                    
+                    $order->midtrans_response = json_encode($paymentResult);
+                    $order->midtrans_transaction_id = $paymentResult->transaction_id ?? null;
+                    $order->midtrans_payment_type = $paymentResult->payment_type ?? null;
+                    $order->midtrans_status = $paymentResult->transaction_status ?? null;
+                    $order->save();
                     
                     return response()->json([
                         'message' => 'Pesanan berhasil dibuat!',
-                        'snap_token' => $snapToken,
+                        'payment' => $paymentResult,
                         'order_id' => $order->id,
                     ]);
                 }
@@ -292,103 +374,5 @@ class CartController extends Controller
                 ->withErrors(['checkout' => 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'])
                 ->withInput();
         }
-    }
-    public function midtransCallback(Request $request)
-    {
-        Log::info('Midtrans Callback Received:', $request->all());
-
-        $serverKey = config('services.midtrans.server_key');
-        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
-
-        if ($hashed !== $request->signature_key) {
-            Log::error('Midtrans Callback: Invalid Signature');
-            return response()->json(['message' => 'Invalid signature'], 403);
-        }
-
-        // Midtrans order_id is usually "ORDERID-TIMESTAMP"
-        $orderId = explode('-', $request->order_id)[0];
-        $order = SalesOrder::find($orderId);
-
-        if (!$order) {
-            // Return 200 (not 404) so Midtrans considers the notification
-            // delivered and stops retrying. Signature already validated above,
-            // so this is a legitimate notification for an order we don't have
-            // (e.g. Midtrans test notifications, or stale/other-environment
-            // order ids). Log it loudly for manual investigation.
-            Log::warning('Midtrans Callback: Order Not Found (acknowledging) - ' . $orderId, [
-                'midtrans_order_id' => $request->order_id,
-                'transaction_status' => $request->transaction_status,
-            ]);
-            return response()->json(['message' => 'Order not found']);
-        }
-
-        $transactionStatus = $request->transaction_status;
-        $type = $request->payment_type;
-        $fraud = $request->fraud_status;
-
-        $order->midtrans_transaction_id = $request->transaction_id;
-        $order->midtrans_status = $transactionStatus;
-        $order->midtrans_response = json_encode($request->all());
-
-        if ($type) {
-            $order->payment_method = $type;
-        }
-
-        if ($transactionStatus == 'capture') {
-            if ($fraud == 'challenge') {
-                $order->payment_status = 4; // Menunggu Pembayaran (Challenge)
-                $order->status = 'challenge';
-            } else {
-                $order->payment_status = 2; // Valid / Sudah Dibayar
-                $order->status = 'paid';
-            }
-        } elseif ($transactionStatus == 'settlement') {
-            $order->payment_status = 2; // Valid / Sudah Dibayar
-            $order->status = 'paid';
-        } elseif ($transactionStatus == 'pending') {
-            $order->payment_status = 4; // Menunggu Pembayaran
-            $order->status = 'pending';
-        } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            $order->payment_status = 3; // Gagal / Batal
-            $order->status = 'cancelled';
-        } elseif ($transactionStatus == 'refund' || $transactionStatus == 'partial_refund') {
-            $order->payment_status = 3; // Gagal / Batal (refunded)
-            $order->status = 'cancelled';
-        }
-
-        $order->save();
-
-        Log::info('Midtrans Callback: Order ' . $orderId . ' updated to status ' . $order->payment_status);
-
-        return response()->json(['message' => 'Success']);
-    }
-
-    /**
-     * GoPay Account Linking notification (Pay Account Notification URL).
-     *
-     * Midtrans posts here on successful/failed GoPay account linking. This app
-     * does not use account linking / recurring, so we simply acknowledge the
-     * notification with HTTP 200 to stop Midtrans from retrying. The payload
-     * has a different shape and signature scheme than transaction notifications,
-     * so it must NOT go through midtransCallback().
-     */
-    public function midtransAccountLinking(Request $request)
-    {
-        Log::info('Midtrans Account Linking Notification (unused feature):', $request->all());
-
-        return response()->json(['message' => 'OK']);
-    }
-
-    /**
-     * Recurring notification (Recurring Notification URL).
-     *
-     * Only fired for Midtrans Recurring / subscription transactions. This app
-     * does not use recurring, so just acknowledge with HTTP 200.
-     */
-    public function midtransRecurring(Request $request)
-    {
-        Log::info('Midtrans Recurring Notification (unused feature):', $request->all());
-
-        return response()->json(['message' => 'OK']);
     }
 }

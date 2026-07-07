@@ -10,11 +10,16 @@ use Inertia\Inertia;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
 use App\Models\TransferToAccount;
+use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        protected MidtransService $midtransService
+    ) {}
+
     private function userId(Request $request): int
     {
         return $request->user()->id;
@@ -24,8 +29,21 @@ class OrderController extends Controller
     {
         Log::info('OrderController@index request:', $request->all());
 
+        $user = $request->user();
+
+        // Ambil riwayat pembelian pribadi user (jika login) untuk sorting
+        $personalOrderCounts = collect();
+        if ($user) {
+            $personalOrderCounts = DetailSalesOrder::select('product_id', DB::raw('SUM(quantity) as total_qty'))
+                ->whereHas('salesOrder', function ($q) use ($user) {
+                    $q->where('ordered_by_id', $user->id);
+                })
+                ->groupBy('product_id')
+                ->pluck('total_qty', 'product_id');
+        }
+
         $products = Product::with(['unit', 'onlineCategory', 'priceTiers'])
-            ->withCount('detailSalesOrders') // Menghitung total transaksi per produk
+            ->withCount('detailSalesOrders')
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
             })
@@ -52,8 +70,41 @@ class OrderController extends Controller
             ->when(request('search'), function ($query) {
                 $query->where('name', 'like', '%' . request('search') . '%');
             })
-            ->orderByDesc('detail_sales_orders_count') // Urutkan dari yang paling banyak dibeli
-            ->get();
+            ->get()
+            ->sortByDesc(function ($product) use ($personalOrderCounts) {
+                $personalCount = (int) ($personalOrderCounts[$product->id] ?? 0);
+                $globalCount = (int) ($product->detail_sales_orders_count ?? 0);
+                return sprintf('%010d-%010d', $personalCount, $globalCount);
+            })->values();
+
+        // Produk yang pernah diorder user (untuk quick reorder)
+        $lastOrderedProducts = collect();
+        if ($user) {
+            $orderedProductIds = DetailSalesOrder::whereHas('salesOrder', function ($q) use ($user) {
+                $q->where('ordered_by_id', $user->id);
+            })
+                ->select('product_id')
+                ->distinct()
+                ->pluck('product_id');
+
+            if ($orderedProductIds->isNotEmpty()) {
+                $lastOrderedProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
+                    ->whereIn('id', $orderedProductIds)
+                    ->whereHas('onlineCategory', function ($q) {
+                        $q->where('id', '!=', 4);
+                    })
+                    ->where(function ($query) {
+                        $query->where('online_price', '>', 0)
+                              ->orWhereHas('priceTiers');
+                    })
+                    ->get()
+                    ->sortByDesc(function ($product) use ($personalOrderCounts) {
+                        return (int) ($personalOrderCounts[$product->id] ?? 0);
+                    })
+                    ->take(10)
+                    ->values();
+            }
+        }
 
         $categories = OnlineCategory::all();
         $units = Unit::all();
@@ -61,7 +112,8 @@ class OrderController extends Controller
         return Inertia::render('Order', [
             'products' => $products,
             'categories' => $categories,
-            'units' => $units
+            'units' => $units,
+            'lastOrderedProducts' => $lastOrderedProducts,
         ]);
     }
 
@@ -79,6 +131,7 @@ class OrderController extends Controller
         2 => 'Valid',
         3 => 'Tidak valid',
         4 => 'Belum dibayar',
+        5 => 'Pending',
     ];
 
     public function orderHistory(Request $request)
@@ -88,16 +141,10 @@ class OrderController extends Controller
             ->orderByDesc('created_at')
             ->paginate(10)
             ->through(function ($order) {
-                $combinedString = (string)$order->total_price . (string)$order->id;
-                if ($order->delivery_date) {
-                    $combinedString = (string)$order->delivery_date . $combinedString;
-                }
-                $orderNumber = substr(md5($combinedString), 0, 8);
-
                 return [
                     'id' => $order->id,
-                    'order_number' => $orderNumber,
-                    'date' => $order->delivery_date ? $order->delivery_date : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
+                    'order_number' => $order->order_number,
+                    'date' => $order->delivery_date ? $order->delivery_date->format('d F Y') : ($order->created_at ? $order->created_at->format('d F Y') : '-'),
                     'delivery_status_label' => $this->deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
                     'delivery_status_value' => $order->delivery_status,
                     'payment_status_label' => $this->paymentStatusMapping[$order->payment_status] ?? 'Tidak Diketahui',
@@ -111,7 +158,7 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $order = SalesOrder::with([
             'detailSalesOrders.product',
@@ -123,22 +170,21 @@ class OrderController extends Controller
             'deliveryAddress.postalCode',
         ])
             ->where('id', $id)
-            ->where('ordered_by_id', $this->userId(request()))
+            ->where('ordered_by_id', $this->userId($request))
             ->firstOrFail();
 
-        $combinedString = (string)$order->total_price . (string)$order->id;
-        if ($order->delivery_date) {
-            $combinedString = (string)$order->delivery_date . $combinedString;
-        }
-        $orderNumber = substr(md5($combinedString), 0, 8);
+        $midtransPayment = $order->midtrans_response ? json_decode($order->midtrans_response, true) : null;
 
         $data = [
             'id' => $order->id,
-            'order_number' => $orderNumber,
-            'date' => $order->delivery_date ? $order->delivery_date : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
+            'order_number' => $order->order_number,
+            'date' => $order->delivery_date ? $order->delivery_date->format('d F Y') : ($order->created_at ? $order->created_at->format('d F Y') : '-'),
             'status' => $this->deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
             'total' => $order->total_price,
+            'admin_fee' => $order->admin_fee,
             'delivery_service_id' => $order->delivery_service_id,
+            'payment_method' => $order->payment_method,
+            'midtrans_payment' => $midtransPayment,
             'delivery_address' => $order->deliveryAddress ? [
                 'name' => $order->deliveryAddress->recipient_name,
                 'phone' => $order->deliveryAddress->recipient_telp_no,
@@ -186,13 +232,48 @@ class OrderController extends Controller
         ]);
     }
 
+    public function regeneratePayment($id)
+    {
+        $order = SalesOrder::with(['orderedBy', 'detailSalesOrders.product', 'deliveryService', 'deliveryAddress', 'transferToAccount.bank'])
+            ->where('ordered_by_id', auth()->id())
+            ->findOrFail($id);
+
+        if ($order->payment_status === 1) {
+            return back()->withErrors(['payment' => 'Pesanan ini sudah dibayar.']);
+        }
+
+        if ($order->payment_method === 'manual_transfer') {
+            return back()->withErrors(['payment' => 'Pembayaran manual tidak bisa di-generate ulang.']);
+        }
+
+        try {
+            $paymentResult = $this->midtransService->chargeCoreApi($order, $order->payment_method);
+
+            $order->midtrans_response = json_encode($paymentResult);
+            $order->midtrans_transaction_id = $paymentResult->transaction_id ?? null;
+            $order->midtrans_payment_type = $paymentResult->payment_type ?? null;
+            $order->midtrans_status = $paymentResult->transaction_status ?? null;
+            $order->payment_status = 4;
+            $order->save();
+
+            return redirect()->route('checkout.success', ['order' => $order->id]);
+        } catch (\Exception $e) {
+            Log::error('Regenerate payment failed:', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return back()->withErrors(['payment' => 'Gagal: ' . $e->getMessage()]);
+        }
+    }
+
     public function updatePayment(Request $request, $id)
     {
-        $order = SalesOrder::findOrFail($id);
+        $order = SalesOrder::where('ordered_by_id', auth()->id())->findOrFail($id);
 
         $request->validate([
             'transfer_to_account_id' => 'required|exists:transfer_to_accounts,id',
-            'image_payment' => 'nullable|image|max:2048',
+            'image_payment' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
         $updateData = [

@@ -41,16 +41,10 @@ class DashboardController extends Controller
                     6 => 'Dikembalikan',
                 ];
 
-                $combinedString = (string)$order->total_price . (string)$order->id;
-                if ($order->delivery_date) {
-                    $combinedString = (string)$order->delivery_date . $combinedString;
-                }
-                $orderNumber = substr(md5($combinedString), 0, 8);
-
                 return [
                     'id' => $order->id,
-                    'order_number' => $orderNumber,
-                    'date' => $order->delivery_date ? $order->delivery_date : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
+                    'order_number' => $order->order_number,
+                    'date' => $order->delivery_date ? $order->delivery_date->format('d F Y') : ($order->created_at ? $order->created_at->format('d F Y') : '-'),
                     'total' => 'Rp ' . number_format($order->total_price, 0, ',', '.'),
                     'status' => $deliveryStatusMapping[$order->delivery_status] ?? 'Tidak Diketahui',
                 ];
