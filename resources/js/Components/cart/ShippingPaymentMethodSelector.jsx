@@ -21,9 +21,17 @@ const ShippingPaymentMethodSelector = ({
     setShippingCostAmount,
 }) => {
     return (
-        <Card sx={{ mb: 3 }}>
+        <Card
+            elevation={0}
+            sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 4,
+                overflow: "hidden",
+            }}
+        >
             <CardContent>
-                <Typography variant="subtitle1" gutterBottom>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: "bold" }}>
                     Pembayaran Ongkos Kirim
                 </Typography>
                 <FormControl component="fieldset" fullWidth>

@@ -15,15 +15,16 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    <!-- Midtrans Client Key -->
+    <script>
+        window.MIDTRANS_CLIENT_KEY = "{{ config('services.midtrans.client_key') }}";
+        window.MIDTRANS_IS_PRODUCTION = {{ config('services.midtrans.is_production') ? 'true' : 'false' }};
+    </script>
+
     <!-- Scripts -->
     @routes(['web', 'api'])
     @viteReactRefresh
     @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
-    <!-- Midtrans Snap -->
-    <script type="text/javascript"
-            src="{{ config('services.midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}"
-            data-client-key="{{ config('services.midtrans.client_key') }}"></script>
-
     @inertiaHead
 </head>
 

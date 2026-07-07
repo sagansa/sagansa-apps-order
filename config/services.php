@@ -49,7 +49,7 @@ return [
             'bri_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'BRI Virtual Account'],
             'permata_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'Permata Virtual Account'],
             'other_va' => ['type' => 'fixed', 'value' => 4440, 'label' => 'Bank Transfer (VA Lainnya)'],
-            'qris'  => ['type' => 'percentage', 'value' => 0.007, 'label' => 'QRIS (Gopay, Dana, OVO, dll)'],
+            'qris'  => ['type' => 'percentage', 'value' => 0.007, 'label' => 'QRIS'],
             'gopay' => ['type' => 'percentage', 'value' => 0.02, 'label' => 'GoPay'],
             'shopeepay' => ['type' => 'percentage', 'value' => 0.02, 'label' => 'ShopeePay'],
             'credit_card' => ['type' => 'mix', 'percent' => 0.029, 'fixed' => 2220, 'label' => 'Kartu Kredit'],

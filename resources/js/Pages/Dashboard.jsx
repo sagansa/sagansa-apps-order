@@ -64,22 +64,22 @@ export default function Dashboard({ auth, stats, recentOrders, lastOrderDate, or
 
     return (
         <AuthenticatedLayout
+            header={
+                <Box>
+                    <Typography variant="h4" component="h2" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
+                        Dashboard
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, color: 'rgba(255, 255, 255, 0.72)' }}>
+                        Welcome back, {auth.user.name}
+                    </Typography>
+                </Box>
+            }
         >
             <Head title="Dashboard" />
 
-            <Box sx={{ py: 6, bgcolor: 'background.default' }}>
+            <Box sx={{ py: 4, bgcolor: 'background.default' }}>
                 <Container maxWidth="lg">
-                    <Stack spacing={6}>
-                        {/* Welcome Section */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="h3" sx={{ fontWeight: '900', color: '#C6A96B', letterSpacing: '-1.5px', mb: 1 }}>
-                                Welcome back, {auth.user.name}
-                            </Typography>
-                            <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                Here's what's happening with your orders today.
-                            </Typography>
-                        </Box>
-
+                    <Stack spacing={4}>
                         {/* Stats Section */}
                         <Grid container spacing={3}>
                             <Grid size={{ xs: 12, sm: 6, md: 4 }}>

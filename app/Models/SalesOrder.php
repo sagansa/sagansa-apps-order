@@ -38,16 +38,22 @@ class SalesOrder extends Model
         'midtrans_status',
         'midtrans_snap_token',
         'midtrans_transaction_id',
+        'midtrans_payment_type',
         'shipping_payment_method',
     ];
 
     // Default value: orders from apps/order are always 'for=1' (customer orders)
     protected $attributes = [
-        'for' => '1',
+        'for' => 1,
     ];
 
     protected $casts = [
         'deleted_at' => 'datetime',
+        'total_price' => 'float',
+        'shipping_cost' => 'float',
+        'admin_fee' => 'float',
+        'delivery_date' => 'date',
+        'for' => 'integer',
     ];
 
     // Accessor for image_payment
@@ -95,5 +101,14 @@ class SalesOrder extends Model
     public function detailSalesOrders()
     {
         return $this->hasMany(DetailSalesOrder::class);
+    }
+
+    public function getOrderNumberAttribute(): string
+    {
+        $combinedString = (string)$this->total_price . (string)$this->id;
+        if ($this->delivery_date) {
+            $combinedString = (string)$this->delivery_date . $combinedString;
+        }
+        return substr(md5($combinedString), 0, 8);
     }
 }

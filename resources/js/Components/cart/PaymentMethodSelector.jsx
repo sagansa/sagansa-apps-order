@@ -37,7 +37,15 @@ const PaymentMethodSelector = ({
     };
 
     return (
-        <Card sx={{ mb: 3 }}>
+        <Card
+            elevation={0}
+            sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 4,
+                overflow: "hidden",
+            }}
+        >
             <CardContent>
                 <FormControl fullWidth>
                     <InputLabel id="payment-method-label">
@@ -49,6 +57,7 @@ const PaymentMethodSelector = ({
                         value={selectedPaymentMethod}
                         label="Metode Pembayaran"
                         onChange={handlePaymentChange}
+                        sx={{ borderRadius: 2 }}
                     >
                         <MenuItem value="manual_transfer" sx={{ fontWeight: 'bold' }}>
                             Transfer Manual (Cek Manual - Tanpa Biaya)
@@ -66,7 +75,7 @@ const PaymentMethodSelector = ({
                         <MenuItem disabled sx={{ opacity: '1 !important', mt: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>E-WALLET & QRIS (OTOMATIS)</Typography>
                         </MenuItem>
-                        {Object.entries(midtransMethods).filter(([key]) => key === 'qris' || key === 'gopay' || key === 'shopeepay').map(([key, method]) => (
+                        {Object.entries(midtransMethods).filter(([key]) => key === 'qris').map(([key, method]) => (
                             <MenuItem key={key} value={key}>
                                 {method.label} (+Rp {calculateFee(key).toLocaleString('id-ID')})
                             </MenuItem>

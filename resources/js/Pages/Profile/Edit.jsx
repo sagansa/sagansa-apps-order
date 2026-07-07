@@ -19,9 +19,9 @@ export default function Edit({ mustVerifyEmail, status }) {
         >
             <Head title="Profil" />
 
-            <Box sx={{ py: 6, minHeight: '100vh', backgroundColor: '#000000' }}>
+            <Box sx={{ py: 4, minHeight: '100vh', backgroundColor: '#000000' }}>
                 <Container maxWidth="md">
-                    <Stack spacing={4}>
+                    <Stack spacing={3}>
                         <Paper 
                             elevation={0} 
                             sx={{ 

@@ -25,7 +25,8 @@ const ManualTransferDetails = ({
                 mb: 3,
                 border: "1px solid",
                 borderColor: "divider",
-                borderRadius: 2,
+                borderRadius: 4,
+                overflow: "hidden",
             }}
         >
             <CardContent>
@@ -47,7 +48,7 @@ const ManualTransferDetails = ({
                         onChange={(e) =>
                             setSelectedTransferAccount(e.target.value)
                         }
-                        sx={{ borderRadius: 1.5 }}
+                        sx={{ borderRadius: 2 }}
                     >
                         {transferToAccounts &&
                             transferToAccounts.map((acc) => (

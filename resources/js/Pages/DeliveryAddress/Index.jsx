@@ -195,7 +195,7 @@ export default function DeliveryAddressIndex({ auth, deliveryAddresses }) {
                 <Typography
                     variant="h4"
                     component="h2"
-                    sx={{ color: "text.primary" }}
+                    sx={{ fontWeight: 800, color: "white", lineHeight: 1.1 }}
                 >
                     Delivery Addresses
                 </Typography>

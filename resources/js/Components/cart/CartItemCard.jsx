@@ -40,6 +40,11 @@ const CartItemCard = ({
         item.product?.price_tiers,
         currentQuantity
     );
+    const stock = item.product?.current_stock;
+    const hasStock = stock !== null && stock !== undefined;
+    const isOutOfStock = hasStock && stock === 0;
+    const isExceeded = hasStock && currentQuantity > stock;
+    const isLowStock = hasStock && stock > 0 && stock <= 5;
 
     return (
         <Card
@@ -47,8 +52,9 @@ const CartItemCard = ({
             elevation={0}
             sx={{
                 border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
+                borderColor: isExceeded ? "error.main" : "divider",
+                borderRadius: 4,
+                overflow: "hidden",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
                     borderColor: "#C6A96B",
@@ -82,7 +88,7 @@ const CartItemCard = ({
                         >
                             {item.product?.name}
                         </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                             <Typography
                                 variant="body2"
                                 color="text.secondary"
@@ -104,7 +110,37 @@ const CartItemCard = ({
                                     }}
                                 />
                             )}
+                            {hasStock && !isOutOfStock && (
+                                <Chip
+                                    label={`Stok: ${stock}`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                        height: 20,
+                                        fontSize: "0.7rem",
+                                        fontWeight: 500,
+                                        color: isLowStock ? "warning.main" : "text.secondary",
+                                        borderColor: isLowStock ? "warning.main" : "divider",
+                                    }}
+                                />
+                            )}
+                            {isOutOfStock && (
+                                <Chip
+                                    label="Stok Habis"
+                                    size="small"
+                                    color="error"
+                                    sx={{ height: 20, fontSize: "0.7rem", fontWeight: "bold" }}
+                                />
+                            )}
                         </Stack>
+                        {isExceeded && (
+                            <Typography
+                                variant="caption"
+                                sx={{ color: "error.main", fontWeight: 600, display: "block", mt: 0.5 }}
+                            >
+                                Melebihi stok tersedia ({stock})
+                            </Typography>
+                        )}
                         {item.product?.price_tiers?.length > 0 && (
                             <Tooltip
                                 title={
@@ -182,6 +218,19 @@ const CartItemCard = ({
                     alignItems="center"
                 >
                     <Stack direction="row" spacing={1} alignItems="center">
+                        <IconButton
+                            size="small"
+                            onClick={() => handleQuantityChange(item.id, -1)}
+                            disabled={currentQuantity <= 1}
+                            sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1.5,
+                                "&:hover": { bgcolor: "action.hover" },
+                            }}
+                        >
+                            <RemoveIcon fontSize="small" />
+                        </IconButton>
                         <TextField
                             value={currentQuantity}
                             onChange={(e) =>
@@ -190,13 +239,14 @@ const CartItemCard = ({
                             type="number"
                             size="small"
                             sx={{
-                                width: isMobile ? "100px" : "120px",
+                                width: isMobile ? "80px" : "90px",
                                 "& .MuiOutlinedInput-root": {
                                     borderRadius: 1.5,
                                 },
                             }}
                             inputProps={{
                                 min: 1,
+                                max: hasStock ? stock : undefined,
                                 style: { textAlign: "center" },
                             }}
                             InputProps={{
@@ -212,6 +262,19 @@ const CartItemCard = ({
                                 ),
                             }}
                         />
+                        <IconButton
+                            size="small"
+                            onClick={() => handleQuantityChange(item.id, 1)}
+                            disabled={hasStock && currentQuantity >= stock}
+                            sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1.5,
+                                "&:hover": { bgcolor: "action.hover" },
+                            }}
+                        >
+                            <AddIcon fontSize="small" />
+                        </IconButton>
                     </Stack>
                     <Box sx={{ textAlign: "right", flexGrow: 1, px: 2 }}>
                         <Typography

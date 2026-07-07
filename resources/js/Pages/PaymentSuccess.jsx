@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { router } from "@inertiajs/react";
+import { getPaymentStatusText, getPaymentStatusBgColor } from '@/Utils/statusUtils';
 
 export default function PaymentSuccess({ order, message }) {
     const formatCurrency = (amount) => {
@@ -27,31 +28,15 @@ export default function PaymentSuccess({ order, message }) {
         }).format(amount);
     };
 
-    const getPaymentStatusColor = (status) => {
-        switch (status) {
-            case 1: return 'success';
-            case 5: return 'warning';
-            default: return 'error';
-        }
-    };
 
-    const getPaymentStatusText = (status) => {
-        switch (status) {
-            case 1: return 'Berhasil';
-            case 5: return 'Pending';
-            case 0: return 'Gagal';
-            default: return 'Unknown';
-        }
-    };
 
     return (
         <>
             <Head title="Pembayaran Berhasil" />
 
             <Box sx={{
-                minHeight: '100vh',
                 bgcolor: 'background.default',
-                py: 6,
+                py: 4,
                 px: { xs: 2, sm: 4 }
             }}>
                 <Box sx={{ maxWidth: 700, mx: 'auto' }}>
@@ -109,7 +94,7 @@ export default function PaymentSuccess({ order, message }) {
                                     label={getPaymentStatusText(order.payment_status)}
                                     sx={{
                                         fontWeight: 'bold',
-                                        bgcolor: order.payment_status === 1 ? 'success.dark' : 'warning.dark',
+                                        bgcolor: getPaymentStatusBgColor(order.payment_status),
                                         color: '#fff'
                                     }}
                                 />
@@ -122,7 +107,7 @@ export default function PaymentSuccess({ order, message }) {
                                 </Box>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <Typography color="text.secondary">Metode Pembayaran</Typography>
-                                    <Typography sx={{ fontWeight: 500 }}>Transfer Manual</Typography>
+                                    <Typography sx={{ fontWeight: 500 }}>{order.payment_method ?? 'Transfer Manual'}</Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <Typography color="text.secondary">Layanan Pengiriman</Typography>
@@ -192,7 +177,7 @@ export default function PaymentSuccess({ order, message }) {
                         <Button
                             variant="outlined"
                             size="large"
-                            onClick={() => router.visit('/login')}
+                            onClick={() => router.visit('/transaction-history')}
                             sx={{
                                 py: 1.5,
                                 px: 4,

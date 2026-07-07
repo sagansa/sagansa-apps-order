@@ -20,7 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'midtrans/*',
+            'midtrans/callback',
+            'midtrans/recurring',
+            'midtrans/account-linking',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

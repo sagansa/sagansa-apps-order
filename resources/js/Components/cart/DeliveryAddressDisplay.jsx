@@ -16,7 +16,8 @@ const DeliveryAddressDisplay = ({ selectedAddressObject }) => {
                 p: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                borderRadius: 1,
+                borderRadius: 3,
+                bgcolor: "grey.50",
             }}
         >
             <Typography variant="subtitle1">

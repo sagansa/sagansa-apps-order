@@ -76,7 +76,7 @@ const getInitialFilters = () => {
     };
 };
 
-export default function Order({ auth, products = [], categories = [], units = [] }) {
+export default function Order({ auth, products = [], categories = [], units = [], lastOrderedProducts = [] }) {
     const initialFilters = getInitialFilters();
     const isInitialRender = useRef(true);
     const [searchQuery, setSearchQuery] = useState(initialFilters.search);
@@ -200,6 +200,96 @@ export default function Order({ auth, products = [], categories = [], units = []
                         </Box>
                     ) : (
                         <Box>
+                            {lastOrderedProducts.length > 0 && (
+                                <Box sx={{ mb: 5 }}>
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            mb: 2, 
+                                            color: '#C6A96B', 
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1
+                                        }}
+                                    >
+                                        <Box component="span" sx={{ fontSize: '1.2rem' }}>&#x1F3C6;</Box>
+                                        Pesanan Terakhir
+                                    </Typography>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            gap: 2,
+                                            overflowX: 'auto',
+                                            pb: 1,
+                                            scrollSnapType: 'x mandatory',
+                                            '&::-webkit-scrollbar': { height: 6 },
+                                            '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(198, 169, 107, 0.3)', borderRadius: 3 },
+                                            '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+                                        }}
+                                    >
+                                        {lastOrderedProducts.map((product) => (
+                                            <Card
+                                                key={product.id}
+                                                elevation={0}
+                                                sx={{
+                                                    flex: '0 0 auto',
+                                                    width: 140,
+                                                    scrollSnapAlign: 'start',
+                                                    cursor: 'pointer',
+                                                    bgcolor: '#141414',
+                                                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                                                    borderRadius: 2,
+                                                    transition: 'all 0.3s ease',
+                                                    overflow: 'hidden',
+                                                    '&:hover': {
+                                                        borderColor: '#C6A96B',
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                                                    }
+                                                }}
+                                                onClick={() => {
+                                                    handleAddToCart(product);
+                                                    router.visit(route('cart.index'));
+                                                }}
+                                            >
+                                                <Box sx={{ width: '100%', height: 100, overflow: 'hidden' }}>
+                                                    {product.image_url ? (
+                                                        <Box
+                                                            component="img"
+                                                            src={product.image_url}
+                                                            alt={product.name}
+                                                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
+                                                    ) : (
+                                                        <NoImagePlaceholder />
+                                                    )}
+                                                </Box>
+                                                <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
+                                                            color: 'white',
+                                                            fontWeight: 'bold',
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: 'vertical',
+                                                            overflow: 'hidden',
+                                                            lineHeight: 1.2,
+                                                            mb: 0.5,
+                                                        }}
+                                                    >
+                                                        {product.name}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
+                                                        Rp {Number(product.online_price || 0).toLocaleString('id-ID')}
+                                                    </Typography>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            )}
                             {categories.map((category) => {
                                 const categoryProducts = products.filter(p => p.online_category_id == category.id);
                                 if (categoryProducts.length === 0) return null;
@@ -278,10 +368,24 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                     WebkitBoxOrient: 'vertical',
                                                                 }}
                                                             >
-                                                                {product.name}
-                                                            </Typography>
-                                                            
-                                                            <Box sx={{ mt: 'auto' }}>
+                                                            {product.name}
+                                                        </Typography>
+
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: product.current_stock !== null ? (product.current_stock > 0 ? '#4CAF50' : '#f44336') : 'transparent',
+                                                                fontWeight: 'bold',
+                                                                display: 'block',
+                                                                mb: 0.5,
+                                                                fontSize: '0.7rem',
+                                                                lineHeight: '0.7rem'
+                                                            }}
+                                                        >
+                                                            {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
+                                                        </Typography>
+                                                        
+                                                        <Box sx={{ mt: 'auto' }}>
                                                                 {!auth?.user ? (
                                                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
                                                                         Login untuk harga
@@ -295,19 +399,20 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                     variant="contained"
                                                                     size="small"
                                                                     fullWidth
+                                                                    disabled={product.current_stock === 0}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         handleAddToCart(product);
                                                                     }}
                                                                     sx={{
-                                                                        bgcolor: '#C6A96B',
-                                                                        color: '#0a0a0a',
+                                                                        bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B',
+                                                                        color: product.current_stock === 0 ? 'text.secondary' : '#0a0a0a',
                                                                         fontWeight: 'bold',
                                                                         textTransform: 'none',
-                                                                        '&:hover': { bgcolor: '#D4AF37' }
+                                                                        '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#D4AF37' }
                                                                     }}
                                                                 >
-                                                                    Add
+                                                                    {product.current_stock === 0 ? 'Stok Habis' : 'Add'}
                                                                 </Button>
                                                             </Box>
                                                         </CardContent>
@@ -342,9 +447,22 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.9rem', mb: 1, lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                             {product.name}
                                                         </Typography>
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: product.current_stock !== null ? (product.current_stock > 0 ? '#4CAF50' : '#f44336') : 'transparent',
+                                                                fontWeight: 'bold',
+                                                                display: 'block',
+                                                                mb: 0.5,
+                                                                fontSize: '0.7rem',
+                                                                lineHeight: '0.7rem'
+                                                            }}
+                                                        >
+                                                            {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
+                                                        </Typography>
                                                         <Box sx={{ mt: 'auto' }}>
                                                             {!auth?.user ? ( <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}> Login untuk harga </Typography> ) : ( <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', mb: 1 }}> Rp {Number(product.online_price || 0).toLocaleString('id-ID')} </Typography> )}
-                                                            <Button variant="contained" size="small" fullWidth onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }} sx={{ bgcolor: '#C6A96B', color: '#0a0a0a', fontWeight: 'bold', textTransform: 'none', '&:hover': { bgcolor: '#D4AF37' } }}> Add </Button>
+                                                            <Button variant="contained" size="small" fullWidth disabled={product.current_stock === 0} onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }} sx={{ bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B', color: product.current_stock === 0 ? 'text.secondary' : '#0a0a0a', fontWeight: 'bold', textTransform: 'none', '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#D4AF37' } }}> {product.current_stock === 0 ? 'Stok Habis' : 'Add'} </Button>
                                                         </Box>
                                                     </CardContent>
                                                 </Card>

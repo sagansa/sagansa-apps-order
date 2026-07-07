@@ -448,9 +448,13 @@ export default function ProductDetail({ auth, product }) {
                                                 <AddIcon fontSize="small" />
                                             </IconButton>
                                         </Box>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                            Stok: <span style={{ fontWeight: 'bold', color: '#fff' }}>Tersedia</span>
-                                        </Typography>
+                                        {product.current_stock !== null && (
+                                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                Stok: <span style={{ fontWeight: 'bold', color: product.current_stock > 0 ? '#4CAF50' : '#f44336' }}>
+                                                    {product.current_stock} {product.unit?.unit || ''}
+                                                </span>
+                                            </Typography>
+                                        )}
                                     </Stack>
 
                                     {auth?.user && (
@@ -466,29 +470,31 @@ export default function ProductDetail({ auth, product }) {
                                         <Button
                                             variant="contained"
                                             fullWidth
+                                            disabled={product.current_stock === 0}
                                             startIcon={<ShoppingCartIcon />}
                                             onClick={handleAddToCart}
                                             sx={{
                                                 py: 1.5,
                                                 borderRadius: 2,
                                                 fontWeight: 'bold',
-                                                bgcolor: '#C6A96B',
-                                                color: '#000',
-                                                '&:hover': { bgcolor: '#B0945A' }
+                                                bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B',
+                                                color: product.current_stock === 0 ? 'text.secondary' : '#000',
+                                                '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#B0945A' }
                                             }}
                                         >
-                                            + Keranjang
+                                            {product.current_stock === 0 ? 'Stok Habis' : '+ Keranjang'}
                                         </Button>
                                         <Button
                                             variant="outlined"
                                             fullWidth
+                                            disabled={product.current_stock === 0}
                                             sx={{
                                                 py: 1.5,
                                                 borderRadius: 2,
                                                 fontWeight: 'bold',
-                                                borderColor: '#C6A96B',
-                                                color: '#C6A96B',
-                                                '&:hover': { borderColor: '#B0945A', bgcolor: 'rgba(198, 169, 107, 0.05)' }
+                                                borderColor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B',
+                                                color: product.current_stock === 0 ? 'text.secondary' : '#C6A96B',
+                                                '&:hover': product.current_stock === 0 ? {} : { borderColor: '#B0945A', bgcolor: 'rgba(198, 169, 107, 0.05)' }
                                             }}
                                         >
                                             Beli Langsung
