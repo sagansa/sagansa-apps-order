@@ -118,23 +118,23 @@ class Product extends Model
 
     private static function getOutOfStockProductIds(): \Illuminate\Support\Collection
     {
-        if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
+        if (!Schema::hasTable('stock_cards') || !Schema::hasTable('detail_stock_cards')) {
             return collect();
         }
 
-        $latestDate = DB::table('storage_stocks')->max('date');
+        $latestDate = DB::table('stock_cards')->max('date');
         if (!$latestDate) return collect();
 
-        $latestStockIds = DB::table('storage_stocks')
+        $latestCardIds = DB::table('stock_cards')
             ->where('date', $latestDate)
             ->pluck('id');
 
-        if ($latestStockIds->isEmpty()) {
+        if ($latestCardIds->isEmpty()) {
             return collect();
         }
 
-        return DB::table('product_storage_stock')
-            ->whereIn('storage_stock_id', $latestStockIds)
+        return DB::table('detail_stock_cards')
+            ->whereIn('stock_card_id', $latestCardIds)
             ->select('product_id')
             ->selectRaw('SUM(quantity) as total')
             ->groupBy('product_id')
@@ -144,29 +144,29 @@ class Product extends Model
 
     public function getCurrentStockAttribute(): ?int
     {
-        if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
+        if (!Schema::hasTable('stock_cards') || !Schema::hasTable('detail_stock_cards')) {
             return null;
         }
 
-        $tracked = DB::table('product_storage_stock')
+        $tracked = DB::table('detail_stock_cards')
             ->where('product_id', $this->id)
             ->exists();
 
         if (!$tracked) return null;
 
-        $latestDate = DB::table('storage_stocks')->max('date');
+        $latestDate = DB::table('stock_cards')->max('date');
         if (!$latestDate) return null;
 
-        $latestStockIds = DB::table('storage_stocks')
+        $latestCardIds = DB::table('stock_cards')
             ->where('date', $latestDate)
             ->pluck('id');
 
-        if ($latestStockIds->isEmpty()) {
+        if ($latestCardIds->isEmpty()) {
             return null;
         }
 
-        $total = DB::table('product_storage_stock')
-            ->whereIn('storage_stock_id', $latestStockIds)
+        $total = DB::table('detail_stock_cards')
+            ->whereIn('stock_card_id', $latestCardIds)
             ->where('product_id', $this->id)
             ->sum('quantity');
 
