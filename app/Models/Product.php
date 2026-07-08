@@ -116,15 +116,22 @@ class Product extends Model
         return $query;
     }
 
+    private static function getLatestDate(): ?string
+    {
+        return DB::table('storage_stocks')->max('date');
+    }
+
     private static function getOutOfStockProductIds(): \Illuminate\Support\Collection
     {
+        $latestDate = self::getLatestDate();
+        if (!$latestDate) return collect();
+
         if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
             return collect();
         }
 
         $latestStockIds = DB::table('storage_stocks')
-            ->selectRaw('MAX(id) as id')
-            ->groupBy('store_id')
+            ->where('date', $latestDate)
             ->pluck('id');
 
         if ($latestStockIds->isEmpty()) {
@@ -142,13 +149,15 @@ class Product extends Model
 
     public function getCurrentStockAttribute(): ?int
     {
+        $latestDate = self::getLatestDate();
+        if (!$latestDate) return null;
+
         if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
             return null;
         }
 
         $latestStockIds = DB::table('storage_stocks')
-            ->selectRaw('MAX(id) as id')
-            ->groupBy('store_id')
+            ->where('date', $latestDate)
             ->pluck('id');
 
         if ($latestStockIds->isEmpty()) {
