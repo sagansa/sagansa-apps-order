@@ -290,6 +290,62 @@ export default function Order({ auth, products = [], categories = [], units = []
                                     </Box>
                                 </Box>
                             )}
+                            {auth?.user && products.filter(p => p.price_tiers?.length > 0 && Number(p.price_tiers[0].price) < Number(p.online_price)).length > 0 && (
+                                <Box sx={{ mb: 5 }}>
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            mb: 2, 
+                                            color: '#f44336', 
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1
+                                        }}
+                                    >
+                                        Harga Spesial
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        {products.filter(p => p.price_tiers?.length > 0 && Number(p.price_tiers[0].price) < Number(p.online_price)).map((product) => {
+                                            const tierPrice = product.price_tiers[0].price;
+                                            return (
+                                                <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
+                                                    <Card onClick={() => router.visit(route('product.show', product.slug))} elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '2px solid rgba(244, 67, 54, 0.3)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#f44336', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(244,67,54,0.2)' } }}>
+                                                        <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                            {product.image_url ? (
+                                                                <CardMedia component="img" image={product.image_url} alt={product.name} sx={{ objectFit: 'cover', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transition: 'transform 0.5s ease', '.MuiCard-root:hover &': { transform: 'scale(1.1)' } }} />
+                                                            ) : (
+                                                                <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                                                                    <NoImagePlaceholder />
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                        <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
+                                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.9rem', mb: 1, lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                                {product.name}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: product.current_stock !== null ? (product.current_stock > 0 ? '#4CAF50' : '#f44336') : 'transparent', fontWeight: 'bold', display: 'block', mb: 0.5, fontSize: '0.7rem', lineHeight: '0.7rem' }}>
+                                                                {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
+                                                            </Typography>
+                                                            <Box sx={{ mt: 'auto' }}>
+                                                                <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}>
+                                                                    Rp {Number(product.online_price).toLocaleString('id-ID')}
+                                                                </Typography>
+                                                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}>
+                                                                    Rp {Number(tierPrice).toLocaleString('id-ID')}
+                                                                </Typography>
+                                                                <Button variant="contained" size="small" fullWidth disabled={product.current_stock === 0} onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }} sx={{ mt: 1, bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#f44336', color: product.current_stock === 0 ? 'text.secondary' : '#fff', fontWeight: 'bold', textTransform: 'none', '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#d32f2f' } }}>
+                                                                    {product.current_stock === 0 ? 'Stok Habis' : 'Add'}
+                                                                </Button>
+                                                            </Box>
+                                                        </CardContent>
+                                                    </Card>
+                                                </Grid>
+                                            );
+                                        })}
+                                    </Grid>
+                                </Box>
+                            )}
                             {categories.map((category) => {
                                 const categoryProducts = products.filter(p => p.online_category_id == category.id);
                                 if (categoryProducts.length === 0) return null;
@@ -386,15 +442,32 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         </Typography>
                                                         
                                                         <Box sx={{ mt: 'auto' }}>
-                                                                {!auth?.user ? (
-                                                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                                                                        Login untuk harga
-                                                                    </Typography>
-                                                                ) : (
-                                                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', mb: 1 }}>
-                                                                        Rp {Number(product.online_price || 0).toLocaleString('id-ID')}
-                                                                    </Typography>
-                                                                )}
+                                                                 {!auth?.user ? (
+                                                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                                                                         Login untuk harga
+                                                                     </Typography>
+                                                                 ) : (() => {
+                                                                     const tierPrice = product.price_tiers?.length > 0 ? product.price_tiers[0].price : null;
+                                                                     const hasDiscount = tierPrice !== null && Number(tierPrice) < Number(product.online_price);
+                                                                     return (
+                                                                         <Box sx={{ mb: 1, minHeight: '2.8rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                                             {hasDiscount ? (
+                                                                                 <>
+                                                                                     <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}>
+                                                                                         Rp {Number(product.online_price).toLocaleString('id-ID')}
+                                                                                     </Typography>
+                                                                                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}>
+                                                                                         Rp {Number(tierPrice).toLocaleString('id-ID')}
+                                                                                     </Typography>
+                                                                                 </>
+                                                                             ) : (
+                                                                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}>
+                                                                                     Rp {Number(product.online_price || 0).toLocaleString('id-ID')}
+                                                                                 </Typography>
+                                                                             )}
+                                                                         </Box>
+                                                                     );
+                                                                 })()}
                                                                 <Button
                                                                     variant="contained"
                                                                     size="small"
@@ -461,7 +534,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                             {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
                                                         </Typography>
                                                         <Box sx={{ mt: 'auto' }}>
-                                                            {!auth?.user ? ( <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}> Login untuk harga </Typography> ) : ( <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', mb: 1 }}> Rp {Number(product.online_price || 0).toLocaleString('id-ID')} </Typography> )}
+                                                            {!auth?.user ? ( <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}> Login untuk harga </Typography> ) : (() => { const tierPrice = product.price_tiers?.length > 0 ? product.price_tiers[0].price : null; const hasDiscount = tierPrice !== null && Number(tierPrice) < Number(product.online_price); return ( <Box sx={{ mb: 1, minHeight: '2.8rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}> {hasDiscount ? ( <> <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}> Rp {Number(product.online_price).toLocaleString('id-ID')} </Typography> <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(tierPrice).toLocaleString('id-ID')} </Typography> </> ) : ( <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(product.online_price || 0).toLocaleString('id-ID')} </Typography> )} </Box> ); })()}
                                                             <Button variant="contained" size="small" fullWidth disabled={product.current_stock === 0} onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }} sx={{ bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B', color: product.current_stock === 0 ? 'text.secondary' : '#0a0a0a', fontWeight: 'bold', textTransform: 'none', '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#D4AF37' } }}> {product.current_stock === 0 ? 'Stok Habis' : 'Add'} </Button>
                                                         </Box>
                                                     </CardContent>
