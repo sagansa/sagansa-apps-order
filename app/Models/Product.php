@@ -116,19 +116,14 @@ class Product extends Model
         return $query;
     }
 
-    private static function getLatestDate(): ?string
-    {
-        return DB::table('storage_stocks')->max('date');
-    }
-
     private static function getOutOfStockProductIds(): \Illuminate\Support\Collection
     {
-        $latestDate = self::getLatestDate();
-        if (!$latestDate) return collect();
-
         if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
             return collect();
         }
+
+        $latestDate = DB::table('storage_stocks')->max('date');
+        if (!$latestDate) return collect();
 
         $latestStockIds = DB::table('storage_stocks')
             ->where('date', $latestDate)
@@ -149,27 +144,24 @@ class Product extends Model
 
     public function getCurrentStockAttribute(): ?int
     {
-        $latestDate = self::getLatestDate();
-        if (!$latestDate) return null;
-
         if (!Schema::hasTable('storage_stocks') || !Schema::hasTable('product_storage_stock')) {
             return null;
         }
+
+        $tracked = DB::table('product_storage_stock')
+            ->where('product_id', $this->id)
+            ->exists();
+
+        if (!$tracked) return null;
+
+        $latestDate = DB::table('storage_stocks')->max('date');
+        if (!$latestDate) return null;
 
         $latestStockIds = DB::table('storage_stocks')
             ->where('date', $latestDate)
             ->pluck('id');
 
         if ($latestStockIds->isEmpty()) {
-            return null;
-        }
-
-        $exists = DB::table('product_storage_stock')
-            ->whereIn('storage_stock_id', $latestStockIds)
-            ->where('product_id', $this->id)
-            ->exists();
-
-        if (!$exists) {
             return null;
         }
 
