@@ -14,6 +14,11 @@ class ProductImage extends Model
 
     protected $fillable = ['product_id', 'image_url', 'order'];
 
+    // image_url wajib di-append supaya tersedia saat ProductImage diserialisasi ke
+    // JSON untuk Inertia, baik sebagai product.images[].image_url maupun nested
+    // group.images[].image.image_url. Tanpa ini frontend tidak menerima URL gambar.
+    protected $appends = ['image_url'];
+
     public function product()
     {
         return $this->belongsTo(Product::class);

@@ -15,6 +15,11 @@ class ProductOnlineGroupImage extends Model
 
     protected $fillable = ['product_online_group_id', 'product_image_id', 'order'];
 
+    // image_url wajib di-append supaya tersedia saat pivot diserialisasi ke JSON
+    // untuk Inertia (frontend membaca group.images[].image_url). Tanpa ini accessor
+    // getImageUrlAttribute() tidak pernah dikirim ke client -> gambar tidak muncul.
+    protected $appends = ['image_url'];
+
     public function group()
     {
         return $this->belongsTo(ProductOnlineGroup::class, 'product_online_group_id');
