@@ -8,6 +8,7 @@ use App\Http\Controllers\EngineeringController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductOnlineGroupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
@@ -42,6 +43,7 @@ Route::get('/engineering', [EngineeringController::class, 'index']);
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
+Route::get('/product/group/{slug}', [ProductOnlineGroupController::class, 'show'])->name('product.group.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -65,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $midtransPayment = null;
 
         if ($orderId) {
-            $salesOrder = \App\Models\SalesOrder::with(['transferToAccount.bank', 'detailSalesOrders.product', 'orderedBy'])
+            $salesOrder = \App\Models\SalesOrder::with(['transferToAccount.bank', 'detailSalesOrders.product', 'detailSalesOrders.productOnlineGroup', 'orderedBy'])
                 ->where('ordered_by_id', $request->user()->id)
                 ->find($orderId);
 

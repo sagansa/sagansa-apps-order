@@ -16,11 +16,15 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import InfoIcon from "@mui/icons-material/Info"; // Assuming this is used for product info tooltip
+import InfoIcon from "@mui/icons-material/Info";
 import {
     getPriceByQuantity,
     getDiscountPercentage,
 } from "@/Utils/cartCalculations";
+
+const resolveItemData = (item) => {
+    return item.productOnlineGroup || item.product || {};
+};
 
 const CartItemCard = ({
     item,
@@ -28,19 +32,20 @@ const CartItemCard = ({
     handleQuantityChange,
     handleQuantityInput,
     handleDeleteItem,
-    isMobile = false, // Prop to handle mobile-specific rendering
+    isMobile = false,
 }) => {
+    const resolved = resolveItemData(item);
     const currentQuantity = quantities[item.id] || item.quantity;
     const pricePerUnit = getPriceByQuantity(
-        item.product?.price_tiers,
+        resolved.price_tiers,
         currentQuantity,
-        item.product?.online_price || 0
+        resolved.online_price || 0
     );
     const discountPercentage = getDiscountPercentage(
-        item.product?.price_tiers,
+        resolved.price_tiers,
         currentQuantity
     );
-    const stock = item.product?.current_stock;
+    const stock = item.current_stock;
     const hasStock = stock !== null && stock !== undefined;
     const isOutOfStock = hasStock && stock === 0;
     const isExceeded = hasStock && currentQuantity > stock;
@@ -66,7 +71,7 @@ const CartItemCard = ({
                 <Stack direction="row" spacing={2} alignItems="center">
                     <Avatar
                         variant="rounded"
-                        src={item.product?.image_url || item.product?.image || "/images/no_image.png"}
+                        src={resolved.image_url || resolved.image || "/images/no_image.png"}
                         sx={{
                             width: isMobile ? 70 : { xs: 60, sm: 90 },
                             height: isMobile ? 70 : { xs: 60, sm: 90 },
@@ -86,7 +91,7 @@ const CartItemCard = ({
                                 mb: 0.5,
                             }}
                         >
-                            {item.product?.name}
+                            {resolved.name}
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                             <Typography
@@ -95,7 +100,7 @@ const CartItemCard = ({
                                 sx={{ letterSpacing: "0.5px" }}
                             >
                                 Rp {Number(pricePerUnit)?.toLocaleString('id-ID', { maximumFractionDigits: 0 })} /{" "}
-                                {item.product?.unit?.unit || "unit"}
+                                {resolved.unit?.unit || "unit"}
                             </Typography>
                             {discountPercentage > 0 && (
                                 <Chip
@@ -141,7 +146,7 @@ const CartItemCard = ({
                                 Melebihi stok tersedia ({stock})
                             </Typography>
                         )}
-                        {item.product?.price_tiers?.length > 0 && (
+                        {resolved.price_tiers?.length > 0 && (
                             <Tooltip
                                 title={
                                     <Box sx={{ p: 1 }}>
@@ -151,7 +156,7 @@ const CartItemCard = ({
                                         >
                                             Tier Harga:
                                         </Typography>
-                                        {item.product.price_tiers.map(
+                                        {resolved.price_tiers.map(
                                             (tier, index) => (
                                                 <Typography
                                                     key={index}
@@ -166,12 +171,7 @@ const CartItemCard = ({
                                                 >
                                                     <span>
                                                         {tier.label ||
-                                                            `${
-                                                                tier.min_quantity
-                                                            }-${
-                                                                tier.max_quantity ||
-                                                                "∞"
-                                                            } unit`}
+                                                            `${tier.min_quantity}-${tier.max_quantity || "∞"} unit`}
                                                     </span>
                                                     <span
                                                         style={{
@@ -256,7 +256,7 @@ const CartItemCard = ({
                                             variant="caption"
                                             sx={{ fontWeight: 500 }}
                                         >
-                                            {item.product?.unit?.unit || "unit"}
+                                            {resolved.unit?.unit || "unit"}
                                         </Typography>
                                     </InputAdornment>
                                 ),

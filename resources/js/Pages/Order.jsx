@@ -110,6 +110,10 @@ export default function Order({ auth, products = [], categories = [], units = []
         return () => clearTimeout(debounceTimeout);
     }, [searchQuery]);
 
+    const getProductRoute = (product) => {
+        return product.display_type === 'group' ? route('product.group.show', product.slug) : route('product.show', product.slug);
+    };
+
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
 
     const handleAddToCart = (product, quantity = 1) => {
@@ -119,10 +123,15 @@ export default function Order({ auth, products = [], categories = [], units = []
         }
 
         const cartData = {
-            product_id: product.id,
             quantity: quantity,
             user_id: auth.user.id
         };
+
+        if (product.display_type === 'group') {
+            cartData.product_online_group_id = product.id;
+        } else {
+            cartData.product_id = product.id;
+        }
 
         router.post(route('cart.store'), cartData, {
             preserveScroll: true,
@@ -250,7 +259,6 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                 }}
                                                 onClick={() => {
                                                     handleAddToCart(product);
-                                                    router.visit(route('cart.index'));
                                                 }}
                                             >
                                                 <Box sx={{ width: '100%', height: 100, overflow: 'hidden' }}>
@@ -310,7 +318,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                             const tierPrice = product.price_tiers[0].price;
                                             return (
                                                 <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
-                                                    <Card onClick={() => router.visit(route('product.show', product.slug))} elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '2px solid rgba(244, 67, 54, 0.3)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#f44336', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(244,67,54,0.2)' } }}>
+                                                    <Card onClick={() => router.visit(getProductRoute(product))} elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '2px solid rgba(244, 67, 54, 0.3)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#f44336', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(244,67,54,0.2)' } }}>
                                                         <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
                                                             {product.image_url ? (
                                                                 <CardMedia component="img" image={product.image_url} alt={product.name} sx={{ objectFit: 'cover', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transition: 'transform 0.5s ease', '.MuiCard-root:hover &': { transform: 'scale(1.1)' } }} />
@@ -386,7 +394,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                 boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
                                                             }
                                                         }}
-                                                        onClick={() => router.visit(route('product.show', product.slug))}
+                                                        onClick={() => router.visit(getProductRoute(product))}
                                                     >
                                                         <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
                                                             {product.image_url ? (
@@ -506,7 +514,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                     <Grid container spacing={2}>
                                         {products.filter(p => !p.online_category_id).map((product) => (
                                             <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
-                                                <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#C6A96B', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' } }} onClick={() => router.visit(route('product.show', product.slug))}>
+                                                <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#C6A96B', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' } }} onClick={() => router.visit(getProductRoute(product))}>
                                                     <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
                                                         {product.image_url ? (
                                                             <CardMedia component="img" image={product.image_url} alt={product.name} sx={{ objectFit: 'cover', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transition: 'transform 0.5s ease', '.MuiCard-root:hover &': { transform: 'scale(1.1)' } }} />

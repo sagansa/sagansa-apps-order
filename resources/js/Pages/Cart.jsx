@@ -338,10 +338,11 @@ export default function Cart({
         return (
             cartItems?.reduce((total, item) => {
                 const quantity = quantities[item.id] || item.quantity;
+                const resolved = item.productOnlineGroup || item.product || {};
                 const pricePerUnit = getPriceByQuantity(
-                    item.product?.price_tiers,
+                    resolved.price_tiers,
                     quantity,
-                    item.product?.online_price || 0
+                    resolved.online_price || 0
                 );
                 return total + pricePerUnit * quantity;
             }, 0) || 0
@@ -574,18 +575,27 @@ export default function Cart({
             formData.append("payment_method", selectedPaymentMethod);
 
             // Ubah format items
-            const items = cartItems.map((item) => ({
-                product_id: item.product.id,
-                quantity: quantities[item.id] || item.quantity,
-                price: getPriceByQuantity(
-                    item.product?.price_tiers,
-                    quantities[item.id] || item.quantity,
-                    item.product?.online_price || 0
-                ),
-            }));
+            const items = cartItems.map((item) => {
+                const resolved = item.productOnlineGroup || item.product || {};
+                return {
+                    product_id: item.product ? item.product.id : null,
+                    product_online_group_id: item.productOnlineGroup ? item.productOnlineGroup.id : null,
+                    quantity: quantities[item.id] || item.quantity,
+                    price: getPriceByQuantity(
+                        resolved.price_tiers,
+                        quantities[item.id] || item.quantity,
+                        resolved.online_price || 0
+                    ),
+                };
+            });
 
             items.forEach((item, index) => {
-                formData.append(`items[${index}][product_id]`, item.product_id);
+                if (item.product_id) {
+                    formData.append(`items[${index}][product_id]`, item.product_id);
+                }
+                if (item.product_online_group_id) {
+                    formData.append(`items[${index}][product_online_group_id]`, item.product_online_group_id);
+                }
                 formData.append(`items[${index}][quantity]`, item.quantity);
                 formData.append(`items[${index}][price]`, item.price);
             });
