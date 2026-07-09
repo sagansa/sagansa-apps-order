@@ -308,34 +308,7 @@ export default function ProductGroupDetail({ auth, group }) {
                         </Paper>
                     )}
 
-                    {group.items?.length > 0 && (
-                        <Paper elevation={0} sx={{ bgcolor: '#141414', borderRadius: 3, p: 3, mt: 3, border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <Typography variant="h6" sx={{ color: '#C6A96B', fontWeight: 'bold', mb: 2 }}>
-                                Produk Anggota
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-                                Produk ini merupakan gabungan stok dari varian berikut:
-                            </Typography>
-                            <TableContainer>
-                                <Table size="small">
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell sx={{ color: 'text.secondary', fontWeight: 'bold' }}>Nama Produk</TableCell>
-                                            <TableCell sx={{ color: 'text.secondary', fontWeight: 'bold' }}>SKU</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {group.items.map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell sx={{ color: 'white' }}>{item.product?.name || 'Produk Tidak Diketahui'}</TableCell>
-                                                <TableCell sx={{ color: 'text.secondary' }}>{item.product?.sku || '-'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </Paper>
-                    )}
+
                 </Container>
             </Box>
         </Layout>

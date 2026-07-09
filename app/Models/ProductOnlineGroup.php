@@ -67,7 +67,7 @@ class ProductOnlineGroup extends Model
 
     public function getImageUrlAttribute()
     {
-        $pivotImage = $this->images()->with('image')->first()?->image?->image_url;
+        $pivotImage = $this->images->first()?->image_url;
         if ($pivotImage) {
             return $pivotImage;
         }

@@ -53,10 +53,7 @@ class OrderController extends Controller
                 ->pluck('total_qty', 'product_online_group_id');
         }
 
-        // Produk fisik yang menjadi anggota grup tidak ditampilkan sendiri
-        $memberProductIds = ProductOnlineGroupItem::pluck('product_id');
-
-        // Query produk fisik (non-anggota grup)
+        // Query produk fisik
         $physicalProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
             ->withCount('detailSalesOrders')
             ->whereHas('onlineCategory', function ($q) {
@@ -65,9 +62,6 @@ class OrderController extends Controller
             ->where(function ($query) {
                 $query->where('online_price', '>', 0)
                       ->orWhereHas('priceTiers');
-            })
-            ->when($memberProductIds->isNotEmpty(), function ($query) use ($memberProductIds) {
-                $query->whereNotIn('id', $memberProductIds);
             })
             ->when(request('category') && request('category') !== 'all', function ($query) {
                 $query->whereHas('onlineCategory', function ($q) {
@@ -113,7 +107,7 @@ class OrderController extends Controller
             ->pluck('count', 'product_id');
 
         // Query grup aktif
-        $groups = ProductOnlineGroup::with(['unit', 'onlineCategory', 'priceTiers', 'items'])
+        $groups = ProductOnlineGroup::with(['unit', 'onlineCategory', 'priceTiers', 'items', 'images.image'])
             ->where('is_active', true)
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);

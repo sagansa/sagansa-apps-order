@@ -27,6 +27,6 @@ class ProductOnlineGroupImage extends Model
 
     public function getImageUrlAttribute()
     {
-        return $this->image?->image_url ?? null;
+        return $this->image?->image_url ?? 'https://placehold.co/600x400?text=No+Image';
     }
 }
