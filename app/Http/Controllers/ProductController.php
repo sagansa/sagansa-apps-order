@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DetailSalesOrder;
 use App\Models\Product;
 use App\Models\ProductOnlineGroupItem;
 use App\Models\ProductView;
@@ -34,8 +35,14 @@ class ProductController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
+        // Jumlah terjual = SUM(quantity) dari order dengan delivery_status=3 (sudah dikirim)
+        $soldCount = DetailSalesOrder::where('product_id', $product->id)
+            ->whereHas('salesOrder', fn($q) => $q->where('delivery_status', 3))
+            ->sum('quantity');
+
         return Inertia::render('ProductDetail', [
-            'product' => $product
+            'product' => $product,
+            'soldCount' => (int) $soldCount,
         ]);
     }
 }
