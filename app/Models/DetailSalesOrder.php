@@ -14,6 +14,7 @@ class DetailSalesOrder extends Model
     protected $fillable = [
         'sales_order_id',
         'product_id',
+        'product_online_group_id',
         'quantity',
         'unit_price',
         'subtotal_price',
@@ -22,6 +23,11 @@ class DetailSalesOrder extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function productOnlineGroup()
+    {
+        return $this->belongsTo(ProductOnlineGroup::class);
     }
 
     public function salesOrder()

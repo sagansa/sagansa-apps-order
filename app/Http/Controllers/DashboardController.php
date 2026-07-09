@@ -26,7 +26,7 @@ class DashboardController extends Controller
             ->count();
 
         // Fetch recent orders
-        $recentOrders = SalesOrder::with(['detailSalesOrders.product'])
+        $recentOrders = SalesOrder::with(['detailSalesOrders.product', 'detailSalesOrders.productOnlineGroup'])
             ->where('ordered_by_id', $userId)
             ->orderByDesc('created_at')
             ->limit(5) // Limit to 5 recent orders

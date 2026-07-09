@@ -74,6 +74,7 @@ export default function ProductDetail({ auth, product }) {
 
     const [quantity, setQuantity] = useState(1);
     const [tabValue, setTabValue] = useState(0);
+    const [selectedImage, setSelectedImage] = useState(0);
 
     const currentPrice = getPriceByQuantity(
         product?.price_tiers,
@@ -135,7 +136,7 @@ export default function ProductDetail({ auth, product }) {
     };
 
     const mainImage = (product?.images && product.images.length > 0
-        ? product.images[0].image_url
+        ? product.images[selectedImage].image_url
         : product?.image_url) || '/images/no_image.png';
 
 
@@ -180,7 +181,7 @@ export default function ProductDetail({ auth, product }) {
                     }}>
                         {/* LEFT: Image Gallery */}
                         <Box sx={{ 
-                            width: { xs: '100%', md: 280 }, 
+                            width: { xs: '100%', md: 400 }, 
                             flexShrink: 0,
                             position: { md: 'sticky' },
                             top: 24 
@@ -205,7 +206,8 @@ export default function ProductDetail({ auth, product }) {
                                         height: 'auto',
                                         aspectRatio: '1/1',
                                         objectFit: 'contain',
-                                        borderRadius: 2
+                                        borderRadius: 2,
+                                        transition: 'opacity 0.2s'
                                     }}
                                 />
                             </Paper>
@@ -217,14 +219,18 @@ export default function ProductDetail({ auth, product }) {
                                             key={idx}
                                             component="img"
                                             src={img.image_url}
+                                            onClick={() => setSelectedImage(idx)}
                                             sx={{
-                                                width: 60,
-                                                height: 60,
+                                                width: 64,
+                                                height: 64,
                                                 borderRadius: 1,
                                                 border: '2px solid',
-                                                borderColor: idx === 0 ? '#C6A96B' : 'transparent',
+                                                borderColor: idx === selectedImage ? '#C6A96B' : 'transparent',
                                                 cursor: 'pointer',
-                                                objectFit: 'cover'
+                                                objectFit: 'cover',
+                                                opacity: idx === selectedImage ? 1 : 0.5,
+                                                transition: 'opacity 0.2s, border-color 0.2s',
+                                                '&:hover': { opacity: 1 }
                                             }}
                                         />
                                     ))}

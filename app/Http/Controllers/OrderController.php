@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductOnlineGroup;
+use App\Models\ProductOnlineGroupItem;
 use App\Models\OnlineCategory;
 use App\Models\Unit;
 use Illuminate\Http\Request;
@@ -33,6 +35,7 @@ class OrderController extends Controller
 
         // Ambil riwayat pembelian pribadi user (jika login) untuk sorting
         $personalOrderCounts = collect();
+        $personalGroupOrderCounts = collect();
         if ($user) {
             $personalOrderCounts = DetailSalesOrder::select('product_id', DB::raw('SUM(quantity) as total_qty'))
                 ->whereHas('salesOrder', function ($q) use ($user) {
@@ -40,10 +43,78 @@ class OrderController extends Controller
                 })
                 ->groupBy('product_id')
                 ->pluck('total_qty', 'product_id');
+
+            $personalGroupOrderCounts = DetailSalesOrder::select('product_online_group_id', DB::raw('SUM(quantity) as total_qty'))
+                ->whereNotNull('product_online_group_id')
+                ->whereHas('salesOrder', function ($q) use ($user) {
+                    $q->where('ordered_by_id', $user->id);
+                })
+                ->groupBy('product_online_group_id')
+                ->pluck('total_qty', 'product_online_group_id');
         }
 
-        $products = Product::with(['unit', 'onlineCategory', 'priceTiers'])
+        // Produk fisik yang menjadi anggota grup tidak ditampilkan sendiri
+        $memberProductIds = ProductOnlineGroupItem::pluck('product_id');
+
+        // Query produk fisik (non-anggota grup)
+        $physicalProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
             ->withCount('detailSalesOrders')
+            ->whereHas('onlineCategory', function ($q) {
+                $q->where('id', '!=', 4);
+            })
+            ->where(function ($query) {
+                $query->where('online_price', '>', 0)
+                      ->orWhereHas('priceTiers');
+            })
+            ->when($memberProductIds->isNotEmpty(), function ($query) use ($memberProductIds) {
+                $query->whereNotIn('id', $memberProductIds);
+            })
+            ->when(request('category') && request('category') !== 'all', function ($query) {
+                $query->whereHas('onlineCategory', function ($q) {
+                    $q->where('id', request('category'));
+                });
+            })
+            ->when(request('min_price'), function ($query) {
+                $query->where('online_price', '>=', request('min_price'));
+            })
+            ->when(request('max_price'), function ($query) {
+                $query->where('online_price', '<=', request('max_price'));
+            })
+            ->when(request('unit') && request('unit') !== 'all', function ($query) {
+                $query->whereHas('unit', function ($q) {
+                    $q->where('id', request('unit'));
+                });
+            })
+            ->when(request('search'), function ($query) {
+                $query->where('name', 'like', '%' . request('search') . '%');
+            })
+            ->get()
+            ->map(function ($product) {
+                return (object) [
+                    'display_type' => 'product',
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                    'image_url' => $product->image_url,
+                    'current_stock' => $product->current_stock,
+                    'online_price' => $product->online_price,
+                    'price_tiers' => $product->priceTiers,
+                    'unit' => $product->unit,
+                    'online_category_id' => $product->online_category_id,
+                    'online_category' => $product->onlineCategory,
+                    'detail_sales_orders_count' => $product->detail_sales_orders_count,
+                ];
+            });
+
+        // Hitung global order count per produk (untuk sorting popularitas grup)
+        $globalProductCounts = DB::table('detail_sales_orders')
+            ->select('product_id', DB::raw('COUNT(*) as count'))
+            ->groupBy('product_id')
+            ->pluck('count', 'product_id');
+
+        // Query grup aktif
+        $groups = ProductOnlineGroup::with(['unit', 'onlineCategory', 'priceTiers', 'items'])
+            ->where('is_active', true)
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
             })
@@ -71,15 +142,63 @@ class OrderController extends Controller
                 $query->where('name', 'like', '%' . request('search') . '%');
             })
             ->get()
-            ->sortByDesc(function ($product) use ($personalOrderCounts) {
-                $personalCount = (int) ($personalOrderCounts[$product->id] ?? 0);
-                $globalCount = (int) ($product->detail_sales_orders_count ?? 0);
+            ->map(function ($group) use ($globalProductCounts) {
+                $memberIds = $group->items->pluck('product_id');
+                $groupPopularity = $memberIds->reduce(function ($carry, $pid) use ($globalProductCounts) {
+                    return $carry + (int) ($globalProductCounts[$pid] ?? 0);
+                }, 0);
+
+                return (object) [
+                    'display_type' => 'group',
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'slug' => $group->slug,
+                    'image_url' => $group->image_url,
+                    'current_stock' => $group->current_stock,
+                    'online_price' => $group->online_price,
+                    'price_tiers' => $group->priceTiers,
+                    'unit' => $group->unit,
+                    'online_category_id' => $group->online_category_id,
+                    'online_category' => $group->onlineCategory,
+                    'detail_sales_orders_count' => $groupPopularity,
+                ];
+            });
+
+        // Mapping: product_id => group_id untuk menghitung personal count grup dari order lama
+        $productToGroupMap = ProductOnlineGroupItem::pluck('product_online_group_id', 'product_id');
+
+        // Gabung & sort
+        $products = $physicalProducts->concat($groups)
+            ->sortByDesc(function ($item) use ($personalOrderCounts, $personalGroupOrderCounts, $productToGroupMap) {
+                if ($item->display_type === 'group') {
+                    $personalCount = (int) ($personalGroupOrderCounts[$item->id] ?? 0);
+                    // Tambahkan order personal dari produk anggota (transaksi sebelum grouping)
+                    foreach ($productToGroupMap as $pid => $gid) {
+                        if ((int) $gid === $item->id) {
+                            $personalCount += (int) ($personalOrderCounts[$pid] ?? 0);
+                        }
+                    }
+                } else {
+                    $personalCount = (int) ($personalOrderCounts[$item->id] ?? 0);
+                }
+                $globalCount = (int) ($item->detail_sales_orders_count ?? 0);
                 return sprintf('%010d-%010d', $personalCount, $globalCount);
-            })->values();
+            })
+            ->values();
 
         // Produk yang pernah diorder user (untuk quick reorder)
         $lastOrderedProducts = collect();
         if ($user) {
+            // Group yang sudah pernah diorder langsung (transaksi baru)
+            $orderedGroupIds = DetailSalesOrder::whereNotNull('product_online_group_id')
+                ->whereHas('salesOrder', function ($q) use ($user) {
+                    $q->where('ordered_by_id', $user->id);
+                })
+                ->select('product_online_group_id')
+                ->distinct()
+                ->pluck('product_online_group_id');
+
+            // Produk fisik yang pernah diorder
             $orderedProductIds = DetailSalesOrder::whereHas('salesOrder', function ($q) use ($user) {
                 $q->where('ordered_by_id', $user->id);
             })
@@ -87,9 +206,38 @@ class OrderController extends Controller
                 ->distinct()
                 ->pluck('product_id');
 
-            if ($orderedProductIds->isNotEmpty()) {
-                $lastOrderedProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
-                    ->whereIn('id', $orderedProductIds)
+            // Personal order counts per produk (untuk sorting)
+            $personalProductCounts = DetailSalesOrder::select('product_id', DB::raw('SUM(quantity) as total_qty'))
+                ->whereHas('salesOrder', function ($q) use ($user) {
+                    $q->where('ordered_by_id', $user->id);
+                })
+                ->whereIn('product_id', $orderedProductIds)
+                ->groupBy('product_id')
+                ->pluck('total_qty', 'product_id');
+
+            $personalGroupCounts = DetailSalesOrder::select('product_online_group_id', DB::raw('SUM(quantity) as total_qty'))
+                ->whereNotNull('product_online_group_id')
+                ->whereHas('salesOrder', function ($q) use ($user) {
+                    $q->where('ordered_by_id', $user->id);
+                })
+                ->groupBy('product_online_group_id')
+                ->pluck('total_qty', 'product_online_group_id');
+
+            // Mapping: product_id => group yang dimilikinya
+            $productToGroup = ProductOnlineGroupItem::with('group')
+                ->whereIn('product_id', $orderedProductIds)
+                ->get()
+                ->filter(fn($item) => $item->group && $item->group->is_active)
+                ->keyBy('product_id');
+
+            $seenGroupIds = collect();
+
+            // Produk non-anggota grup → tampilkan langsung
+            $nonMemberIds = $orderedProductIds->filter(fn($pid) => !$productToGroup->has($pid));
+            $lastOrderedFromProducts = collect();
+            if ($nonMemberIds->isNotEmpty()) {
+                $lastOrderedFromProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
+                    ->whereIn('id', $nonMemberIds)
                     ->whereHas('onlineCategory', function ($q) {
                         $q->where('id', '!=', 4);
                     })
@@ -98,12 +246,73 @@ class OrderController extends Controller
                               ->orWhereHas('priceTiers');
                     })
                     ->get()
-                    ->sortByDesc(function ($product) use ($personalOrderCounts) {
-                        return (int) ($personalOrderCounts[$product->id] ?? 0);
-                    })
-                    ->take(10)
-                    ->values();
+                    ->map(function ($product) {
+                        return (object) [
+                            'display_type' => 'product',
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'slug' => $product->slug,
+                            'image_url' => $product->image_url,
+                            'current_stock' => $product->current_stock,
+                            'online_price' => $product->online_price,
+                            'price_tiers' => $product->priceTiers,
+                            'unit' => $product->unit,
+                            'online_category_id' => $product->online_category_id,
+                            'online_category' => $product->onlineCategory,
+                        ];
+                    });
             }
+
+            // Produk anggota grup → ganti dengan grup-nya (deduplikasi)
+            $resolvedGroupIds = collect();
+            foreach ($orderedProductIds as $pid) {
+                if ($productToGroup->has($pid)) {
+                    $gid = $productToGroup[$pid]->product_online_group_id;
+                    $resolvedGroupIds->push($gid);
+                }
+            }
+            $resolvedGroupIds = $resolvedGroupIds->merge($orderedGroupIds)->unique();
+
+            $lastOrderedFromGroups = collect();
+            if ($resolvedGroupIds->isNotEmpty()) {
+                $lastOrderedFromGroups = ProductOnlineGroup::with(['unit', 'onlineCategory', 'priceTiers'])
+                    ->whereIn('id', $resolvedGroupIds)
+                    ->where('is_active', true)
+                    ->get()
+                    ->map(function ($group) {
+                        return (object) [
+                            'display_type' => 'group',
+                            'id' => $group->id,
+                            'name' => $group->name,
+                            'slug' => $group->slug,
+                            'image_url' => $group->image_url,
+                            'current_stock' => $group->current_stock,
+                            'online_price' => $group->online_price,
+                            'price_tiers' => $group->priceTiers,
+                            'unit' => $group->unit,
+                            'online_category_id' => $group->online_category_id,
+                            'online_category' => $group->onlineCategory,
+                        ];
+                    });
+            }
+
+            // Gabung, sort, take(10)
+            $lastOrderedProducts = $lastOrderedFromProducts->concat($lastOrderedFromGroups)
+                ->sortByDesc(function ($item) use ($personalProductCounts, $personalGroupCounts, $productToGroup) {
+                    if ($item->display_type === 'group') {
+                        $count = (int) ($personalGroupCounts[$item->id] ?? 0);
+                        // Tambahkan order count dari produk anggota yang diorder sebelum grouping
+                        foreach ($productToGroup as $pid => $pivot) {
+                            if ($pivot->product_online_group_id === $item->id) {
+                                $count += (int) ($personalProductCounts[$pid] ?? 0);
+                            }
+                        }
+                        return $count;
+                    }
+                    return (int) ($personalProductCounts[$item->id] ?? 0);
+                })
+                ->take(10)
+                ->values();
         }
 
         $categories = OnlineCategory::all();
@@ -162,6 +371,7 @@ class OrderController extends Controller
     {
         $order = SalesOrder::with([
             'detailSalesOrders.product',
+            'detailSalesOrders.productOnlineGroup',
             'transferToAccount.bank',
             'deliveryAddress.province',
             'deliveryAddress.city',
@@ -210,10 +420,19 @@ class OrderController extends Controller
             'image_delivery' => $order->image_delivery,
             'received_by' => $order->received_by,
             'details' => $order->detailSalesOrders->map(function ($detail) {
+                $productName = 'Produk Tidak Diketahui';
+                $unitName = '';
+                if ($detail->product) {
+                    $productName = $detail->product->name;
+                    $unitName = $detail->product->unit->unit ?? '';
+                } elseif ($detail->productOnlineGroup) {
+                    $productName = $detail->productOnlineGroup->name;
+                    $unitName = $detail->productOnlineGroup->unit->unit ?? '';
+                }
                 return [
-                    'product_name' => $detail->product ? $detail->product->name : 'Produk Tidak Diketahui',
+                    'product_name' => $productName,
                     'quantity' => $detail->quantity,
-                    'unit' => $detail->product->unit->unit ?? '',
+                    'unit' => $unitName,
                     'unit_price' => $detail->unit_price,
                     'subtotal_price' => $detail->subtotal_price,
                 ];
@@ -234,7 +453,7 @@ class OrderController extends Controller
 
     public function regeneratePayment($id)
     {
-        $order = SalesOrder::with(['orderedBy', 'detailSalesOrders.product', 'deliveryService', 'deliveryAddress', 'transferToAccount.bank'])
+        $order = SalesOrder::with(['orderedBy', 'detailSalesOrders.product', 'detailSalesOrders.productOnlineGroup', 'deliveryService', 'deliveryAddress', 'transferToAccount.bank'])
             ->where('ordered_by_id', auth()->id())
             ->findOrFail($id);
 

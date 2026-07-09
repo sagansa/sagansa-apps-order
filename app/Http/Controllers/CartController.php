@@ -12,6 +12,7 @@ use App\Services\MidtransService;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
 use App\Models\Product;
+use App\Models\ProductOnlineGroup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -75,9 +76,13 @@ class CartController extends Controller
     {
         $cartUserId = $this->cartUserId($request);
 
-        $cartItems = Cart::with(['product.priceTiers', 'product.unit'])
+        $cartItems = Cart::with(['product.priceTiers', 'product.unit', 'productOnlineGroup.priceTiers', 'productOnlineGroup.unit'])
             ->where('user_id', $cartUserId)
-            ->get();
+            ->get()
+            ->map(function ($cartItem) {
+                $cartItem->current_stock = $this->resolveCurrentStock($cartItem);
+                return $cartItem;
+            });
 
         $deliveryServices = DeliveryService::all();
         $deliveryAddresses = DeliveryAddress::with(['province', 'city', 'district', 'subdistrict', 'postalCode'])
@@ -106,12 +111,30 @@ class CartController extends Controller
         ]);
     }
 
+    private function resolveCurrentStock($cartItem): ?int
+    {
+        if ($cartItem->product) {
+            return $cartItem->product->current_stock;
+        }
+        if ($cartItem->productOnlineGroup) {
+            return $cartItem->productOnlineGroup->current_stock;
+        }
+        return 0;
+    }
+
     public function update(Request $request, Cart $cart)
     {
         if ($cart->user_id != $this->cartUserId($request)) {
             abort(403);
         }
+
         $request->validate(['quantity' => 'required|integer|min:1']);
+
+        $currentStock = $this->resolveCurrentStock($cart);
+        if ($currentStock !== null && $request->quantity > $currentStock) {
+            return back()->withErrors(['quantity' => 'Kuantitas melebihi stok tersedia (' . $currentStock . ').']);
+        }
+
         $cart->update(['quantity' => $request->quantity]);
         return back();
     }
@@ -130,31 +153,74 @@ class CartController extends Controller
         $cartUserId = $this->cartUserId($request);
 
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required_without:product_online_group_id|exists:products,id',
+            'product_online_group_id' => 'required_without:product_id|exists:product_online_groups,id',
             'quantity' => 'required|integer|min:1'
         ]);
 
-        $product = Product::available()->find($request->product_id);
+        $stock = null;
+        $label = 'Produk';
 
-        if (!$product) {
-            return back()->withErrors(['product_id' => 'Produk sedang tidak tersedia karena stok habis.']);
-        }
+        if ($request->product_id) {
+            $item = Product::available()->find($request->product_id);
+            if (!$item) {
+                return back()->withErrors(['product_id' => 'Produk sedang tidak tersedia karena stok habis.']);
+            }
+            $stock = $item->current_stock;
+            $label = $item->name;
 
-        $existingCart = Cart::where('user_id', $cartUserId)
-            ->where('product_id', $request->product_id)
-            ->first();
+            $existingCart = Cart::where('user_id', $cartUserId)
+                ->where('product_id', $request->product_id)
+                ->first();
 
-        if ($existingCart) {
-            $existingCart->increment('quantity', $request->quantity);
+            if ($existingCart) {
+                $newQty = $existingCart->quantity + $request->quantity;
+                if ($stock !== null && $newQty > $stock) {
+                    return back()->withErrors(['quantity' => 'Kuantitas melebihi stok tersedia (' . $stock . ').']);
+                }
+                $existingCart->increment('quantity', $request->quantity);
+            } else {
+                if ($stock !== null && $request->quantity > $stock) {
+                    return back()->withErrors(['quantity' => 'Kuantitas melebihi stok tersedia (' . $stock . ').']);
+                }
+                Cart::create([
+                    'user_id' => $cartUserId,
+                    'product_id' => $request->product_id,
+                    'quantity' => $request->quantity
+                ]);
+            }
         } else {
-            Cart::create([
-                'user_id' => $cartUserId,
-                'product_id' => $request->product_id,
-                'quantity' => $request->quantity
-            ]);
+            $item = ProductOnlineGroup::where('is_active', true)->find($request->product_online_group_id);
+            if (!$item) {
+                return back()->withErrors(['product_online_group_id' => 'Grup produk tidak aktif.']);
+            }
+            $stock = $item->current_stock;
+            $label = $item->name;
+
+            if ($stock !== null && $request->quantity > $stock) {
+                return back()->withErrors(['quantity' => 'Kuantitas melebihi stok tersedia (' . $stock . ').']);
+            }
+
+            $existingCart = Cart::where('user_id', $cartUserId)
+                ->where('product_online_group_id', $request->product_online_group_id)
+                ->first();
+
+            if ($existingCart) {
+                $newQty = $existingCart->quantity + $request->quantity;
+                if ($stock !== null && $newQty > $stock) {
+                    return back()->withErrors(['quantity' => 'Kuantitas melebihi stok tersedia (' . $stock . ').']);
+                }
+                $existingCart->increment('quantity', $request->quantity);
+            } else {
+                Cart::create([
+                    'user_id' => $cartUserId,
+                    'product_online_group_id' => $request->product_online_group_id,
+                    'quantity' => $request->quantity
+                ]);
+            }
         }
 
-        return back()->with('success', 'Produk berhasil ditambahkan ke keranjang!');
+        return back()->with('success', $label . ' berhasil ditambahkan ke keranjang!');
     }
 
     public function checkout(Request $request)
@@ -178,14 +244,14 @@ class CartController extends Controller
                     'card_token' => 'nullable|string|required_if:payment_method,credit_card',
                     'shipping_payment_method' => 'nullable|string|in:via_us,to_courier',
                     'items' => 'required|array|min:1',
-                    'items.*.product_id' => 'required|exists:products,id',
+                    'items.*.product_id' => 'nullable|exists:products,id',
+                    'items.*.product_online_group_id' => 'nullable|exists:product_online_groups,id',
                     'items.*.quantity' => 'required|integer|min:1',
                     'items.*.price' => 'required|numeric|min:0',
                 ]);
 
                 Log::info('Validation successful.', $validated);
 
-                // Initialize variables from validated data
                 $isSelfPickup = $validated['delivery_service_id'] == 33;
                 $shippingCost = $validated['shipping_cost'] ?? 0;
                 $paymentStatus = $validated['payment_status'];
@@ -194,7 +260,6 @@ class CartController extends Controller
                 $deliveryAddressId = $validated['delivery_address_id'] ?? null;
                 $imagePaymentPath = null;
 
-                // Conditional Logic Refactor
                 if ($validated['payment_method'] === 'manual_transfer') {
                     if ($isSelfPickup) {
                         $deliveryAddressId = null;
@@ -205,7 +270,7 @@ class CartController extends Controller
                         if ($paymentStatus == 1 && !$request->hasFile('image_payment')) {
                             return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
                         }
-                    } else { // Delivery
+                    } else {
                         if (empty($deliveryAddressId)) {
                             return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
                         }
@@ -218,7 +283,7 @@ class CartController extends Controller
                             }
                         }
                     }
-                } else { // Midtrans
+                } else {
                     if ($isSelfPickup) {
                         $deliveryAddressId = null;
                         $shippingCost = 0;
@@ -227,7 +292,7 @@ class CartController extends Controller
                             return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
                         }
                     }
-                    $paymentStatus = 4; // 'Belum dibayar' for Midtrans initially
+                    $paymentStatus = 4;
                 }
 
                 if ($request->hasFile('image_payment')) {
@@ -235,45 +300,74 @@ class CartController extends Controller
                     Log::info('Image payment stored at: ' . $imagePaymentPath);
                 }
 
-                // Validate stock availability for all items first
-                $outOfStockProducts = [];
-                foreach ($validated['items'] as $itemData) {
-                    $product = Product::available()->find($itemData['product_id']);
-                    if (!$product) {
-                        $product = Product::find($itemData['product_id']);
-                        $outOfStockProducts[] = $product ? $product->name : 'ID#' . $itemData['product_id'];
-                    }
-                }
-
-                if ($outOfStockProducts) {
-                    $names = implode(', ', $outOfStockProducts);
-                    Log::warning('Checkout failed: products out of stock', ['products' => $outOfStockProducts]);
-                    return back()->withErrors(['items' => 'Produk berikut sedang tidak tersedia karena stok habis: ' . $names . '. Silakan hapus dari keranjang.']);
-                }
-
-                // Calculate total price and prepare items with correct prices from backend
+                // Validate stock availability & calculate prices
+                $outOfStockItems = [];
                 $processedItems = [];
                 $subtotal = 0;
 
                 foreach ($validated['items'] as $itemData) {
-                    $product = Product::findOrFail($itemData['product_id']);
-                    $price = $product->getPriceByQuantity($itemData['quantity']);
-                    $itemSubtotal = $price * $itemData['quantity'];
-                    
-                    $processedItems[] = [
-                        'product_id' => $product->id,
-                        'quantity' => $itemData['quantity'],
-                        'price' => $price,
-                        'subtotal' => $itemSubtotal,
-                    ];
-                    
-                    $subtotal += $itemSubtotal;
+                    $itemData['product_id'] = $itemData['product_id'] ?? null;
+                    $itemData['product_online_group_id'] = $itemData['product_online_group_id'] ?? null;
+
+                    if ($itemData['product_id']) {
+                        $product = Product::available()->find($itemData['product_id']);
+                        if (!$product) {
+                            $product = Product::find($itemData['product_id']);
+                            $outOfStockItems[] = $product ? $product->name : 'ID#' . $itemData['product_id'];
+                            continue;
+                        }
+
+                        $stock = $product->current_stock;
+                        if ($stock !== null && $itemData['quantity'] > $stock) {
+                            return back()->withErrors(['items' => $product->name . ': kuantitas melebihi stok tersedia (' . $stock . ').']);
+                        }
+
+                        $price = $product->getPriceByQuantity($itemData['quantity']);
+                        $itemSubtotal = $price * $itemData['quantity'];
+
+                        $processedItems[] = [
+                            'product_id' => $product->id,
+                            'product_online_group_id' => null,
+                            'quantity' => $itemData['quantity'],
+                            'price' => $price,
+                            'subtotal' => $itemSubtotal,
+                        ];
+                    } elseif ($itemData['product_online_group_id']) {
+                        $group = ProductOnlineGroup::where('is_active', true)->find($itemData['product_online_group_id']);
+                        if (!$group) {
+                            $outOfStockItems[] = 'Grup #' . $itemData['product_online_group_id'];
+                            continue;
+                        }
+
+                        $stock = $group->current_stock;
+                        if ($stock !== null && $itemData['quantity'] > $stock) {
+                            return back()->withErrors(['items' => $group->name . ': kuantitas melebihi stok tersedia (' . $stock . ').']);
+                        }
+
+                        $price = $group->getPriceByQuantity($itemData['quantity']);
+                        $itemSubtotal = $price * $itemData['quantity'];
+
+                        $processedItems[] = [
+                            'product_id' => null,
+                            'product_online_group_id' => $group->id,
+                            'quantity' => $itemData['quantity'],
+                            'price' => $price,
+                            'subtotal' => $itemSubtotal,
+                        ];
+                    }
+
+                    $subtotal += $itemSubtotal ?? 0;
+                }
+
+                if ($outOfStockItems) {
+                    $names = implode(', ', $outOfStockItems);
+                    Log::warning('Checkout failed: items out of stock', ['items' => $outOfStockItems]);
+                    return back()->withErrors(['items' => 'Item berikut sedang tidak tersedia karena stok habis: ' . $names . '. Silakan hapus dari keranjang.']);
                 }
 
                 $totalPrice = $subtotal + $shippingCost;
                 $paymentMethod = $validated['payment_method'] ?? 'manual_transfer';
                 
-                // Calculate dynamic admin fee
                 $adminFee = 0;
                 if ($paymentMethod !== 'manual_transfer') {
                     $midtransFees = config('services.midtrans.fees');
@@ -292,7 +386,7 @@ class CartController extends Controller
                 $grandTotal = $totalPrice + $adminFee;
 
                 $orderData = [
-                    'for'                   => '1', // Customer order via apps/order
+                    'for'                   => '1',
                     'ordered_by_id'         => $this->cartUserId($request),
                     'delivery_service_id'   => $validated['delivery_service_id'],
                     'delivery_address_id'   => $deliveryAddressId,
@@ -322,6 +416,7 @@ class CartController extends Controller
                     DetailSalesOrder::create([
                         'sales_order_id' => $order->id,
                         'product_id' => $item['product_id'],
+                        'product_online_group_id' => $item['product_online_group_id'],
                         'quantity' => $item['quantity'],
                         'unit_price' => $item['price'],
                         'subtotal_price' => $item['subtotal'],
@@ -332,7 +427,7 @@ class CartController extends Controller
                 Cart::where('user_id', $this->cartUserId($request))->delete();
                 Log::info('Cart cleared for user ID: ' . $request->user()->id);
 
-                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders.product', 'orderedBy']);
+                $order->load(['deliveryService', 'deliveryAddress', 'transferToAccount.bank', 'detailSalesOrders.product', 'detailSalesOrders.productOnlineGroup', 'orderedBy']);
 
                 if ($paymentMethod !== 'manual_transfer') {
                     $paymentResult = $this->midtransService->chargeCoreApi($order, $paymentMethod, $validated['card_token'] ?? null);

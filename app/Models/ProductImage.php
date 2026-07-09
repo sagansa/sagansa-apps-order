@@ -13,15 +13,17 @@ class ProductImage extends Model
     use HasFactory;
 
     protected $fillable = ['product_id', 'image_url', 'order'];
-    protected $appends = ['image_url'];
 
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function getImageUrlAttribute($value)
+    public function getImageUrlAttribute()
     {
-        return PublicStorageUrl::from($value, 'https://placehold.co/600x400?text=No+Image');
+        return PublicStorageUrl::from(
+            $this->attributes['image_url'] ?? null,
+            'https://placehold.co/600x400?text=No+Image'
+        );
     }
 }
