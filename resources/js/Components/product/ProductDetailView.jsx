@@ -13,7 +13,6 @@ import {
     TextField,
     Divider,
     Paper,
-    Chip,
     Tab,
     Tabs,
     Table,
@@ -29,8 +28,6 @@ import {
     ShoppingCart as ShoppingCartIcon,
     Share as ShareIcon,
     ArrowBack as ArrowBackIcon,
-    FavoriteBorder as FavoriteBorderIcon,
-    Discount as DiscountIcon,
 } from '@mui/icons-material';
 import { getPriceByQuantity } from '@/Utils/cartCalculations';
 
@@ -64,10 +61,11 @@ function TabPanel(props) {
  * - product         : object produk (Product atau ProductOnlineGroup)
  * - cartPayload     : partial key untuk cart.store, mis. { product_id } atau
  *                     { product_online_group_id }. Dicampur { quantity, user_id } saat POST.
- * - variantCount?   : jumlah anggota group; bila > 0, tampilkan catatan varian.
+ * - variantCount?   : jumlah anggota group (tidak ditampilkan; dipertahankan untuk masa depan).
+ * - soldCount?      : jumlah terjual (SUM quantity, order delivery_status=3).
  * - pageLabel       : label fallback untuk <title>, mis. "Detail Produk" / "Detail Grup".
  */
-export default function ProductDetailView({ auth, product, cartPayload = {}, variantCount = 0, pageLabel = 'Detail Produk' }) {
+export default function ProductDetailView({ auth, product, cartPayload = {}, variantCount = 0, soldCount = 0, pageLabel = 'Detail Produk' }) {
     const Layout = auth?.user ? AuthenticatedLayout : GuestLayout;
 
     // Tanpa hooks: guard not-found (defensive). Controller group pakai firstOrFail,
@@ -93,12 +91,13 @@ export default function ProductDetailView({ auth, product, cartPayload = {}, var
         product={product}
         cartPayload={cartPayload}
         variantCount={variantCount}
+        soldCount={soldCount}
         pageLabel={pageLabel}
         Layout={Layout}
     />;
 }
 
-function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLabel, Layout }) {
+function ProductDetailContent({ auth, product, cartPayload, variantCount, soldCount, pageLabel, Layout }) {
     const [quantity, setQuantity] = useState(1);
     const [tabValue, setTabValue] = useState(0);
     const [selectedImage, setSelectedImage] = useState(0);
@@ -279,11 +278,7 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLa
 
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        Terjual <span style={{ color: '#fff', fontWeight: 'bold' }}>70+</span>
-                                    </Typography>
-                                    <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto', bgcolor: 'rgba(255,255,255,0.1)' }} />
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        5 (5 rating)
+                                        Terjual <span style={{ color: '#fff', fontWeight: 'bold' }}>{Number(soldCount).toLocaleString('id-ID')}</span>
                                     </Typography>
                                 </Stack>
 
@@ -292,51 +287,6 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLa
                                         <Typography variant="h3" sx={{ fontWeight: '900', color: '#fff', mt: 1 }}>
                                             Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                         </Typography>
-
-                                        {hasPriceTiers && (
-                                            <Box sx={{
-                                                mt: 1,
-                                                p: 1.5,
-                                                borderRadius: 2,
-                                                bgcolor: 'rgba(198, 169, 107, 0.05)',
-                                                border: '1px dashed rgba(198, 169, 107, 0.3)'
-                                            }}>
-                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                                    <DiscountIcon sx={{ fontSize: 18, color: '#C6A96B' }} />
-                                                    <Typography variant="subtitle2" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
-                                                        Tersedia Harga Grosir
-                                                    </Typography>
-                                                </Stack>
-                                                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                                                    {product.price_tiers.map((tier, idx) => (
-                                                        <Chip
-                                                            key={idx}
-                                                            label={`${tier.min_quantity}${tier.max_quantity ? '-' + tier.max_quantity : '+'} pcs : Rp ${Number(tier.price).toLocaleString('id-ID')}`}
-                                                            size="small"
-                                                            sx={{
-                                                                bgcolor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity)
-                                                                    ? '#C6A96B'
-                                                                    : 'rgba(255,255,255,0.05)',
-                                                                color: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity)
-                                                                    ? '#000'
-                                                                    : 'text.secondary',
-                                                                border: '1px solid',
-                                                                borderColor: quantity >= tier.min_quantity && (tier.max_quantity === null || quantity <= tier.max_quantity)
-                                                                    ? '#C6A96B'
-                                                                    : 'rgba(255,255,255,0.1)',
-                                                                fontWeight: 'bold'
-                                                            }}
-                                                        />
-                                                    ))}
-                                                </Stack>
-                                            </Box>
-                                        )}
-
-                                        {variantCount > 0 && (
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                                                Produk ini merupakan gabungan dari {variantCount} varian produk.
-                                            </Typography>
-                                        )}
                                     </>
                                 ) : (
                                     <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
@@ -369,25 +319,36 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLa
                                     >
                                         <Tab label="Detail" />
                                         {auth?.user && hasPriceTiers && <Tab label="Harga Grosir" />}
-                                        <Tab label="Spesifikasi" />
                                         <Tab label="Info Penting" />
                                     </Tabs>
 
                                     <TabPanel value={tabValue} index={0}>
-                                        <Stack spacing={2}>
+                                        {product.description ? (
+                                            <Box
+                                                className="product-description"
+                                                dangerouslySetInnerHTML={{ __html: product.description }}
+                                                sx={{
+                                                    color: 'text.secondary',
+                                                    lineHeight: 1.8,
+                                                    fontSize: '0.95rem',
+                                                    '& p': { my: 1 },
+                                                    '& ul, & ol': { pl: 3, my: 1 },
+                                                    '& li': { my: 0.5 },
+                                                    '& h1, & h2, & h3, & h4': { color: '#fff', mt: 2, mb: 1 },
+                                                    '& a': { color: '#C6A96B' },
+                                                    '& img': { maxWidth: '100%', borderRadius: 1, my: 1 },
+                                                    '& table': { borderCollapse: 'collapse', width: '100%', my: 1 },
+                                                    '& th, & td': { border: '1px solid rgba(255,255,255,0.15)', p: 1 },
+                                                    '& blockquote': { borderLeft: '3px solid #C6A96B', pl: 2, my: 1, opacity: 0.8 },
+                                                    '& hr': { borderColor: 'rgba(255,255,255,0.15)', my: 2 },
+                                                    '& code, & pre': { bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1, p: 0.5 },
+                                                }}
+                                            />
+                                        ) : (
                                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                Kondisi: <span style={{ color: '#fff' }}>Baru</span>
+                                                Tidak ada deskripsi untuk produk ini.
                                             </Typography>
-                                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                Min. Pemesanan: <span style={{ color: '#fff' }}>1 {product.unit?.unit || 'pcs'}</span>
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                Etalase: <Link href="#" style={{ color: '#C6A96B', textDecoration: 'none' }}>Semua Etalase</Link>
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ color: 'text.secondary', whiteSpace: 'pre-wrap', mt: 2, lineHeight: 1.8 }}>
-                                                {product.description || 'Tidak ada deskripsi untuk produk ini.'}
-                                            </Typography>
-                                        </Stack>
+                                        )}
                                     </TabPanel>
 
                                     {auth?.user && hasPriceTiers && (
@@ -431,11 +392,6 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLa
                                     )}
 
                                     <TabPanel value={tabValue} index={hasPriceTiers ? 2 : 1}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Spesifikasi produk belum tersedia.
-                                        </Typography>
-                                    </TabPanel>
-                                    <TabPanel value={tabValue} index={hasPriceTiers ? 3 : 2}>
                                         <Typography variant="body2" color="text.secondary">
                                             Informasi penting terkait pengiriman dan kebijakan pengembalian.
                                         </Typography>
@@ -528,25 +484,9 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, pageLa
                                         >
                                             {isOutOfStock ? 'Stok Habis' : '+ Keranjang'}
                                         </Button>
-                                        <Button
-                                            variant="outlined"
-                                            fullWidth
-                                            disabled={isOutOfStock}
-                                            sx={{
-                                                py: 1.5,
-                                                borderRadius: 2,
-                                                fontWeight: 'bold',
-                                                borderColor: isOutOfStock ? 'rgba(255,255,255,0.1)' : '#C6A96B',
-                                                color: isOutOfStock ? 'text.secondary' : '#C6A96B',
-                                                '&:hover': isOutOfStock ? {} : { borderColor: '#B0945A', bgcolor: 'rgba(198, 169, 107, 0.05)' }
-                                            }}
-                                        >
-                                            Beli Langsung
-                                        </Button>
                                     </Stack>
 
                                     <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 1 }}>
-                                        <Button startIcon={<FavoriteBorderIcon />} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: '0.8rem' }}>Wishlist</Button>
                                         <Button startIcon={<ShareIcon />} onClick={handleShare} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: '0.8rem' }}>Share</Button>
                                     </Stack>
                                 </Stack>
