@@ -30,6 +30,7 @@ import {
     Search as SearchIcon 
 } from '@mui/icons-material';
 import { toast, Toaster } from 'react-hot-toast'; // Import toast and Toaster for notifications
+import { formatCompact } from '@/Utils/stringUtils';
 
 // Placeholder untuk gambar jika tidak tersedia
 const NoImagePlaceholder = () => (
@@ -335,6 +336,11 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                             <Typography variant="caption" sx={{ color: product.current_stock !== null ? (product.current_stock > 0 ? '#4CAF50' : '#f44336') : 'transparent', fontWeight: 'bold', display: 'block', mb: 0.5, fontSize: '0.7rem', lineHeight: '0.7rem' }}>
                                                                 {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
                                                             </Typography>
+                                                            {product.sold_count > 0 && (
+                                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontSize: '0.7rem', lineHeight: '0.7rem' }}>
+                                                                    Terjual {formatCompact(product.sold_count)}
+                                                                </Typography>
+                                                            )}
                                                             <Box sx={{ mt: 'auto' }}>
                                                                 <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}>
                                                                     Rp {Number(product.online_price).toLocaleString('id-ID')}
@@ -448,7 +454,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         >
                                                             {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
                                                         </Typography>
-                                                        
+                                                        {product.sold_count > 0 && (
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontSize: '0.7rem', lineHeight: '0.7rem' }}>
+                                                                Terjual {formatCompact(product.sold_count)}
+                                                            </Typography>
+                                                        )}
+
                                                         <Box sx={{ mt: 'auto' }}>
                                                                  {!auth?.user ? (
                                                                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
@@ -541,6 +552,11 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         >
                                                             {product.current_stock !== null ? `Stok: ${product.current_stock} ${product.unit?.unit || ''}` : '\u00A0'}
                                                         </Typography>
+                                                        {product.sold_count > 0 && (
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontSize: '0.7rem', lineHeight: '0.7rem' }}>
+                                                                Terjual {formatCompact(product.sold_count)}
+                                                            </Typography>
+                                                        )}
                                                         <Box sx={{ mt: 'auto' }}>
                                                             {!auth?.user ? ( <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}> Login untuk harga </Typography> ) : (() => { const tierPrice = product.price_tiers?.length > 0 ? product.price_tiers[0].price : null; const hasDiscount = tierPrice !== null && Number(tierPrice) < Number(product.online_price); return ( <Box sx={{ mb: 1, minHeight: '2.8rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}> {hasDiscount ? ( <> <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}> Rp {Number(product.online_price).toLocaleString('id-ID')} </Typography> <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(tierPrice).toLocaleString('id-ID')} </Typography> </> ) : ( <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(product.online_price || 0).toLocaleString('id-ID')} </Typography> )} </Box> ); })()}
                                                             <Button variant="contained" size="small" fullWidth disabled={product.current_stock === 0} onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }} sx={{ bgcolor: product.current_stock === 0 ? 'rgba(255,255,255,0.1)' : '#C6A96B', color: product.current_stock === 0 ? 'text.secondary' : '#0a0a0a', fontWeight: 'bold', textTransform: 'none', '&:hover': product.current_stock === 0 ? {} : { bgcolor: '#D4AF37' } }}> {product.current_stock === 0 ? 'Stok Habis' : 'Add'} </Button>

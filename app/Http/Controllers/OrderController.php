@@ -56,9 +56,22 @@ class OrderController extends Controller
         // Produk fisik yang menjadi anggota grup tidak ditampilkan sendiri
         $memberProductIds = ProductOnlineGroupItem::pluck('product_id');
 
+        // Jumlah terjual (SUM quantity) per produk, hanya order yang sudah dikirim (delivery_status=3).
+        // Dipakai untuk badge "Terjual" di kartu home.
+        $productSoldQty = DetailSalesOrder::select('product_id', DB::raw('SUM(quantity) as total_qty'))
+            ->whereHas('salesOrder', fn($q) => $q->where('delivery_status', 3))
+            ->groupBy('product_id')
+            ->pluck('total_qty', 'product_id');
+
+        // Jumlah terjual langsung per grup (baris detail yang menunjuk ke product_online_group_id)
+        $groupSoldQty = DetailSalesOrder::select('product_online_group_id', DB::raw('SUM(quantity) as total_qty'))
+            ->whereNotNull('product_online_group_id')
+            ->whereHas('salesOrder', fn($q) => $q->where('delivery_status', 3))
+            ->groupBy('product_online_group_id')
+            ->pluck('total_qty', 'product_online_group_id');
+
         // Query produk fisik (non-anggota grup)
         $physicalProducts = Product::with(['unit', 'onlineCategory', 'priceTiers'])
-            ->withCount('detailSalesOrders')
             ->whereHas('onlineCategory', function ($q) {
                 $q->where('id', '!=', 4);
             })
@@ -102,15 +115,15 @@ class OrderController extends Controller
                     'unit' => $product->unit,
                     'online_category_id' => $product->online_category_id,
                     'online_category' => $product->onlineCategory,
-                    'detail_sales_orders_count' => $product->detail_sales_orders_count,
+                    'sold_count' => (int) ($productSoldQty[$product->id] ?? 0),
+                    // detail_sales_orders_count dipakai untuk sorting popularitas;
+                    // pakai SUM quantity (konsisten dengan sold_count & detail page).
+                    'detail_sales_orders_count' => (int) ($productSoldQty[$product->id] ?? 0),
                 ];
             });
 
-        // Hitung global order count per produk (untuk sorting popularitas grup)
-        $globalProductCounts = DB::table('detail_sales_orders')
-            ->select('product_id', DB::raw('COUNT(*) as count'))
-            ->groupBy('product_id')
-            ->pluck('count', 'product_id');
+        // Mapping: product_id => group_id (group dari member products)
+        $productToGroupMap = ProductOnlineGroupItem::pluck('product_online_group_id', 'product_id');
 
         // Query grup aktif
         $groups = ProductOnlineGroup::with(['unit', 'onlineCategory', 'priceTiers', 'items', 'images.image'])
@@ -142,11 +155,14 @@ class OrderController extends Controller
                 $query->where('name', 'like', '%' . request('search') . '%');
             })
             ->get()
-            ->map(function ($group) use ($globalProductCounts) {
-                $memberIds = $group->items->pluck('product_id');
-                $groupPopularity = $memberIds->reduce(function ($carry, $pid) use ($globalProductCounts) {
-                    return $carry + (int) ($globalProductCounts[$pid] ?? 0);
-                }, 0);
+            ->map(function ($group) use ($productSoldQty, $groupSoldQty, $productToGroupMap) {
+                // Jumlah terjual grup = baris langsung (product_online_group_id)
+                // + baris via produk anggota (transaksi sebelum grouping/backfill).
+                $memberSold = 0;
+                foreach ($group->items as $item) {
+                    $memberSold += (int) ($productSoldQty[$item->product_id] ?? 0);
+                }
+                $sold = (int) ($groupSoldQty[$group->id] ?? 0) + $memberSold;
 
                 return (object) [
                     'display_type' => 'group',
@@ -156,17 +172,17 @@ class OrderController extends Controller
                     'image_url' => $group->image_url,
                     'current_stock' => $group->current_stock,
                     'online_price' => $group->online_price,
-                    'price_tiers' => $group->priceTiers,
+                    'price_tiers' => $group->price_tiers,
                     'unit' => $group->unit,
                     'online_category_id' => $group->online_category_id,
                     'online_category' => $group->onlineCategory,
-                    'detail_sales_orders_count' => $groupPopularity,
+                    'sold_count' => $sold,
+                    // detail_sales_orders_count dipakai untuk sorting popularitas
+                    'detail_sales_orders_count' => $sold,
                 ];
             });
 
         // Mapping: product_id => group_id untuk menghitung personal count grup dari order lama
-        $productToGroupMap = ProductOnlineGroupItem::pluck('product_online_group_id', 'product_id');
-
         // Gabung & sort
         $products = $physicalProducts->concat($groups)
             ->sortByDesc(function ($item) use ($personalOrderCounts, $personalGroupOrderCounts, $productToGroupMap) {
@@ -347,6 +363,7 @@ class OrderController extends Controller
     {
         $order = SalesOrder::with(['detailSalesOrders.product'])
             ->where('ordered_by_id', $this->userId($request))
+            ->where('for', 1) // hanya Sales Order Direct
             ->orderByDesc('created_at')
             ->paginate(10)
             ->through(function ($order) {
@@ -381,6 +398,7 @@ class OrderController extends Controller
         ])
             ->where('id', $id)
             ->where('ordered_by_id', $this->userId($request))
+            ->where('for', 1) // hanya Sales Order Direct
             ->firstOrFail();
 
         $midtransPayment = $order->midtrans_response ? json_decode($order->midtrans_response, true) : null;

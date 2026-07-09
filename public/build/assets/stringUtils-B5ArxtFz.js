@@ -1,0 +1,1 @@
+const a=e=>e?e.toLowerCase().split(" ").map(t=>t.charAt(0).toUpperCase()+t.slice(1)).join(" "):"",o=e=>e==null||isNaN(e)?"0":(e=Number(e),e<1e3?String(e):e<1e6?`${Number(e/1e3).toFixed(1).replace(/\.0$/,"").replace(".",",")}k`:`${Number(e/1e6).toFixed(1).replace(/\.0$/,"").replace(".",",")}m`);export{a,o as f};
