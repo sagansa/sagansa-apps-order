@@ -275,7 +275,7 @@ export default function ProductGroupDetail({ auth, group }) {
                                 Deskripsi
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>
-                                {group.description}
+                                <span dangerouslySetInnerHTML={{ __html: group.description }} />
                             </Typography>
                         </Paper>
                     )}
