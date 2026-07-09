@@ -1,1 +1,0 @@
-import{j as a}from"./app-emkQr9J2.js";import{B as e}from"./BaseLayout-BloSh8h1.js";function i({children:t,user:s,header:o}){return a.jsx(e,{children:t,header:o,isAuthenticated:!1,user:s})}export{i as G};

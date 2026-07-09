@@ -343,7 +343,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                     </Typography>
                                                                 )}
                                                             </Stack>
-                                                            <Stack direction="row" spacing={1} alignItems="flex-end" sx={{ mt: 'auto' }}>
+                                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 'auto' }}>
                                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                     <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}>
                                                                         Rp {Number(product.online_price).toLocaleString('id-ID')}
@@ -456,7 +456,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                             )}
                                                         </Stack>
 
-                                                        <Stack direction="row" spacing={1} alignItems="flex-end" sx={{ mt: 'auto' }}>
+                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 'auto' }}>
                                                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                 {!auth?.user ? (
                                                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
@@ -548,7 +548,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                                 </Typography>
                                                             )}
                                                         </Stack>
-                                                        <Stack direction="row" spacing={1} alignItems="flex-end" sx={{ mt: 'auto' }}>
+                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 'auto' }}>
                                                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                 {!auth?.user ? ( <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}> Login untuk harga </Typography> ) : (() => { const tierPrice = product.price_tiers?.length > 0 ? product.price_tiers[0].price : null; const hasDiscount = tierPrice !== null && Number(tierPrice) < Number(product.online_price); return ( <Box sx={{ minHeight: '2.8rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}> {hasDiscount ? ( <> <Typography variant="caption" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', display: 'block', lineHeight: 1.2, fontSize: '0.75rem' }}> Rp {Number(product.online_price).toLocaleString('id-ID')} </Typography> <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(tierPrice).toLocaleString('id-ID')} </Typography> </> ) : ( <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B', lineHeight: 1.2, fontSize: '1rem' }}> Rp {Number(product.online_price || 0).toLocaleString('id-ID')} </Typography> )} </Box> ); })()}
                                                             </Box>
