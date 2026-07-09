@@ -1,0 +1,1 @@
+import{j as a}from"./app-CvLtPYte.js";import{B as e}from"./BaseLayout-66EW5_1f.js";function i({children:t,user:s,header:o}){return a.jsx(e,{children:t,header:o,isAuthenticated:!1,user:s})}export{i as G};
