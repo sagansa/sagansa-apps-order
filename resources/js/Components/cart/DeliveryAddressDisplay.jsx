@@ -14,7 +14,7 @@ const DeliveryAddressDisplay = ({ selectedAddressObject }) => {
         <Box
             sx={{
                 p: 2,
-                bgcolor: "rgba(198, 169, 107, 0.05)",
+                bgcolor: "background.default",
                 borderRadius: 2,
                 border: "1px dashed #C6A96B",
             }}

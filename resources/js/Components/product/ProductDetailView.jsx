@@ -283,11 +283,22 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, soldCo
                                 </Stack>
 
                                 {auth?.user ? (
-                                    <>
-                                        <Typography variant="h3" sx={{ fontWeight: '900', color: '#fff', mt: 1 }}>
-                                            Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                                        </Typography>
-                                    </>
+                                    (() => {
+                                        const basePrice = product?.online_price || 0;
+                                        const hasDiscount = currentPrice < basePrice;
+                                        return (
+                                            <Box sx={{ mt: 1 }}>
+                                                {hasDiscount && (
+                                                    <Typography variant="body1" sx={{ color: '#f44336', textDecoration: 'line-through', fontWeight: 'bold', lineHeight: 1.2 }}>
+                                                        Rp {Number(basePrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                                    </Typography>
+                                                )}
+                                                <Typography variant="h3" sx={{ fontWeight: '900', color: '#fff', lineHeight: 1.2 }}>
+                                                    Rp {Number(currentPrice).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                                </Typography>
+                                            </Box>
+                                        );
+                                    })()
                                 ) : (
                                     <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
                                         <Typography variant="subtitle1" sx={{ color: '#C6A96B', fontWeight: 'bold' }}>
