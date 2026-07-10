@@ -72,6 +72,12 @@ const CartItemCard = ({
                     <Avatar
                         variant="rounded"
                         src={resolved.image_url || resolved.image || "/images/no_image.png"}
+                        imgProps={{
+                            onError: (e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/images/no_image.png";
+                            }
+                        }}
                         sx={{
                             width: isMobile ? 70 : { xs: 60, sm: 90 },
                             height: isMobile ? 70 : { xs: 60, sm: 90 },

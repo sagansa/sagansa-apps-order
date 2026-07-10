@@ -232,6 +232,10 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, soldCo
                                     component="img"
                                     src={mainImage}
                                     alt={product.name}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/no_image.png';
+                                    }}
                                     sx={{
                                         width: '100%',
                                         height: 'auto',
@@ -250,6 +254,10 @@ function ProductDetailContent({ auth, product, cartPayload, variantCount, soldCo
                                             key={idx}
                                             component="img"
                                             src={img.image_url}
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = '/images/no_image.png';
+                                            }}
                                             onClick={() => setSelectedImage(idx)}
                                             sx={{
                                                 width: 64,

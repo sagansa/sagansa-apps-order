@@ -55,6 +55,38 @@ const NoImagePlaceholder = () => (
     </Box>
 );
 
+// Component wrapper for product images with automatic fallback to placeholder on load error
+const ProductImageWithFallback = ({ src, alt, sx, style, isCardMedia = false }) => {
+    const [isBroken, setIsBroken] = useState(false);
+
+    if (!src || isBroken) {
+        return <NoImagePlaceholder />;
+    }
+
+    if (isCardMedia) {
+        return (
+            <CardMedia
+                component="img"
+                image={src}
+                alt={alt}
+                onError={() => setIsBroken(true)}
+                sx={sx}
+            />
+        );
+    }
+
+    return (
+        <Box
+            component="img"
+            src={src}
+            alt={alt}
+            onError={() => setIsBroken(true)}
+            sx={sx}
+            style={style}
+        />
+    );
+};
+
 const getInitialFilters = () => {
     if (typeof window === 'undefined') {
         return {
@@ -262,17 +294,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                     router.visit(getProductRoute(product));
                                                 }}
                                             >
-                                                <Box sx={{ width: '100%', height: 100, overflow: 'hidden' }}>
-                                                    {product.image_url ? (
-                                                        <Box
-                                                            component="img"
-                                                            src={product.image_url}
-                                                            alt={product.name}
-                                                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        />
-                                                    ) : (
-                                                        <NoImagePlaceholder />
-                                                    )}
+                                                <Box sx={{ width: '100%', height: 100, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <ProductImageWithFallback
+                                                        src={product.image_url}
+                                                        alt={product.name}
+                                                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
                                                 </Box>
                                                 <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
                                                     <Typography
@@ -321,13 +348,23 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                 <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
                                                     <Card onClick={() => router.visit(getProductRoute(product))} elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '2px solid rgba(244, 67, 54, 0.3)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#f44336', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(244,67,54,0.2)' } }}>
                                                         <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
-                                                            {product.image_url ? (
-                                                                <CardMedia component="img" image={product.image_url} alt={product.name} sx={{ objectFit: 'cover', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transition: 'transform 0.5s ease', '.MuiCard-root:hover &': { transform: 'scale(1.1)' } }} />
-                                                            ) : (
-                                                                <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                                                                    <NoImagePlaceholder />
-                                                                </Box>
-                                                            )}
+                                                            <ProductImageWithFallback
+                                                                src={product.image_url}
+                                                                alt={product.name}
+                                                                isCardMedia={true}
+                                                                sx={{
+                                                                    objectFit: 'cover',
+                                                                    position: 'absolute',
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    transition: 'transform 0.5s ease',
+                                                                    '.MuiCard-root:hover &': {
+                                                                        transform: 'scale(1.1)',
+                                                                    }
+                                                                }}
+                                                            />
                                                         </Box>
                                                         <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
                                                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.9rem', mb: 1, lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -405,24 +442,23 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         onClick={() => router.visit(getProductRoute(product))}
                                                     >
                                                         <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
-                                                            {product.image_url ? (
-                                                                <CardMedia
-                                                                    component="img"
-                                                                    image={product.image_url}
-                                                                    alt={product.name}
-                                                                    sx={{
-                                                                        objectFit: 'cover',
-                                                                        position: 'absolute',
-                                                                        top: 0, left: 0, width: '100%', height: '100%',
-                                                                        transition: 'transform 0.5s ease',
-                                                                        '.MuiCard-root:hover &': { transform: 'scale(1.1)' }
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                                                                    <NoImagePlaceholder />
-                                                                </Box>
-                                                            )}
+                                                            <ProductImageWithFallback
+                                                                src={product.image_url}
+                                                                alt={product.name}
+                                                                isCardMedia={true}
+                                                                sx={{
+                                                                    objectFit: 'cover',
+                                                                    position: 'absolute',
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    transition: 'transform 0.5s ease',
+                                                                    '.MuiCard-root:hover &': {
+                                                                        transform: 'scale(1.1)',
+                                                                    }
+                                                                }}
+                                                            />
                                                         </Box>
                                                         <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
                                                             <Typography
@@ -521,13 +557,23 @@ export default function Order({ auth, products = [], categories = [], units = []
                                             <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
                                                 <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#C6A96B', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' } }} onClick={() => router.visit(getProductRoute(product))}>
                                                     <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
-                                                        {product.image_url ? (
-                                                            <CardMedia component="img" image={product.image_url} alt={product.name} sx={{ objectFit: 'cover', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transition: 'transform 0.5s ease', '.MuiCard-root:hover &': { transform: 'scale(1.1)' } }} />
-                                                        ) : (
-                                                            <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                                                                <NoImagePlaceholder />
-                                                            </Box>
-                                                        )}
+                                                        <ProductImageWithFallback
+                                                            src={product.image_url}
+                                                            alt={product.name}
+                                                            isCardMedia={true}
+                                                            sx={{
+                                                                objectFit: 'cover',
+                                                                position: 'absolute',
+                                                                top: 0,
+                                                                left: 0,
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                transition: 'transform 0.5s ease',
+                                                                '.MuiCard-root:hover &': {
+                                                                    transform: 'scale(1.1)',
+                                                                }
+                                                            }}
+                                                        />
                                                     </Box>
                                                     <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
                                                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.9rem', mb: 1, lineHeight: 1.2, height: '2.4em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
