@@ -1,0 +1,1 @@
+import{j as a}from"./app-D54F3dVW.js";import{B as e}from"./BaseLayout-DOR7yqql.js";function i({children:t,user:s,header:o}){return a.jsx(e,{children:t,header:o,isAuthenticated:!1,user:s})}export{i as G};

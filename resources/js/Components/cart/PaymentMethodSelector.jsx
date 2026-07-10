@@ -62,7 +62,7 @@ const PaymentMethodSelector = ({
                         <MenuItem value="manual_transfer" sx={{ fontWeight: 'bold' }}>
                             Transfer Manual (Cek Manual - Tanpa Biaya)
                         </MenuItem>
-                        
+                        {/* Commented out Midtrans payment methods temporarily
                         <MenuItem disabled sx={{ opacity: '1 !important', mt: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>VIRTUAL ACCOUNT (OTOMATIS)</Typography>
                         </MenuItem>
@@ -89,6 +89,7 @@ const PaymentMethodSelector = ({
                                 {method.label} (+Rp {calculateFee(key).toLocaleString('id-ID')})
                             </MenuItem>
                         ))}
+                        */}
                     </Select>
                 </FormControl>
             </CardContent>

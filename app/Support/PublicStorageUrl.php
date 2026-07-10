@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class PublicStorageUrl
@@ -32,6 +31,9 @@ class PublicStorageUrl
             $path = Str::after($path, 'storage/');
         }
 
-        return Storage::disk('public')->url($path);
+        // Disajikan dari image service (img.sagansa.id/storage/...).
+        $imgBaseUrl = rtrim(env('IMG_SERVICE_URL', 'https://img.sagansa.id'), '/');
+
+        return "{$imgBaseUrl}/storage/{$path}";
     }
 }
