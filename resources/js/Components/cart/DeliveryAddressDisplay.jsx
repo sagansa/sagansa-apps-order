@@ -14,13 +14,12 @@ const DeliveryAddressDisplay = ({ selectedAddressObject }) => {
         <Box
             sx={{
                 p: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
-                bgcolor: "grey.50",
+                bgcolor: "rgba(198, 169, 107, 0.05)",
+                borderRadius: 2,
+                border: "1px dashed #C6A96B",
             }}
         >
-            <Typography variant="subtitle1">
+            <Typography variant="subtitle2" sx={{ color: "#C6A96B", fontWeight: "bold", mb: 1 }}>
                 {selectedAddressObject.name}
             </Typography>
             <Typography variant="body2" color="text.secondary">
