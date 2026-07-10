@@ -224,6 +224,10 @@ export default function WelcomeFood({ auth, products = [], categories = [] }) {
                                             src={product.image_url}
                                             alt={product.name}
                                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = '/images/no_image.png';
+                                            }}
                                         />
                                     </Box>
                                     <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: 'primary.main', lineClamp: 1 }}>
