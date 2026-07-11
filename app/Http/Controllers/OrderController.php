@@ -172,7 +172,7 @@ class OrderController extends Controller
                     'image_url' => $group->image_url,
                     'current_stock' => $group->current_stock,
                     'online_price' => $group->online_price,
-                    'price_tiers' => $group->price_tiers,
+                    'price_tiers' => $group->priceTiers,
                     'unit' => $group->unit,
                     'online_category_id' => $group->online_category_id,
                     'online_category' => $group->onlineCategory,

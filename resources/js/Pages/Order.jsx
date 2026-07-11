@@ -33,7 +33,7 @@ import { toast, Toaster } from 'react-hot-toast'; // Import toast and Toaster fo
 import { formatCompact } from '@/Utils/stringUtils';
 
 // Placeholder untuk gambar jika tidak tersedia
-const NoImagePlaceholder = () => (
+const NoImagePlaceholder = ({ isAbsolute = false }) => (
     <Box
         sx={{
             display: 'flex',
@@ -48,7 +48,14 @@ const NoImagePlaceholder = () => (
             textAlign: 'center',
             p: 2,
             border: '1px dashed',
-            borderColor: 'divider' // Use theme-aware border color
+            borderColor: 'divider', // Use theme-aware border color
+            ...(isAbsolute ? {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+            } : {})
         }}
     >
         Gambar Tidak Tersedia
@@ -56,11 +63,11 @@ const NoImagePlaceholder = () => (
 );
 
 // Component wrapper for product images with automatic fallback to placeholder on load error
-const ProductImageWithFallback = ({ src, alt, sx, style, isCardMedia = false }) => {
+const ProductImageWithFallback = ({ src, alt, sx, style, isCardMedia = false, isAbsolute = false }) => {
     const [isBroken, setIsBroken] = useState(false);
 
     if (!src || isBroken) {
-        return <NoImagePlaceholder />;
+        return <NoImagePlaceholder isAbsolute={isAbsolute} />;
     }
 
     if (isCardMedia) {
@@ -347,11 +354,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                                             return (
                                                 <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
                                                     <Card onClick={() => router.visit(getProductRoute(product))} elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '2px solid rgba(244, 67, 54, 0.3)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#f44336', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(244,67,54,0.2)' } }}>
-                                                        <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                        <Box sx={{ width: '100%', aspectRatio: '1/1', position: 'relative', overflow: 'hidden' }}>
                                                             <ProductImageWithFallback
                                                                 src={product.image_url}
                                                                 alt={product.name}
                                                                 isCardMedia={true}
+                                                                isAbsolute={true}
                                                                 sx={{
                                                                     objectFit: 'cover',
                                                                     position: 'absolute',
@@ -441,11 +449,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                                                         }}
                                                         onClick={() => router.visit(getProductRoute(product))}
                                                     >
-                                                        <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                        <Box sx={{ width: '100%', aspectRatio: '1/1', position: 'relative', overflow: 'hidden' }}>
                                                             <ProductImageWithFallback
                                                                 src={product.image_url}
                                                                 alt={product.name}
                                                                 isCardMedia={true}
+                                                                isAbsolute={true}
                                                                 sx={{
                                                                     objectFit: 'cover',
                                                                     position: 'absolute',
@@ -556,11 +565,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                                         {products.filter(p => !p.online_category_id).map((product) => (
                                             <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2, xl: 2 }} key={product.id}>
                                                 <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', cursor: 'pointer', bgcolor: '#141414', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 2, transition: 'all 0.3s ease', overflow: 'hidden', '&:hover': { borderColor: '#C6A96B', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' } }} onClick={() => router.visit(getProductRoute(product))}>
-                                                    <Box sx={{ width: '100%', pt: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                    <Box sx={{ width: '100%', aspectRatio: '1/1', position: 'relative', overflow: 'hidden' }}>
                                                         <ProductImageWithFallback
                                                             src={product.image_url}
                                                             alt={product.name}
                                                             isCardMedia={true}
+                                                            isAbsolute={true}
                                                             sx={{
                                                                 objectFit: 'cover',
                                                                 position: 'absolute',
