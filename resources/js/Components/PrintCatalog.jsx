@@ -98,6 +98,16 @@ export default function PrintCatalog({ products = [], categories = [], auth, cla
 
     const formatRupiah = (value) => `Rp ${Number(value || 0).toLocaleString('id-ID')}`;
 
+    // Deskripsi di DB bisa berupa HTML/rich-text; bersihkan jadi plain text
+    // agar rapi di kartu cetak (4 kolom A4).
+    const plainDescription = (raw) => {
+        if (!raw) return '';
+        const tmp = document.createElement('div');
+        tmp.innerHTML = String(raw);
+        const text = (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+        return text;
+    };
+
     const resolvePrice = (product) => {
         const tierPrice =
             product.price_tiers?.length > 0 ? product.price_tiers[0].price : null;
@@ -113,6 +123,7 @@ export default function PrintCatalog({ products = [], categories = [], auth, cla
     const renderCard = (product) => {
         const { hasDiscount, oldPrice, price } = resolvePrice(product);
         const imgSrc = product.image_url ? imageCache[product.image_url] : null;
+        const description = plainDescription(product.description);
         return (
             <div className="print-catalog-card" key={`${product.display_type}-${product.id}`}>
                 <div className="print-catalog-card__img">
@@ -124,6 +135,9 @@ export default function PrintCatalog({ products = [], categories = [], auth, cla
                 </div>
                 <div className="print-catalog-card__body">
                     <div className="print-catalog-card__name">{product.name}</div>
+                    {description && (
+                        <div className="print-catalog-card__desc">{description}</div>
+                    )}
                     {showPrice && (
                         <div className="print-catalog-card__price-wrap">
                             {hasDiscount && (
