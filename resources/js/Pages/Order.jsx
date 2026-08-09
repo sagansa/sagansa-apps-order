@@ -143,9 +143,7 @@ export default function Order({ auth, products = [], categories = [], units = []
         // Hindari double-click saat masih memproses.
         if (isPreparingPrint) return;
         setIsPreparingPrint(true);
-        const id = toast.loading('Menyiapkan katalog untuk dicetak...');
         await waitForPrintCatalogReady();
-        toast.success('Membuka dialog cetak...', { id });
         window.print();
         setIsPreparingPrint(false);
     };
