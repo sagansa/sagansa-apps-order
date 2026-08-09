@@ -36,6 +36,7 @@ import { formatCompact } from '@/Utils/stringUtils';
 // Placeholder untuk gambar jika tidak tersedia
 const NoImagePlaceholder = ({ isAbsolute = false }) => (
     <Box
+        className="no-image-placeholder"
         sx={{
             display: 'flex',
             flexDirection: 'column',

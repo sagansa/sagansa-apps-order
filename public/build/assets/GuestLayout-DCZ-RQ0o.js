@@ -1,1 +1,0 @@
-import{j as a}from"./app-BLXcOHmJ.js";import{B as e}from"./BaseLayout-Dcf_K2Db.js";function i({children:t,user:s,header:o}){return a.jsx(e,{children:t,header:o,isAuthenticated:!1,user:s})}export{i as G};
