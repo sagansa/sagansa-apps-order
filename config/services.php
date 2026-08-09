@@ -62,4 +62,12 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    // Image service (img.sagansa.id). Token Sanctum di-share dengan service
+    // lain (api-ops) karena seluruh service membaca tabel personal_access_tokens
+    // yang sama. service_url dipakai juga oleh PublicStorageUrl untuk resolve URL.
+    'image' => [
+        'api_token' => env('IMAGE_SERVICE_TOKEN'),
+        'service_url' => env('IMG_SERVICE_URL', 'https://img.sagansa.id'),
+    ],
+
 ];

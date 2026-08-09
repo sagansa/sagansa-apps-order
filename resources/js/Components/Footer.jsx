@@ -13,6 +13,7 @@ export default function Footer() {
     return (
         <Box
             component="footer"
+            className="no-print"
             sx={{
                 py: 6,
                 bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200',

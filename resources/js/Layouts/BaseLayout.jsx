@@ -117,7 +117,7 @@ export default function BaseLayout({
                 }}
                 {...rest}
             >
-                <AppBar position="static" sx={{ bgcolor: 'background.default', backgroundImage: 'none' }} elevation={0}>
+                <AppBar position="static" className="no-print" sx={{ bgcolor: 'background.default', backgroundImage: 'none' }} elevation={0}>
                     <Container maxWidth="lg">
                         <Toolbar>
                             <IconButton
@@ -240,6 +240,7 @@ export default function BaseLayout({
 
                 {header && (
                     <Box
+                        className="no-print"
                         sx={{
                             bgcolor: "background.paper",
                             boxShadow: 1,
