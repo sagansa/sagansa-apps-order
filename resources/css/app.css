@@ -49,3 +49,112 @@ input:autofill {
     background-color: #1A1A1A !important;
     color: #ffffff !important;
 }
+
+/* -------------------------------------------------------------
+   Catalog Mode & Print/PDF Avoid Page-Break Styles
+   ------------------------------------------------------------- */
+
+/* Hidden by default on normal screen */
+.print-only {
+    display: none;
+}
+
+/* Ensure catalog product cards avoid page break splits */
+.catalog-product-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+.catalog-category-header {
+    break-after: avoid;
+    page-break-after: avoid;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm 10mm 15mm 10mm;
+    }
+
+    html, body {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-family: system-ui, -apple-system, sans-serif !important;
+    }
+
+    /* Hide unneeded elements when printing */
+    .no-print,
+    .MuiAppBar-root,
+    header:not(.print-header),
+    footer:not(.print-footer),
+    .MuiSnackbar-root,
+    .MuiDrawer-root,
+    button:not(.print-keep),
+    input,
+    .no-print-section {
+        display: none !important;
+    }
+
+    /* Show print-only catalog header & footer */
+    .print-only {
+        display: block !important;
+    }
+
+    /* Print grid layout & container adjustments */
+    .catalog-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        background-color: #ffffff !important;
+    }
+
+    .catalog-main-bg {
+        background-color: #ffffff !important;
+        min-height: auto !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* Force product cards not to break across pages */
+    .catalog-product-card,
+    .MuiCard-root {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        background-color: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        color: #111827 !important;
+        box-shadow: none !important;
+        border-radius: 8px !important;
+    }
+
+    .catalog-product-card img,
+    .MuiCardMedia-root {
+        border-bottom: 1px solid #f3f4f6 !important;
+    }
+
+    .catalog-category-header {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+        color: #92400e !important;
+        border-bottom: 2px solid #d97706 !important;
+        margin-top: 20px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .print-text-dark {
+        color: #111827 !important;
+    }
+
+    .print-text-muted {
+        color: #6b7280 !important;
+    }
+
+    .print-text-gold {
+        color: #b45309 !important;
+    }
+}
+
