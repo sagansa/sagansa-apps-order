@@ -68,16 +68,6 @@ input:autofill {
     display: none;
 }
 
-/* Saat mode pratinjau katalog aktif: tampilkan konten cetak di layar,
-   sembunyikan konten layar. Toolbar pratinjau (`.no-print`) tetap kelihatan. */
-.catalog-preview-active .screen-only {
-    display: none !important;
-}
-
-.catalog-preview-active .print-only {
-    display: block !important;
-}
-
 /* ---- Style katalog cetak (berlaku di layar-pratinjau maupun cetak) ---- */
 .print-catalog {
     background: #ffffff;
