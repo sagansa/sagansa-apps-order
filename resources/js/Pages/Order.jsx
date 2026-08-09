@@ -19,7 +19,6 @@ import {
     CircularProgress,
     FormControl,
     InputLabel,
-    Paper,
     Stack,
     Snackbar,
     Alert,
@@ -124,10 +123,31 @@ export default function Order({ auth, products = [], categories = [], units = []
     const isInitialRender = useRef(true);
     const [searchQuery, setSearchQuery] = useState(initialFilters.search);
     const [isLoading, setIsLoading] = useState(false);
-    const [isCatalogPreview, setIsCatalogPreview] = useState(false);
+    const [isPreparingPrint, setIsPreparingPrint] = useState(false);
 
-    const handlePrintCatalog = () => {
+    // Tunggu sampai <PrintCatalog> selesai men-downscale gambar (atribut
+    // data-ready="1"), baru buka dialog cetak. Mencegah PDF kosong/besar.
+    const waitForPrintCatalogReady = (timeoutMs = 8000) =>
+        new Promise((resolve) => {
+            const start = Date.now();
+            const check = () => {
+                const node = document.querySelector('.print-catalog[data-ready="1"]');
+                if (node) return resolve(true);
+                if (Date.now() - start >= timeoutMs) return resolve(false);
+                setTimeout(check, 100);
+            };
+            check();
+        });
+
+    const handlePrintCatalog = async () => {
+        // Hindari double-click saat masih memproses.
+        if (isPreparingPrint) return;
+        setIsPreparingPrint(true);
+        const id = toast.loading('Menyiapkan katalog untuk dicetak...');
+        await waitForPrintCatalogReady();
+        toast.success('Membuka dialog cetak...', { id });
         window.print();
+        setIsPreparingPrint(false);
     };
 
     useEffect(() => {
@@ -216,7 +236,8 @@ export default function Order({ auth, products = [], categories = [], units = []
                         <Button
                             variant="contained"
                             startIcon={<PrintIcon />}
-                            onClick={() => setIsCatalogPreview(true)}
+                            onClick={handlePrintCatalog}
+                            disabled={isPreparingPrint}
                             className="no-print"
                             sx={{
                                 bgcolor: '#C6A96B',
@@ -226,7 +247,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                                 '&:hover': { bgcolor: '#D4AF37' }
                             }}
                         >
-                            Cetak / Mode Katalog
+                            {isPreparingPrint ? 'Menyiapkan...' : 'Cetak Katalog'}
                         </Button>
                         <TextField
                             placeholder="Cari produk..."
@@ -267,56 +288,10 @@ export default function Order({ auth, products = [], categories = [], units = []
                 <meta property="og:description" content="Sagansa Order adalah aplikasi pemesanan online Sagansa untuk katalog produk makanan dan layanan engineering berkualitas." />
             </Head>
 
-            <Box className={`catalog-main-bg${isCatalogPreview ? ' catalog-preview-active' : ''}`} sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
+            <Box className="catalog-main-bg" sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
                 <Container maxWidth="xl" className="catalog-container">
-                    {/* Katalog khusus cetak/pratinjau — selalu ada di DOM, visibilitas via CSS */}
+                    {/* Katalog khusus cetak — selalu ada di DOM, tampil hanya saat cetak */}
                     <PrintCatalog products={products} categories={categories} auth={auth} className="print-only" />
-
-                    {/* Toolbar pratinjau (hanya saat mode pratinjau aktif) */}
-                    {isCatalogPreview && (
-                        <Paper
-                            elevation={4}
-                            className="no-print"
-                            sx={{
-                                p: 2,
-                                mb: 3,
-                                bgcolor: 'rgba(198, 169, 107, 0.12)',
-                                border: '1px solid #C6A96B',
-                                borderRadius: 2,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                gap: 2
-                            }}
-                        >
-                            <Box>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#C6A96B' }}>
-                                    Mode Pratinjau Katalog (Siap Cetak / Export PDF)
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                                    Setiap kartu produk dijaga utuh (tidak terpotong antar halaman PDF).
-                                </Typography>
-                            </Box>
-                            <Stack direction="row" spacing={1.5}>
-                                <Button
-                                    variant="contained"
-                                    startIcon={<PrintIcon />}
-                                    onClick={handlePrintCatalog}
-                                    sx={{ bgcolor: '#C6A96B', color: '#0A0A0A', fontWeight: 'bold', '&:hover': { bgcolor: '#D4AF37' } }}
-                                >
-                                    Cetak / Save PDF
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => setIsCatalogPreview(false)}
-                                    sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-                                >
-                                    Tutup Pratinjau
-                                </Button>
-                            </Stack>
-                        </Paper>
-                    )}
 
                     <Box className="screen-only">
                     {isLoading ? (
