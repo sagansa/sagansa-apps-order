@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Footer from '@/Components/Footer';
+import PrintCatalog from '@/Components/PrintCatalog';
 import { useState, useEffect, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import {
@@ -215,14 +216,11 @@ export default function Order({ auth, products = [], categories = [], units = []
                         <Button
                             variant="contained"
                             startIcon={<PrintIcon />}
-                            onClick={() => {
-                                setIsCatalogPreview(true);
-                                handlePrintCatalog();
-                            }}
+                            onClick={() => setIsCatalogPreview(true)}
                             className="no-print"
-                            sx={{ 
-                                bgcolor: '#C6A96B', 
-                                color: '#0A0A0A', 
+                            sx={{
+                                bgcolor: '#C6A96B',
+                                color: '#0A0A0A',
                                 fontWeight: 'bold',
                                 whiteSpace: 'nowrap',
                                 '&:hover': { bgcolor: '#D4AF37' }
@@ -269,33 +267,12 @@ export default function Order({ auth, products = [], categories = [], units = []
                 <meta property="og:description" content="Sagansa Order adalah aplikasi pemesanan online Sagansa untuk katalog produk makanan dan layanan engineering berkualitas." />
             </Head>
 
-            <Box className="catalog-main-bg" sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
+            <Box className={`catalog-main-bg${isCatalogPreview ? ' catalog-preview-active' : ''}`} sx={{ py: 4, bgcolor: '#0a0a0a', minHeight: '100vh' }}>
                 <Container maxWidth="xl" className="catalog-container">
-                    {/* Header Khusus Cetak / PDF Export */}
-                    <Box className="print-only" sx={{ mb: 4, pb: 2, borderBottom: '2px solid #b45309' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box>
-                                <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '0.05em' }}>
-                                    SAGANSA ORDER
-                                </Typography>
-                                <Typography variant="subtitle1" sx={{ color: '#b45309', fontWeight: 600 }}>
-                                    Katalog Produk & Daftar Harga Resmi Sagansa
-                                </Typography>
-                            </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                                <Typography variant="body2" sx={{ color: '#374151', fontWeight: 600 }}>
-                                    Tanggal: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#4b5563' }}>
-                                    order.sagansa.id | admin@sagansa.id
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#4b5563' }}>
-                                    Kontak: +62 857-8200-4645
-                                </Typography>
-                            </Box>
-                        </Box>
-                    </Box>
+                    {/* Katalog khusus cetak/pratinjau — selalu ada di DOM, visibilitas via CSS */}
+                    <PrintCatalog products={products} categories={categories} auth={auth} className="print-only" />
 
+                    {/* Toolbar pratinjau (hanya saat mode pratinjau aktif) */}
                     {isCatalogPreview && (
                         <Paper
                             elevation={4}
@@ -341,6 +318,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                         </Paper>
                     )}
 
+                    <Box className="screen-only">
                     {isLoading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                             <CircularProgress sx={{ color: '#C6A96B' }} />
@@ -724,6 +702,7 @@ export default function Order({ auth, products = [], categories = [], units = []
                             )}
                         </Box>
                     )}
+                    </Box>
                 </Container>
             </Box>
             <Footer />
