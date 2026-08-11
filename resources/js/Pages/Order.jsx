@@ -24,7 +24,9 @@ import {
     Alert,
 
     Button,
-    InputAdornment
+    InputAdornment,
+    IconButton,
+    Tooltip
 } from '@mui/material';
 import { 
     Search as SearchIcon,
@@ -231,22 +233,25 @@ export default function Order({ auth, products = [], categories = [], units = []
                         </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' }, alignItems: 'center' }}>
-                        <Button
-                            variant="contained"
-                            startIcon={<PrintIcon />}
-                            onClick={handlePrintCatalog}
-                            disabled={isPreparingPrint}
-                            className="no-print"
-                            sx={{
-                                bgcolor: '#C6A96B',
-                                color: '#0A0A0A',
-                                fontWeight: 'bold',
-                                whiteSpace: 'nowrap',
-                                '&:hover': { bgcolor: '#D4AF37' }
-                            }}
-                        >
-                            {isPreparingPrint ? 'Menyiapkan...' : 'Cetak Katalog'}
-                        </Button>
+                        <Tooltip title={isPreparingPrint ? 'Menyiapkan katalog...' : 'Cetak Katalog'}>
+                            <IconButton
+                                onClick={handlePrintCatalog}
+                                disabled={isPreparingPrint}
+                                className="no-print"
+                                size="small"
+                                sx={{
+                                    bgcolor: '#C6A96B',
+                                    color: '#0A0A0A',
+                                    '&:hover': { bgcolor: '#D4AF37' }
+                                }}
+                            >
+                                {isPreparingPrint ? (
+                                    <CircularProgress size={18} color="inherit" />
+                                ) : (
+                                    <PrintIcon />
+                                )}
+                            </IconButton>
+                        </Tooltip>
                         <TextField
                             placeholder="Cari produk..."
                             variant="outlined"
