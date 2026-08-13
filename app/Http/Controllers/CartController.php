@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\Schema;
 class CartController extends Controller
 {
     public function __construct(
-        private MidtransService $midtransService
+        private MidtransService $midtransService,
+        private ImgServiceUploader $imgUploader
     ) {}
 
     public function getCardToken(Request $request)
@@ -297,8 +298,13 @@ class CartController extends Controller
                 }
 
                 if ($request->hasFile('image_payment')) {
-                    $imagePaymentPath = $request->file('image_payment')->store('payments', 'public');
-                    Log::info('Image payment stored at: ' . $imagePaymentPath);
+                    $imagePaymentPath = $this->imgUploader->upload(
+                        $request->file('image_payment'),
+                        'images/SalesOrder'
+                    );
+                    if (! $imagePaymentPath) {
+                        return back()->withErrors(['image_payment' => 'Gagal upload bukti pembayaran ke image service. Silakan coba lagi.']);
+                    }
                 }
 
                 // Validate stock availability & calculate prices

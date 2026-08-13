@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use App\Models\SalesOrder;
 use App\Models\DetailSalesOrder;
 use App\Models\TransferToAccount;
+use App\Services\ImgServiceUploader;
 use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\Log;
 class OrderController extends Controller
 {
     public function __construct(
-        protected MidtransService $midtransService
+        protected MidtransService $midtransService,
+        protected ImgServiceUploader $imgUploader
     ) {}
 
     private function userId(Request $request): int
@@ -521,7 +523,13 @@ class OrderController extends Controller
         ];
 
         if ($request->hasFile('image_payment')) {
-            $imagePath = $request->file('image_payment')->store('payments', 'public');
+            $imagePath = $this->imgUploader->upload(
+                $request->file('image_payment'),
+                'images/SalesOrder'
+            );
+            if (! $imagePath) {
+                return back()->withErrors(['image_payment' => 'Gagal upload bukti pembayaran ke image service. Silakan coba lagi.']);
+            }
             $updateData['image_payment'] = $imagePath;
         }
 
