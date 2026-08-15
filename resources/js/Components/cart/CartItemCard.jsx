@@ -35,14 +35,17 @@ const CartItemCard = ({
     isMobile = false,
 }) => {
     const resolved = resolveItemData(item);
+    // Relasi Eloquent terserialisasi camelCase (priceTiers); beberapa halaman
+    // lain mengirim mapping snake_case (price_tiers). Dukung keduanya.
+    const priceTiers = resolved.priceTiers ?? resolved.price_tiers;
     const currentQuantity = quantities[item.id] || item.quantity;
     const pricePerUnit = getPriceByQuantity(
-        resolved.price_tiers,
+        priceTiers,
         currentQuantity,
         resolved.online_price || 0
     );
     const discountPercentage = getDiscountPercentage(
-        resolved.price_tiers,
+        priceTiers,
         currentQuantity
     );
     const stock = item.current_stock;
@@ -152,7 +155,7 @@ const CartItemCard = ({
                                 Melebihi stok tersedia ({stock})
                             </Typography>
                         )}
-                        {resolved.price_tiers?.length > 0 && (
+                        {priceTiers?.length > 0 && (
                             <Tooltip
                                 title={
                                     <Box sx={{ p: 1 }}>
@@ -162,7 +165,7 @@ const CartItemCard = ({
                                         >
                                             Tier Harga:
                                         </Typography>
-                                        {resolved.price_tiers.map(
+                                        {priceTiers.map(
                                             (tier, index) => (
                                                 <Typography
                                                     key={index}
