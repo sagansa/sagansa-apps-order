@@ -23,7 +23,9 @@ import {
 } from "@/Utils/cartCalculations";
 
 const resolveItemData = (item) => {
-    return item.productOnlineGroup || item.product || {};
+    // Eloquent men-serialisasi nama relasi ke snake_case: relasi
+    // productOnlineGroup() dikirim sebagai product_online_group.
+    return item.product_online_group || item.product || {};
 };
 
 const CartItemCard = ({

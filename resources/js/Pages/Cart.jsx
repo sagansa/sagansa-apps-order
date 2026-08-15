@@ -338,7 +338,8 @@ export default function Cart({
         return (
             cartItems?.reduce((total, item) => {
                 const quantity = quantities[item.id] || item.quantity;
-                const resolved = item.productOnlineGroup || item.product || {};
+                // Relasi productOnlineGroup terserialisasi snake_case.
+                const resolved = item.product_online_group || item.product || {};
                 const pricePerUnit = getPriceByQuantity(
                     resolved.priceTiers ?? resolved.price_tiers,
                     quantity,
@@ -576,10 +577,11 @@ export default function Cart({
 
             // Ubah format items
             const items = cartItems.map((item) => {
-                const resolved = item.productOnlineGroup || item.product || {};
+                // Relasi productOnlineGroup terserialisasi snake_case.
+                const resolved = item.product_online_group || item.product || {};
                 return {
                     product_id: item.product ? item.product.id : null,
-                    product_online_group_id: item.productOnlineGroup ? item.productOnlineGroup.id : null,
+                    product_online_group_id: item.product_online_group ? item.product_online_group.id : null,
                     quantity: quantities[item.id] || item.quantity,
                     price: getPriceByQuantity(
                         resolved.priceTiers ?? resolved.price_tiers,
