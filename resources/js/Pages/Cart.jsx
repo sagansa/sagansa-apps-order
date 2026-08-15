@@ -340,7 +340,7 @@ export default function Cart({
                 const quantity = quantities[item.id] || item.quantity;
                 const resolved = item.productOnlineGroup || item.product || {};
                 const pricePerUnit = getPriceByQuantity(
-                    resolved.price_tiers,
+                    resolved.priceTiers ?? resolved.price_tiers,
                     quantity,
                     resolved.online_price || 0
                 );
@@ -582,7 +582,7 @@ export default function Cart({
                     product_online_group_id: item.productOnlineGroup ? item.productOnlineGroup.id : null,
                     quantity: quantities[item.id] || item.quantity,
                     price: getPriceByQuantity(
-                        resolved.price_tiers,
+                        resolved.priceTiers ?? resolved.price_tiers,
                         quantities[item.id] || item.quantity,
                         resolved.online_price || 0
                     ),

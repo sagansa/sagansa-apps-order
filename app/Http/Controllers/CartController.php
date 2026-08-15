@@ -78,7 +78,17 @@ class CartController extends Controller
     {
         $cartUserId = $this->cartUserId($request);
 
-        $cartItems = Cart::with(['product.priceTiers', 'product.unit', 'productOnlineGroup.priceTiers', 'productOnlineGroup.unit'])
+        // images wajib di-eager-load: accessor image_url (appends) butuh
+        // relasi images supaya gambar item kombinasi muncul di cart, sama
+        // seperti di halaman Order (lihat OrderController).
+        $cartItems = Cart::with([
+            'product.priceTiers',
+            'product.unit',
+            'product.images',
+            'productOnlineGroup.priceTiers',
+            'productOnlineGroup.unit',
+            'productOnlineGroup.images.image',
+        ])
             ->where('user_id', $cartUserId)
             ->get()
             ->map(function ($cartItem) {
