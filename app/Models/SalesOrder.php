@@ -62,10 +62,35 @@ class SalesOrder extends Model
         return PublicStorageUrl::from($value);
     }
 
-    // Accessor for image_delivery
+    // Accessor for image_delivery: URL pertama saja (kompatibilitas konsumen lama).
+    // Untuk semua foto, pakai image_delivery_urls.
     public function getImageDeliveryAttribute($value)
     {
-        return PublicStorageUrl::from($value);
+        return $this->image_delivery_urls[0] ?? null;
+    }
+
+    /**
+     * Kolom image_delivery berisi string path tunggal (legacy) atau JSON array
+     * path (hasil multi-upload dari app kurir). Decode ke daftar URL publik.
+     */
+    public function getImageDeliveryUrlsAttribute(): array
+    {
+        $raw = $this->attributes['image_delivery'] ?? null;
+
+        if (! $raw) {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        $paths = is_array($decoded)
+            ? array_values(array_filter($decoded, fn ($p) => filled($p)))
+            : [$raw];
+
+        return array_map(
+            fn ($path) => PublicStorageUrl::from(trim((string) $path)),
+            $paths
+        );
     }
 
     public function deliveryService()

@@ -440,6 +440,8 @@ class OrderController extends Controller
             'shipping_cost' => $order->shipping_cost,
             'receipt_no' => $order->receipt_no,
             'image_delivery' => $order->image_delivery,
+            // Semua foto bukti pengiriman (multi-upload dari app kurir).
+            'image_delivery_urls' => $order->image_delivery_urls,
             'received_by' => $order->received_by,
             'details' => $order->detailSalesOrders->map(function ($detail) {
                 $productName = 'Produk Tidak Diketahui';
