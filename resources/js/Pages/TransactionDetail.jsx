@@ -753,7 +753,8 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 </Box>
                             </Grid>
                         )}
-                        {order.image_delivery && (
+                        {((order.image_delivery_urls?.length ?? 0) > 0 ||
+                            order.image_delivery) && (
                             <Grid
                                 sx={{
                                     gridColumn: { xs: "span 12", md: "span 6" },
@@ -765,19 +766,34 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 >
                                     Bukti Pengiriman
                                 </Typography>
-                                <Box sx={{ mt: 1 }}>
-                                    <img
-                                        src={order.image_delivery}
-                                        alt="Bukti Pengiriman"
-                                        style={{
-                                            width: "100%",
-                                            maxWidth: 300,
-                                            height: "auto",
-                                            borderRadius: 16,
-                                            border: "1px solid",
-                                            borderColor: "divider",
-                                        }}
-                                    />
+                                <Box
+                                    sx={{
+                                        mt: 1,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 2,
+                                    }}
+                                >
+                                    {(order.image_delivery_urls?.length > 0
+                                        ? order.image_delivery_urls
+                                        : [order.image_delivery]
+                                    )
+                                        .filter(Boolean)
+                                        .map((url, index) => (
+                                            <img
+                                                key={url}
+                                                src={url}
+                                                alt={`Bukti Pengiriman ${index + 1}`}
+                                                style={{
+                                                    width: "100%",
+                                                    maxWidth: 300,
+                                                    height: "auto",
+                                                    borderRadius: 16,
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
+                                                }}
+                                            />
+                                        ))}
                                 </Box>
                             </Grid>
                         )}
