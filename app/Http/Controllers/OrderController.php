@@ -7,6 +7,7 @@ use App\Models\ProductOnlineGroup;
 use App\Models\ProductOnlineGroupItem;
 use App\Models\OnlineCategory;
 use App\Models\Unit;
+use App\Models\InvoicePurchase;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\SalesOrder;
@@ -14,6 +15,7 @@ use App\Models\DetailSalesOrder;
 use App\Models\TransferToAccount;
 use App\Services\ImgServiceUploader;
 use App\Services\MidtransService;
+use App\Support\PublicStorageUrl;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -442,6 +444,15 @@ class OrderController extends Controller
             'image_delivery' => $order->image_delivery,
             // Semua foto bukti pengiriman (multi-upload dari app kurir).
             'image_delivery_urls' => $order->image_delivery_urls,
+            // Foto resi pengiriman: image dari invoice purchase yang
+            // dikaitkan ke order ini oleh tim internal. Hanya image-nya
+            // yang diekspos ke pembeli — tanpa data invoice lainnya
+            // (supplier, harga beli, dll).
+            'invoice_image' => PublicStorageUrl::from(
+                InvoicePurchase::where('sales_order_id', $order->id)
+                    ->orderByDesc('id')
+                    ->value('image')
+            ),
             'received_by' => $order->received_by,
             'details' => $order->detailSalesOrders->map(function ($detail) {
                 $productName = 'Produk Tidak Diketahui';

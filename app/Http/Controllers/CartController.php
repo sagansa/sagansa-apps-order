@@ -256,8 +256,11 @@ class CartController extends Controller
                     'card_token' => 'nullable|string|required_if:payment_method,credit_card',
                     'shipping_payment_method' => 'nullable|string|in:via_us,to_courier',
                     'items' => 'required|array|min:1',
-                    'items.*.product_id' => 'nullable|exists:products,id',
-                    'items.*.product_online_group_id' => 'nullable|exists:product_online_groups,id',
+                    // Setiap item wajib merujuk produk ATAU grup — tanpa ini,
+                    // item tanpa keduanya lolos dan di-skip diam-diam sehingga
+                    // order terbuat tanpa satu pun baris detail.
+                    'items.*.product_id' => 'required_without:items.*.product_online_group_id|exists:products,id',
+                    'items.*.product_online_group_id' => 'required_without:items.*.product_id|exists:product_online_groups,id',
                     'items.*.quantity' => 'required|integer|min:1',
                     'items.*.price' => 'required|numeric|min:0',
                 ]);
@@ -279,20 +282,26 @@ class CartController extends Controller
                         if (empty($transferAccountId)) {
                             return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih untuk metode ambil sendiri.']);
                         }
-                        if ($paymentStatus == 1 && !$request->hasFile('image_payment')) {
-                            return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload untuk status pembayaran ini.']);
-                        }
                     } else {
                         if (empty($deliveryAddressId)) {
                             return back()->withErrors(['delivery_address_id' => 'Alamat pengiriman wajib dipilih.']);
                         }
-                        if ($paymentStatus == 1 && $shippingPaymentMethod === 'via_us' && $shippingCost > 0) {
-                            if (empty($transferAccountId)) {
-                                return back()->withErrors(['transfer_to_account_id' => 'Rekening tujuan transfer wajib dipilih.']);
-                            }
-                            if (!$request->hasFile('image_payment')) {
-                                return back()->withErrors(['image_payment' => 'Bukti transfer wajib diupload.']);
-                            }
+                    }
+
+                    // Status "Dibayar" (1) via transfer manual selalu wajib
+                    // rekening tujuan + bukti transfer, untuk metode pembayaran
+                    // ongkir apa pun (via_us / to_courier) maupun ambil sendiri.
+                    // Tanpa ini, order bisa tercatat "Dibayar" tanpa bukti.
+                    if ($paymentStatus == 1) {
+                        $paidErrors = [];
+                        if (empty($transferAccountId)) {
+                            $paidErrors['transfer_to_account_id'] = 'Rekening tujuan transfer wajib dipilih.';
+                        }
+                        if (!$request->hasFile('image_payment')) {
+                            $paidErrors['image_payment'] = 'Bukti transfer wajib diupload.';
+                        }
+                        if ($paidErrors) {
+                            return back()->withErrors($paidErrors);
                         }
                     }
                 } else {
@@ -322,7 +331,7 @@ class CartController extends Controller
                 $processedItems = [];
                 $subtotal = 0;
 
-                foreach ($validated['items'] as $itemData) {
+                foreach ($validated['items'] as $itemKey => $itemData) {
                     $itemData['product_id'] = $itemData['product_id'] ?? null;
                     $itemData['product_online_group_id'] = $itemData['product_online_group_id'] ?? null;
 
@@ -371,6 +380,10 @@ class CartController extends Controller
                             'price' => $price,
                             'subtotal' => $itemSubtotal,
                         ];
+                    } else {
+                        // Defense in depth: seharusnya sudah ditahan validasi
+                        // required_without, tapi jangan pernah skip diam-diam.
+                        return back()->withErrors(['items' => 'Item ke-' . ($itemKey + 1) . ' tidak merujuk produk atau grup produk yang valid.']);
                     }
 
                     $subtotal += $itemSubtotal ?? 0;
@@ -380,6 +393,11 @@ class CartController extends Controller
                     $names = implode(', ', $outOfStockItems);
                     Log::warning('Checkout failed: items out of stock', ['items' => $outOfStockItems]);
                     return back()->withErrors(['items' => 'Item berikut sedang tidak tersedia karena stok habis: ' . $names . '. Silakan hapus dari keranjang.']);
+                }
+
+                // Order tanpa satu pun baris detail tidak boleh dibuat.
+                if (empty($processedItems)) {
+                    return back()->withErrors(['items' => 'Pesanan harus memiliki minimal satu item yang valid.']);
                 }
 
                 $totalPrice = $subtotal + $shippingCost;

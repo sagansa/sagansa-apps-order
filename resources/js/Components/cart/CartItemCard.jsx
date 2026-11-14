@@ -21,6 +21,7 @@ import {
     getPriceByQuantity,
     getDiscountPercentage,
 } from "@/Utils/cartCalculations";
+import { formatIDR } from "@/Utils/currency";
 
 const resolveItemData = (item) => {
     // Eloquent men-serialisasi nama relasi ke snake_case: relasi
@@ -34,7 +35,6 @@ const CartItemCard = ({
     handleQuantityChange,
     handleQuantityInput,
     handleDeleteItem,
-    isMobile = false,
 }) => {
     const resolved = resolveItemData(item);
     // Relasi Eloquent terserialisasi camelCase (priceTiers); beberapa halaman
@@ -65,7 +65,7 @@ const CartItemCard = ({
                 borderColor: isExceeded ? "error.main" : "divider",
                 borderRadius: 4,
                 overflow: "hidden",
-                transition: "all 0.2s ease-in-out",
+                transition: "all 0.2s ease",
                 "&:hover": {
                     borderColor: "#C6A96B",
                     boxShadow: "0 4px 12px rgba(198, 169, 107, 0.1)",
@@ -76,41 +76,48 @@ const CartItemCard = ({
                 <Stack direction="row" spacing={2} alignItems="center">
                     <Avatar
                         variant="rounded"
-                        src={resolved.image_url || resolved.image || "/images/no_image.png"}
+                        src={
+                            resolved.image_url ||
+                            resolved.image ||
+                            "/images/no_image.png"
+                        }
                         imgProps={{
                             onError: (e) => {
                                 e.target.onerror = null;
                                 e.target.src = "/images/no_image.png";
-                            }
+                            },
                         }}
                         sx={{
-                            width: isMobile ? 70 : { xs: 60, sm: 90 },
-                            height: isMobile ? 70 : { xs: 60, sm: 90 },
+                            width: { xs: 64, sm: 88 },
+                            height: { xs: 64, sm: 88 },
                             borderRadius: 1.5,
                             border: "1px solid",
                             borderColor: "divider",
+                            flexShrink: 0,
                         }}
                     />
-                    <Box sx={{ flexGrow: 1 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography
                             variant="subtitle1"
-                            sx={{
-                                fontWeight: "bold",
-                                fontSize: isMobile
-                                    ? "1rem"
-                                    : { xs: "1rem", sm: "1.1rem" },
-                                mb: 0.5,
-                            }}
+                            sx={{ fontWeight: "bold", fontSize: "1rem", mb: 0.5 }}
                         >
                             {resolved.name}
                         </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            flexWrap="wrap"
+                            useFlexGap
+                        >
                             <Typography
                                 variant="body2"
                                 color="text.secondary"
-                                sx={{ letterSpacing: "0.5px" }}
+                                sx={{
+                                    fontVariantNumeric: "tabular-nums",
+                                }}
                             >
-                                Rp {Number(pricePerUnit)?.toLocaleString('id-ID', { maximumFractionDigits: 0 })} /{" "}
+                                Rp {formatIDR(pricePerUnit)} /{" "}
                                 {resolved.unit?.unit || "unit"}
                             </Typography>
                             {discountPercentage > 0 && (
@@ -135,8 +142,12 @@ const CartItemCard = ({
                                         height: 20,
                                         fontSize: "0.7rem",
                                         fontWeight: 500,
-                                        color: isLowStock ? "warning.main" : "text.secondary",
-                                        borderColor: isLowStock ? "warning.main" : "divider",
+                                        color: isLowStock
+                                            ? "warning.main"
+                                            : "text.secondary",
+                                        borderColor: isLowStock
+                                            ? "warning.main"
+                                            : "divider",
                                     }}
                                 />
                             )}
@@ -145,14 +156,23 @@ const CartItemCard = ({
                                     label="Stok Habis"
                                     size="small"
                                     color="error"
-                                    sx={{ height: 20, fontSize: "0.7rem", fontWeight: "bold" }}
+                                    sx={{
+                                        height: 20,
+                                        fontSize: "0.7rem",
+                                        fontWeight: "bold",
+                                    }}
                                 />
                             )}
                         </Stack>
                         {isExceeded && (
                             <Typography
                                 variant="caption"
-                                sx={{ color: "error.main", fontWeight: 600, display: "block", mt: 0.5 }}
+                                sx={{
+                                    color: "error.main",
+                                    fontWeight: 600,
+                                    display: "block",
+                                    mt: 0.5,
+                                }}
                             >
                                 Melebihi stok tersedia ({stock})
                             </Typography>
@@ -167,34 +187,29 @@ const CartItemCard = ({
                                         >
                                             Tier Harga:
                                         </Typography>
-                                        {priceTiers.map(
-                                            (tier, index) => (
-                                                <Typography
-                                                    key={index}
-                                                    variant="body2"
-                                                    sx={{
-                                                        display: "flex",
-                                                        justifyContent:
-                                                            "space-between",
-                                                        gap: 2,
-                                                        mb: 0.5,
-                                                    }}
-                                                >
-                                                    <span>
-                                                        {tier.label ||
-                                                            `${tier.min_quantity}-${tier.max_quantity || "∞"} unit`}
-                                                    </span>
-                                                    <span
-                                                        style={{
-                                                            color: "#C6A96B",
-                                                        }}
-                                                    >
-                                                        Rp{" "}
-                                                        {Number(tier.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-                                                    </span>
-                                                </Typography>
-                                            )
-                                        )}
+                                        {priceTiers.map((tier, index) => (
+                                            <Typography
+                                                key={index}
+                                                variant="body2"
+                                                sx={{
+                                                    display: "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    gap: 2,
+                                                    mb: 0.5,
+                                                    fontVariantNumeric:
+                                                        "tabular-nums",
+                                                }}
+                                            >
+                                                <span>
+                                                    {tier.label ||
+                                                        `${tier.min_quantity}-${tier.max_quantity || "∞"} unit`}
+                                                </span>
+                                                <span style={{ color: "#C6A96B" }}>
+                                                    Rp {formatIDR(tier.price)}
+                                                </span>
+                                            </Typography>
+                                        ))}
                                     </Box>
                                 }
                                 arrow
@@ -213,9 +228,7 @@ const CartItemCard = ({
                                         },
                                     }}
                                 >
-                                    <InfoIcon
-                                        sx={{ fontSize: 14, mr: 0.5 }}
-                                    />
+                                    <InfoIcon sx={{ fontSize: 14, mr: 0.5 }} />
                                     Lihat tier harga
                                 </Typography>
                             </Tooltip>
@@ -227,10 +240,12 @@ const CartItemCard = ({
                     direction="row"
                     justifyContent="space-between"
                     alignItems="center"
+                    spacing={1}
                 >
                     <Stack direction="row" spacing={1} alignItems="center">
                         <IconButton
                             size="small"
+                            aria-label="kurangi jumlah"
                             onClick={() => handleQuantityChange(item.id, -1)}
                             disabled={currentQuantity <= 1}
                             sx={{
@@ -250,9 +265,12 @@ const CartItemCard = ({
                             type="number"
                             size="small"
                             sx={{
-                                width: isMobile ? "80px" : "90px",
+                                width: { xs: 76, sm: 90 },
                                 "& .MuiOutlinedInput-root": {
                                     borderRadius: 1.5,
+                                },
+                                "& input": {
+                                    fontVariantNumeric: "tabular-nums",
                                 },
                             }}
                             inputProps={{
@@ -275,6 +293,7 @@ const CartItemCard = ({
                         />
                         <IconButton
                             size="small"
+                            aria-label="tambah jumlah"
                             onClick={() => handleQuantityChange(item.id, 1)}
                             disabled={hasStock && currentQuantity >= stock}
                             sx={{
@@ -287,7 +306,7 @@ const CartItemCard = ({
                             <AddIcon fontSize="small" />
                         </IconButton>
                     </Stack>
-                    <Box sx={{ textAlign: "right", flexGrow: 1, px: 2 }}>
+                    <Box sx={{ textAlign: "right", flexGrow: 1, px: 1 }}>
                         <Typography
                             variant="subtitle2"
                             color="text.secondary"
@@ -297,20 +316,25 @@ const CartItemCard = ({
                         </Typography>
                         <Typography
                             variant="h6"
-                            sx={{ fontWeight: "900", color: "#C6A96B" }}
+                            sx={{
+                                fontWeight: 900,
+                                color: "#C6A96B",
+                                fontVariantNumeric: "tabular-nums",
+                            }}
                         >
-                            Rp{" "}
-                            {Number(currentQuantity * pricePerUnit)?.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                            Rp {formatIDR(currentQuantity * pricePerUnit)}
                         </Typography>
                     </Box>
                     <IconButton
                         color="error"
-                        aria-label="hapus"
+                        aria-label="hapus item"
                         size="small"
                         onClick={() => handleDeleteItem(item.id)}
                         sx={{
                             bgcolor: "rgba(211, 47, 47, 0.05)",
-                            "&:hover": { bgcolor: "rgba(211, 47, 47, 0.15)" },
+                            "&:hover": {
+                                bgcolor: "rgba(211, 47, 47, 0.15)",
+                            },
                         }}
                     >
                         <DeleteIcon fontSize="small" />

@@ -11,8 +11,11 @@
 |
 */
 
+// DatabaseTransactions (bukan RefreshDatabase) karena skema DB dikelola lintas
+// aplikasi di monorepo ini — migrate:fresh akan menghapus tabel yang tidak
+// dibuat oleh migrasi aplikasi ini.
 pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->use(Illuminate\Foundation\Testing\DatabaseTransactions::class)
     ->in('Feature');
 
 /*

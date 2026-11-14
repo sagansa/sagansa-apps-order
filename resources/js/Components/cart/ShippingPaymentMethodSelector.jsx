@@ -1,18 +1,16 @@
 import React from "react";
 import {
-    Card,
-    CardContent,
-    Typography,
     FormControl,
     FormLabel,
     RadioGroup,
     FormControlLabel,
     Radio,
-    TextField,
-    InputAdornment,
     Box,
     Alert,
 } from "@mui/material";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import SectionCard from "@/Components/ui/SectionCard";
+import CurrencyInput from "@/Components/ui/CurrencyInput";
 
 const ShippingPaymentMethodSelector = ({
     shippingPaymentMethod,
@@ -21,86 +19,79 @@ const ShippingPaymentMethodSelector = ({
     setShippingCostAmount,
 }) => {
     return (
-        <Card
-            elevation={0}
-            sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 4,
-                overflow: "hidden",
-            }}
-        >
-            <CardContent>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: "bold" }}>
-                    Pembayaran Ongkos Kirim
-                </Typography>
-                <FormControl component="fieldset" fullWidth>
-                    <FormLabel component="legend">
-                        Metode Pembayaran Ongkos Kirim
-                    </FormLabel>
-                    <RadioGroup
-                        row
-                        aria-label="shipping-payment-method"
-                        name="shipping-payment-method"
-                        value={shippingPaymentMethod}
-                        onChange={(e) =>
-                            setShippingPaymentMethod(e.target.value)
-                        }
-                    >
-                        <FormControlLabel
-                            value="via_us"
-                            control={<Radio />}
-                            label="Dibayarkan melalui kami"
-                        />
-                        <FormControlLabel
-                            value="to_courier"
-                            control={<Radio />}
-                            label="Dibayarkan langsung pembeli ke kurir"
-                        />
-                    </RadioGroup>
+        <SectionCard title="Pembayaran Ongkos Kirim" icon={LocalShippingIcon}>
+            <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                    row
+                    aria-label="shipping-payment-method"
+                    name="shipping-payment-method"
+                    value={shippingPaymentMethod}
+                    onChange={(e) => setShippingPaymentMethod(e.target.value)}
+                    sx={{ gap: 2 }}
+                >
+                    <FormControlLabel
+                        value="via_us"
+                        control={<Radio />}
+                        label="Dibayarkan melalui kami"
+                        sx={{
+                            flex: 1,
+                            m: 0,
+                            border: "1px solid",
+                            borderColor:
+                                shippingPaymentMethod === "via_us"
+                                    ? "#C6A96B"
+                                    : "divider",
+                            borderRadius: 2,
+                            px: 2,
+                            py: 1,
+                            bgcolor:
+                                shippingPaymentMethod === "via_us"
+                                    ? "rgba(198, 169, 107, 0.05)"
+                                    : "transparent",
+                            transition: "all 0.2s ease",
+                        }}
+                    />
+                    <FormControlLabel
+                        value="to_courier"
+                        control={<Radio />}
+                        label="Dibayar langsung ke kurir"
+                        sx={{
+                            flex: 1,
+                            m: 0,
+                            border: "1px solid",
+                            borderColor:
+                                shippingPaymentMethod === "to_courier"
+                                    ? "#C6A96B"
+                                    : "divider",
+                            borderRadius: 2,
+                            px: 2,
+                            py: 1,
+                            bgcolor:
+                                shippingPaymentMethod === "to_courier"
+                                    ? "rgba(198, 169, 107, 0.05)"
+                                    : "transparent",
+                            transition: "all 0.2s ease",
+                        }}
+                    />
+                </RadioGroup>
 
-                    {/* Container for dynamic shipping cost input/alert */}
-                    <Box sx={{ minHeight: "80px", mt: 2 }}>
-                        {/* Reserve space */}
-                        {shippingPaymentMethod === "via_us" ? (
-                            <TextField
-                                label="Nominal Biaya Pengiriman"
-                                type="number"
-                                fullWidth
-                                value={shippingCostAmount}
-                                onFocus={(e) => {
-                                    if (Number(shippingCostAmount) === 0) {
-                                        setShippingCostAmount("");
-                                        e.target.select();
-                                    }
-                                }}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setShippingCostAmount(
-                                        value === "" ? "" : Number(value)
-                                    );
-                                }}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            Rp
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                inputProps={{
-                                    min: 0,
-                                }}
-                            />
-                        ) : shippingPaymentMethod === "to_courier" ? (
-                            <Alert severity="info">
-                                Nominal ongkos kirim dibayarkan langsung ke
-                                kurir saat pesanan diterima.
-                            </Alert>
-                        ) : null}
-                    </Box>
-                </FormControl>
-            </CardContent>
-        </Card>
+                <Box sx={{ minHeight: 72, mt: 2 }}>
+                    {shippingPaymentMethod === "via_us" ? (
+                        <CurrencyInput
+                            label="Nominal Biaya Pengiriman"
+                            value={shippingCostAmount}
+                            onChange={setShippingCostAmount}
+                            fullWidth
+                        />
+                    ) : shippingPaymentMethod === "to_courier" ? (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            Nominal ongkos kirim dibayarkan langsung ke kurir
+                            saat pesanan diterima.
+                        </Alert>
+                    ) : null}
+                </Box>
+            </FormControl>
+        </SectionCard>
     );
 };
 

@@ -14,6 +14,13 @@ class PublicStorageUrl
 
         $path = trim($path);
 
+        // Sebagian path lama tersimpan dengan slash ter-escape (contoh:
+        // "images\/InvoicePurchase\/x.webp" — warisan bug mobile saat path
+        // dikirim dari body JSON mentah). Normalisasi: backslash jadi slash,
+        // lalu slash beruntun diringkas menjadi satu.
+        $path = str_replace('\\', '/', $path);
+        $path = preg_replace('#/{2,}#', '/', $path);
+
         if (Str::startsWith($path, ['http://', 'https://'])) {
             $parsed = parse_url($path);
             $host = $parsed['host'] ?? '';

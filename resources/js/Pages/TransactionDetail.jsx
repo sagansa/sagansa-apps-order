@@ -797,6 +797,34 @@ export default function DetailTransaction({ auth, order, transferToAccounts }) {
                                 </Box>
                             </Grid>
                         )}
+                        {order.invoice_image && (
+                            <Grid
+                                sx={{
+                                    gridColumn: { xs: "span 12", md: "span 6" },
+                                }}
+                            >
+                                <Typography
+                                    variant="subtitle2"
+                                    color="text.secondary"
+                                >
+                                    Foto Resi Pengiriman
+                                </Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    <img
+                                        src={order.invoice_image}
+                                        alt="Foto Resi Pengiriman"
+                                        style={{
+                                            width: "100%",
+                                            maxWidth: 300,
+                                            height: "auto",
+                                            borderRadius: 16,
+                                            border: "1px solid",
+                                            borderColor: "divider",
+                                        }}
+                                    />
+                                </Box>
+                            </Grid>
+                        )}
                     </Grid>
                     <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
                         <Button

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T00:00:00Z",
+  "title": "Design System: Sagansa Order",
+  "extensions": {
+    "colorMeta": {
+      "gold": { "role": "primary", "displayName": "Emas Lumbung", "canonical": "#C6A96B", "tonalRamp": ["#3d3323", "#6b5a39", "#8f7949", "#b3975e", "#C6A96B", "#d4bb85", "#e3d2ab", "#f1e8d4"] },
+      "gold-bright": { "role": "secondary", "displayName": "Emas Terang", "canonical": "#D4AF37", "tonalRamp": ["#403510", "#6d5a1a", "#91781f", "#b3962b", "#D4AF37", "#ddc065", "#e8d298", "#f3e9c9"] },
+      "ink": { "role": "neutral", "displayName": "Tinta", "canonical": "#0A0A0A", "tonalRamp": ["#0A0A0A", "#2e2e2e", "#525252", "#767676", "#9a9a9a", "#bebebe", "#e2e2e2", "#f6f6f6"] },
+      "charcoal": { "role": "secondary", "displayName": "Arang Rak", "canonical": "#141414", "tonalRamp": ["#141414", "#2d2d2d", "#464646", "#5f5f5f", "#787878", "#a3a3a3", "#cfcfcf", "#f0f0f0"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Judul halaman & header layout." },
+      "money": { "displayName": "Money", "purpose": "Angka Rupiah: tabular-nums, rata kanan, pemisah ribuan id-ID." }
+    },
+    "shadows": [
+      { "name": "cta-gold", "value": "0 8px 16px rgba(198,169,107,0.2)", "purpose": "Bayangan CTA emas dan lift hover elemen aksen di ruang terang." },
+      { "name": "hover-lift", "value": "0 8px 24px rgba(0,0,0,0.12)", "purpose": "Angkat hover kartu produk; tidak pernah pada kondisi diam." },
+      { "name": "dark-depth", "value": "0 8px 24px rgba(0,0,0,0.3)", "purpose": "Kedalaman di ruang gelap (katalog)." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Transisi hover/state 0.2-0.3s." }
+    ],
+    "breakpoints": [
+      { "name": "mobile-max", "value": "768px", "purpose": "Di bawah ini layout satu kolom; bukan pohon komponen berbeda." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary CTA",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA emas gradien — satu per layar (The Gold Ration Rule).",
+      "html": "<button class=\"ds-btn-primary\">Konfirmasi Pesanan</button>",
+      "css": ".ds-btn-primary { background: linear-gradient(45deg, #C6A96B 30%, #D4AF37 90%); color: #fff; font-weight: 800; font-size: 1.05rem; padding: 16px 24px; border: none; border-radius: 8px; width: 100%; box-shadow: 0 8px 16px rgba(198,169,107,0.2); cursor: pointer; transition: background 0.2s, box-shadow 0.2s; } .ds-btn-primary:hover { background: linear-gradient(45deg, #B0945A 30%, #C6A96B 90%); } .ds-btn-primary:disabled { background: #e0e0e0; color: #9e9e9e; box-shadow: none; cursor: not-allowed; }"
+    },
+    {
+      "name": "Section Card",
+      "kind": "card",
+      "refersTo": "section-card",
+      "description": "Kartu seksi ruang terang: putih, border 1px, radius 16, header tint emas.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\">Metode Pengiriman</div><div class=\"ds-card-body\">Isi seksi…</div></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 16px; overflow: hidden; } .ds-card-header { background: rgba(198,169,107,0.05); padding: 12px 24px; border-bottom: 1px solid rgba(0,0,0,0.12); font-weight: 700; font-size: 1.05rem; color: #0A0A0A; } .ds-card-body { padding: 24px; }"
+    },
+    {
+      "name": "Money Field",
+      "kind": "input",
+      "refersTo": "section-card",
+      "description": "Input uang: teks terformat ribuan hidup dengan adornment Rp — bukan type=number.",
+      "html": "<label class=\"ds-money\"><span class=\"ds-money-label\">Nominal Biaya Pengiriman</span><div class=\"ds-money-box\"><span class=\"ds-money-prefix\">Rp</span><input class=\"ds-money-input\" value=\"1.250.000\" inputmode=\"numeric\" /></div></label>",
+      "css": ".ds-money { display: block; } .ds-money-label { display: block; font-size: 0.75rem; font-weight: 600; color: #757575; margin-bottom: 6px; } .ds-money-box { display: flex; align-items: center; border: 1px solid #9E9E9E; border-radius: 8px; background: #fff; } .ds-money-box:focus-within { border-color: #C6A96B; } .ds-money-prefix { padding: 0 8px 0 14px; color: #757575; font-weight: 600; } .ds-money-input { border: none; outline: none; padding: 14px 14px 14px 4px; width: 100%; font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; color: #0A0A0A; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "section-card",
+      "description": "Chip status tint warna, radius 8, teks 600.",
+      "html": "<span class=\"ds-chip ds-chip-gold\">Diproses</span>",
+      "css": ".ds-chip { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; } .ds-chip-gold { background: rgba(198,169,107,0.15); color: #8f7949; } .ds-chip-success { background: rgba(46,125,50,0.12); color: #2E7D32; } .ds-chip-danger { background: rgba(211,47,47,0.12); color: #D32F2F; } .ds-chip-neutral { background: rgba(0,0,0,0.06); color: #757575; }"
+    },
+    {
+      "name": "Summary Row",
+      "kind": "custom",
+      "refersTo": "section-card",
+      "description": "Baris ringkasan angka: label kiri abu, nilai kanan Money 800 tabular.",
+      "html": "<div class=\"ds-sumrow\"><span>Ongkos Kirim</span><span class=\"ds-sumval\">Rp 25.000</span></div>",
+      "css": ".ds-sumrow { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.875rem; color: #757575; } .ds-sumval { color: #0A0A0A; font-weight: 800; font-variant-numeric: tabular-nums; } .ds-sumrow .ds-sumval-gold { color: #C6A96B; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Lumbung Emas",
+    "overview": "Sagansa adalah lumbung bermutu: rak kayu gelap yang elegan untuk menjelajah barang, dan buku kas kuningan yang bersih untuk mencatat transaksi. Dua ruang, satu rumah. Ruang gelap membangun selera dan atmosfer; ruang terang meniadakan gesekan — form dibaca cepat, angka tidak bisa salah. Kepadatan sedang-tinggi: pembeli B2B mengecek angka, bukan menikmati dekorasi. Emas dipakai hemat sebagai suara utama merek.",
+    "keyCharacteristics": [
+      "Dua ruang berprinsip: gelap = menjelajah, terang = bertransaksi.",
+      "Figtree tunggal di semua bobot.",
+      "Angka uang: Rupiah berpemisah ribuan, digit tabular, rata kanan.",
+      "Kartu flat 1px border radius 16 di ruang terang; lift hanya saat hover.",
+      "Gold pada CTA utama dan aksen aktif; sisanya hitam-putih-abu."
+    ],
+    "rules": [
+      { "name": "The Two Rooms Rule", "body": "Gelap untuk menjelajah, terang untuk bertransaksi. Satu permukaan tinggal di satu ruang.", "section": "colors" },
+      { "name": "The Gold Ration Rule", "body": "Emas ≤ 10% area permukaan terang. Satu CTA emas per layar, angka penting boleh emas, sisanya tinta.", "section": "colors" },
+      { "name": "The Ledger Rule", "body": "Setiap angka uang tampil Rp dengan pemisah ribuan id-ID, digit tabular, rata kanan. Input uang mengetik mentah dan menampilkan format ribuan hidup.", "section": "typography" },
+      { "name": "The Flat-Rest Rule", "body": "Kartu flat di diam: border 1px, tanpa bayangan. Kedalaman adalah respons (hover, CTA).", "section": "elevation" }
+    ],
+    "dos": [
+      "Do pakai pemisah ribuan id-ID + digit tabular + rata kanan untuk semua angka uang.",
+      "Do bangun satu pohon komponen responsif; perbedaan mobile/desktop hanya layout container.",
+      "Do pakai Section Card untuk setiap kelompok form di ruang terang.",
+      "Do satukan logika format/harga di util bersama."
+    ],
+    "donts": [
+      "Don't pakai type=number untuk input uang.",
+      "Don't menaruh bayangan diam pada kartu ruang terang.",
+      "Don't duplikasi pohon render mobile vs desktop.",
+      "Don't perkenalkan keluarga font selain Figtree.",
+      "Don't campur kartu gelap ke permukaan transaksi terang."
+    ]
+  }
+}

@@ -1,21 +1,11 @@
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
-    Card,
-    CardContent,
-    CardHeader,
     Typography,
     Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableRow,
-    Paper,
+    TextField,
     IconButton,
     Box,
-    Grid,
-    TextField,
     Stack,
     Tooltip,
     FormControl,
@@ -27,30 +17,26 @@ import {
     DialogContent,
     DialogActions,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles"; // Import useTheme
-import useMediaQuery from "@mui/material/useMediaQuery"; // Import useMediaQuery
 import InfoIcon from "@mui/icons-material/Info";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import EventIcon from "@mui/icons-material/Event";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 import { useState, useEffect, useRef } from "react";
-import { router } from "@inertiajs/react";
-import DeliveryAddressManagerModal from "@/Components/DeliveryAddressManagerModal";
 import dayjs from "dayjs";
 import axios from "axios";
-import {
-    getPriceByQuantity,
-    getDiscountPercentage,
-} from "@/Utils/cartCalculations";
+import { getPriceByQuantity } from "@/Utils/cartCalculations";
+import SectionCard from "@/Components/ui/SectionCard";
 import CartItemCard from "@/Components/cart/CartItemCard";
 import DeliveryAddressDisplay from "@/Components/cart/DeliveryAddressDisplay";
+import DeliveryAddressManagerModal from "@/Components/DeliveryAddressManagerModal";
 import ShippingPaymentMethodSelector from "@/Components/cart/ShippingPaymentMethodSelector";
 import PaymentMethodSelector from "@/Components/cart/PaymentMethodSelector";
 import CreditCardForm from "@/Components/cart/CreditCardForm";
 import ManualTransferDetails from "@/Components/cart/ManualTransferDetails";
 import OrderSummaryCard from "@/Components/cart/OrderSummaryCard";
-import { brandBlack, brandGold } from "@/constants/colors";
 
 export default function Cart({
     auth,
@@ -60,9 +46,6 @@ export default function Cart({
     transferToAccounts,
     midtransMethods,
 }) {
-    const theme = useTheme();
-    const isMobile = useMediaQuery("(max-width: 768px)"); // Mobile layout starts at 768px
-
     const [quantities, setQuantities] = useState(
         cartItems?.reduce(
             (acc, item) => ({ ...acc, [item.id]: item.quantity }),
@@ -71,8 +54,6 @@ export default function Cart({
     );
     const [selectedDelivery, setSelectedDelivery] = useState("");
     const [selectedAddress, setSelectedAddress] = useState("");
-    const [openAddressDialog, setOpenAddressDialog] = useState(false);
-    const [editingAddress, setEditingAddress] = useState(null);
     const [provinces, setProvinces] = useState([]);
     const [cities, setCities] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -86,8 +67,7 @@ export default function Cart({
     const [openAddressManagerModal, setOpenAddressManagerModal] =
         useState(false);
     const [selectedTransferAccount, setSelectedTransferAccount] = useState("");
-    const [transferProof, setTransferProof] = useState(null); // This will hold the resized file
-    const [previewUrl, setPreviewUrl] = useState(null);
+    const [transferProof, setTransferProof] = useState(null); // File hasil resize
     const [deliveryDate, setDeliveryDate] = useState(
         dayjs().format("YYYY-MM-DD")
     );
@@ -103,14 +83,13 @@ export default function Cart({
     // State untuk opsi pembayaran ongkos kirim
     const [shippingPaymentMethod, setShippingPaymentMethod] =
         useState("via_us"); // Default: dibayarkan melalui kami
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(""); // State untuk metode pembayaran utama
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
     const [showWAButton, setShowWAButton] = useState(false);
 
     const handleOpenAddressManagerModal = () =>
         setOpenAddressManagerModal(true);
     const handleCloseAddressManagerModal = () =>
         setOpenAddressManagerModal(false);
-
 
     useEffect(() => {
         // Fetch provinces on component mount
@@ -119,23 +98,49 @@ export default function Cart({
             .then((data) => setProvinces(data));
     }, []);
 
-    useEffect(() => {
-        console.log("DEBUG: selectedPaymentMethod changed to:", selectedPaymentMethod);
-    }, [selectedPaymentMethod]);
-
-    // Effect to handle shipping cost confirmation when delivery service changes
+    // Buka modal konfirmasi ongkir setiap kali delivery service berubah
     useEffect(() => {
         const isSelfPickup = selectedDelivery === "33";
         if (!isSelfPickup && selectedDelivery !== "") {
-            // If delivery is selected and NOT self-pickup, ask for confirmation
             setOpenShippingCostConfirmationModal(true);
         } else {
-            // If self-pickup or no delivery selected, reset confirmation and amount
             setShippingCostConfirmed(false);
             setShippingCostAmount(0);
-            setOpenShippingCostConfirmationModal(false); // Close modal if open
+            setOpenShippingCostConfirmationModal(false);
         }
     }, [selectedDelivery]);
+
+    const handleDeliveryChange = (e) => {
+        const serviceId = e.target.value;
+        setSelectedDelivery(serviceId);
+        // Reset alamat terpilih saat delivery service berubah
+        setSelectedAddress("");
+
+        if (serviceId === "33") {
+            setShowWAButton(false);
+        }
+        // Effect di atas akan menangani modal/reset konfirmasi ongkir
+    };
+
+    const showAddressSelection =
+        selectedDelivery &&
+        deliveryServices.find((s) => s.id === parseInt(selectedDelivery))
+            ?.id != 33;
+
+    // Handler untuk konfirmasi ongkir
+    const handleConfirmShippingCost = () => {
+        setShippingCostConfirmed(true);
+        setOpenShippingCostConfirmationModal(false);
+        setShowWAButton(false);
+    };
+
+    const handleCancelShippingCost = () => {
+        setShippingCostConfirmed(false);
+        setShippingCostAmount(0);
+        setOpenShippingCostConfirmationModal(false);
+        setSelectedDelivery("");
+        setShowWAButton(true);
+    };
 
     const handleProvinceChange = (e) => {
         const provinceId = e.target.value;
@@ -164,7 +169,6 @@ export default function Cart({
         setPostalCodeId("");
         setPostalCodeValue("");
         setDistricts([]);
-        setSubdistricts([]);
 
         if (cityId) {
             fetch(route("locations.districts", { city_id: cityId }))
@@ -182,7 +186,11 @@ export default function Cart({
         setSubdistricts([]);
 
         if (districtId) {
-            fetch(route("locations.subdistricts", { district_id: districtId }))
+            fetch(
+                route("locations.subdistricts", {
+                    district_id: districtId,
+                })
+            )
                 .then((response) => response.json())
                 .then((data) => setSubdistricts(data));
         }
@@ -208,7 +216,7 @@ export default function Cart({
         }
     };
 
-    // Image resizing and handling
+    // Resize gambar bukti transfer sebelum upload (maks 800px, kualitas 70%)
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -224,7 +232,7 @@ export default function Cart({
             img.src = e.target.result;
 
             img.onload = () => {
-                const MAX_SIZE = 800; // Max width or height for the resized image
+                const MAX_SIZE = 800;
                 let width = img.width;
                 let height = img.height;
 
@@ -248,19 +256,15 @@ export default function Cart({
 
                 canvas.toBlob(
                     (blob) => {
-                        // Create a new File object from the Blob
                         const resizedFile = new File([blob], file.name, {
                             type: file.type,
                             lastModified: Date.now(),
                         });
-                        setTransferProof(resizedFile); // Set the resized file for preview
+                        setTransferProof(resizedFile);
                     },
                     file.type,
                     0.7
-                ); // 0.7 is the quality (70%)
-
-                // Set preview URL for the resized image
-                setPreviewUrl(canvas.toDataURL(file.type));
+                );
             };
         };
         reader.readAsDataURL(file);
@@ -268,7 +272,9 @@ export default function Cart({
 
     const handleQuantityChange = (itemId, change) => {
         const item = cartItems.find((i) => i.id === itemId);
-        const stock = item?.product?.current_stock;
+        const stock =
+            item?.product?.current_stock ??
+            item?.product_online_group?.current_stock;
         const currentQty = quantities[itemId] || 1;
         const newQuantity = Math.max(1, currentQty + change);
 
@@ -295,7 +301,9 @@ export default function Cart({
 
     const handleQuantityInput = (itemId, value) => {
         const item = cartItems.find((i) => i.id === itemId);
-        const stock = item?.product?.current_stock;
+        const stock =
+            item?.product?.current_stock ??
+            item?.product_online_group?.current_stock;
         let newValue = parseInt(value) || 1;
 
         if (stock !== null && stock !== undefined && newValue > stock) {
@@ -353,8 +361,8 @@ export default function Cart({
     const subtotal = calculateSubtotal();
     const normalizedShippingCostAmount = Number(shippingCostAmount) || 0;
 
-
-    // Calculate total including shipping cost and Midtrans fee if applicable
+    // Total termasuk ongkir (via_us) — biaya layanan Midtrans dihitung
+    // di OrderSummaryCard dan ditambahkan di tampilan Grand Total.
     const total =
         selectedDelivery &&
         selectedDelivery !== "33" &&
@@ -363,127 +371,15 @@ export default function Cart({
             ? subtotal + normalizedShippingCostAmount
             : subtotal;
 
-    const handleDeliveryChange = (e) => {
-        const serviceId = e.target.value;
-        setSelectedDelivery(serviceId);
-        // Reset selected address when delivery service changes
-        setSelectedAddress("");
-
-        // Hide WA button if pickup is selected
-        if (serviceId === "33") {
-            setShowWAButton(false);
-        }
-
-        // Effect di atas akan menangani modal/reset konfirmasi ongkir
-    };
-
-    const handleAddAddress = () => {
-        setEditingAddress(null);
-        setOpenAddressDialog(true);
-    };
-
-    const handleEditAddress = (address) => {
-        setEditingAddress(address);
-        setSelectedProvince(address.province_id);
-        setSelectedCity(address.city_id);
-        setSelectedDistrict(address.district_id);
-        setSelectedSubdistrict(address.subdistrict_id);
-        setPostalCodeId(address.postal_code_id || "");
-        setPostalCodeValue(address.postal_code?.postal_code || "");
-
-        // Fetch cities
-        fetch(
-            route("api.locations.cities", { province_id: address.province_id })
-        )
-            .then((response) => response.json())
-            .then((data) => setCities(data));
-
-        // Fetch districts
-        fetch(route("api.locations.districts", { city_id: address.city_id }))
-            .then((response) => response.json())
-            .then((data) => setDistricts(data));
-
-        // Fetch subdistricts
-        fetch(
-            route("api.locations.subdistricts", {
-                district_id: address.district_id,
-            })
-        )
-            .then((response) => response.json())
-            .then((data) => setSubdistricts(data));
-
-        setOpenAddressDialog(true);
-    };
-
-    const handleCloseAddressDialog = () => {
-        setOpenAddressDialog(false);
-        setEditingAddress(null);
-    };
-
-    const handleSaveAddress = () => {
-        const addressData = {
-            name: document.getElementById("address-name").value,
-            recipient_name: document.getElementById("recipient-name").value,
-            recipient_telp_no: document.getElementById("recipient-telp").value,
-            province_id: selectedProvince,
-            city_id: selectedCity,
-            district_id: selectedDistrict,
-            subdistrict_id: selectedSubdistrict,
-            postal_code_id: postalCodeId,
-            address: document.getElementById("address-detail").value,
-        };
-
-        if (editingAddress) {
-            router.put(
-                route("delivery-address.update", editingAddress.id),
-                addressData,
-                {
-                    onSuccess: () => {
-                        handleCloseAddressDialog();
-                    },
-                }
-            );
-        } else {
-            router.post(route("delivery-address.store"), addressData, {
-                onSuccess: () => {
-                    handleCloseAddressDialog();
-                },
-            });
-        }
-    };
-
-    const showAddressSelection =
-        selectedDelivery &&
-        deliveryServices.find((s) => s.id === parseInt(selectedDelivery))
-            ?.id != 33; // Use non-strict comparison or integer to catch both string and integer IDs
-
-    // Handler untuk konfirmasi ongkir
-    const handleConfirmShippingCost = () => {
-        setShippingCostConfirmed(true);
-        setOpenShippingCostConfirmationModal(false);
-        setShowWAButton(false); // Hide button if confirmed
-    };
-
-    const handleCancelShippingCost = () => {
-        setShippingCostConfirmed(false);
-        setShippingCostAmount(0); // Reset amount if not confirmed
-        setOpenShippingCostConfirmationModal(false);
-        setSelectedDelivery(""); // Reset delivery selection as well if cancelled
-        setShowWAButton(true); // Show button ONLY when explicitly unconfirmed
-    };
-
     const [isProcessing, setIsProcessing] = useState(false);
-    const [cardToken, setCardToken] = useState(null);
     const creditCardFormRef = useRef(null);
 
     const handleCheckout = async (event) => {
-        event.preventDefault(); // Prevent default form submission behavior
+        event.preventDefault();
 
-        // --- Start Processing ---
         setIsProcessing(true);
 
         try {
-            // --- Form Data Assembly ---
             const isSelfPickup = selectedDelivery === "33";
             const deliveryMethod = deliveryServices.find(
                 (service) => service.id.toString() === selectedDelivery
@@ -492,12 +388,7 @@ export default function Cart({
 
             // Validasi untuk Transfer Manual
             if (selectedPaymentMethod === "manual_transfer") {
-                if (
-                    isSelfPickup ||
-                    (isDelivery &&
-                        shippingCostConfirmed &&
-                        shippingPaymentMethod === "via_us")
-                ) {
+                if (isSelfPickup || (isDelivery && shippingCostConfirmed)) {
                     if (!selectedTransferAccount) {
                         alert("Mohon pilih rekening tujuan transfer.");
                         setIsProcessing(false);
@@ -511,7 +402,7 @@ export default function Cart({
                 }
             }
 
-            // Kondisi 2 (Bayar Via Kami): Perlu nominal ongkir > 0 jika Pengiriman + Ongkir Sudah Konfirmasi + Bayar Via Kami
+            // Ongkir via_us wajib nominal > 0
             if (
                 isDelivery &&
                 shippingCostConfirmed &&
@@ -525,7 +416,7 @@ export default function Cart({
                 return;
             }
 
-            // Kondisi: Perlu Alamat Pengiriman jika Pengiriman
+            // Alamat wajib untuk pengiriman
             if (isDelivery && !selectedAddress) {
                 alert("Mohon pilih alamat pengiriman.");
                 setIsProcessing(false);
@@ -559,14 +450,13 @@ export default function Cart({
 
             formData.append("shipping_cost", finalShippingCostForBackend);
 
-            // Logika penentuan status pembayaran
+            // "Dibayar" hanya jika bukti transfer benar-benar diupload;
+            // tanpa bukti tetap "Belum dibayar" (bayar nanti).
             let paymentStatus;
-            if (isSelfPickup) {
+            if (selectedPaymentMethod !== "manual_transfer") {
+                paymentStatus = 4; // backend memaksa 4 untuk Midtrans
+            } else if (isSelfPickup || (isDelivery && shippingCostConfirmed)) {
                 paymentStatus = transferProof ? 1 : 4;
-            } else if (isDelivery && shippingCostConfirmed) {
-                paymentStatus = 1;
-            } else if (isDelivery && !shippingCostConfirmed) {
-                paymentStatus = 4;
             } else {
                 paymentStatus = 4;
             }
@@ -575,34 +465,51 @@ export default function Cart({
             formData.append("payment_status", paymentStatus);
             formData.append("payment_method", selectedPaymentMethod);
 
-            // Ubah format items
-            const items = cartItems.map((item) => {
-                // Relasi productOnlineGroup terserialisasi snake_case.
-                const resolved = item.product_online_group || item.product || {};
-                return {
-                    product_id: item.product ? item.product.id : null,
-                    product_online_group_id: item.product_online_group ? item.product_online_group.id : null,
-                    quantity: quantities[item.id] || item.quantity,
-                    price: getPriceByQuantity(
-                        resolved.priceTiers ?? resolved.price_tiers,
-                        quantities[item.id] || item.quantity,
-                        resolved.online_price || 0
-                    ),
-                };
-            });
+            // Buang baris keranjang yang produk/grupnya sudah tidak valid
+            // (relasi null), lalu pastikan masih ada item.
+            const items = cartItems
+                .map((item) => {
+                    const resolved =
+                        item.product_online_group || item.product || {};
+                    return {
+                        product_id: item.product ? item.product.id : null,
+                        product_online_group_id: item.product_online_group
+                            ? item.product_online_group.id
+                            : null,
+                        quantity: quantities[item.id] || item.quantity,
+                        price: getPriceByQuantity(
+                            resolved.priceTiers ?? resolved.price_tiers,
+                            quantities[item.id] || item.quantity,
+                            resolved.online_price || 0
+                        ),
+                    };
+                })
+                .filter(
+                    (item) => item.product_id || item.product_online_group_id
+                );
+
+            if (items.length === 0) {
+                alert(
+                    "Tidak ada produk yang valid di keranjang. Silakan hapus item yang tidak valid lalu coba lagi."
+                );
+                setIsProcessing(false);
+                return;
+            }
 
             items.forEach((item, index) => {
                 if (item.product_id) {
                     formData.append(`items[${index}][product_id]`, item.product_id);
                 }
                 if (item.product_online_group_id) {
-                    formData.append(`items[${index}][product_online_group_id]`, item.product_online_group_id);
+                    formData.append(
+                        `items[${index}][product_online_group_id]`,
+                        item.product_online_group_id
+                    );
                 }
                 formData.append(`items[${index}][quantity]`, item.quantity);
                 formData.append(`items[${index}][price]`, item.price);
             });
 
-            // --- API Call ---
             if (selectedPaymentMethod !== "manual_transfer") {
                 if (selectedPaymentMethod === "credit_card") {
                     if (!creditCardFormRef.current) {
@@ -644,6 +551,10 @@ export default function Cart({
         }
     };
 
+    const selectedAddressObject = deliveryAddresses.find(
+        (address) => address.id.toString() === selectedAddress
+    );
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -659,8 +570,7 @@ export default function Cart({
         >
             <Head title="Checkout" />
 
-            {/* Optimize padding for smaller screens */}
-            <Box sx={{ py: 4, px: { xs: 1, sm: 2 } }}>
+            <Box sx={{ py: { xs: 3, md: 4 }, px: { xs: 1, sm: 2 } }}>
                 {cartItems?.length === 0 ? (
                     <Stack
                         spacing={2}
@@ -680,91 +590,61 @@ export default function Cart({
                         >
                             Keranjang Belanja Kosong
                         </Typography>
-                    </Stack>
-                ) : isMobile ? ( // If mobile (<= 768px), stack the sections vertically
-                    <Stack spacing={3}>
-                        {showAddressSelection && (
-                            <Card
-                                elevation={0}
-                                sx={{
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <CardHeader
-                                    title={
-                                        <Stack
-                                            direction="row"
-                                            spacing={1}
-                                            alignItems="center"
-                                            justifyContent="space-between"
-                                        >
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                alignItems="center"
-                                            >
-                                                <LocalShippingIcon />
-                                                <Typography variant="h6">
-                                                    Alamat Pengiriman
-                                                </Typography>
-                                            </Stack>
-                                            <Button
-                                                startIcon={<LocationOnIcon />}
-                                                onClick={
-                                                    handleOpenAddressManagerModal
-                                                }
-                                                size="small"
-                                            >
-                                                {selectedAddress
-                                                    ? "Ubah Alamat"
-                                                    : "Pilih Alamat"}
-                                            </Button>
-                                        </Stack>
-                                    }
-                                />
-                                <CardContent>
-                                    <DeliveryAddressDisplay
-                                        selectedAddressObject={deliveryAddresses.find(
-                                            (address) =>
-                                                address.id.toString() ===
-                                                selectedAddress
-                                        )}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
-                        <Card
-                            elevation={0}
+                        <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            align="center"
+                        >
+                            Pilih produk dari katalog untuk mulai membuat
+                            pesanan.
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            href={route("order.index")}
                             sx={{
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 4,
-                                overflow: "hidden",
+                                mt: 1,
+                                px: 4,
+                                py: 1.5,
+                                borderRadius: 2,
+                                fontWeight: 700,
+                                background:
+                                    "linear-gradient(45deg, #C6A96B 30%, #D4AF37 90%)",
+                                boxShadow:
+                                    "0 8px 16px rgba(198, 169, 107, 0.2)",
+                                "&:hover": {
+                                    background:
+                                        "linear-gradient(45deg, #B0945A 30%, #C6A96B 90%)",
+                                },
                             }}
                         >
-                            <CardHeader
-                                title={
-                                    <Stack
-                                        direction="row"
-                                        spacing={2}
-                                        alignItems="center"
-                                    >
-                                        <Typography variant="h5" component="h1">
-                                            Daftar Produk (
-                                            {cartItems?.length || 0} item)
-                                        </Typography>
-                                        <Tooltip title="Harga akan menurun sesuai dengan jumlah pembelian">
-                                            <IconButton size="small">
-                                                <InfoIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </Stack>
+                            Mulai Belanja
+                        </Button>
+                    </Stack>
+                ) : (
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                                xs: "1fr",
+                                md: "minmax(0, 1fr) 400px",
+                            },
+                            gap: 3,
+                            alignItems: "start",
+                        }}
+                    >
+                        {/* KOLOM KIRI — pesanan: barang, alamat, pengiriman */}
+                        <Stack spacing={3} sx={{ minWidth: 0 }}>
+                            <SectionCard
+                                title={`Daftar Produk (${cartItems?.length || 0} item)`}
+                                icon={Inventory2Icon}
+                                action={
+                                    <Tooltip title="Harga akan menurun sesuai dengan jumlah pembelian">
+                                        <IconButton size="small">
+                                            <InfoIcon />
+                                        </IconButton>
+                                    </Tooltip>
                                 }
-                            />
-                            <CardContent>
+                            >
                                 <Stack spacing={2}>
                                     {cartItems?.map((item) => (
                                         <CartItemCard
@@ -777,77 +657,99 @@ export default function Cart({
                                             handleQuantityInput={
                                                 handleQuantityInput
                                             }
-                                            handleDeleteItem={handleDeleteItem}
-                                            isMobile={isMobile}
+                                            handleDeleteItem={
+                                                handleDeleteItem
+                                            }
                                         />
                                     ))}
                                 </Stack>
-                            </CardContent>
-                        </Card>
+                            </SectionCard>
 
-                        <Stack spacing={3} sx={{ position: "sticky", top: 24 }}>
-                            <Card
-                                elevation={0}
-                                sx={{
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <CardContent>
-                                    <FormControl fullWidth>
-                                        <InputLabel id="delivery-service-label">
-                                            Metode Pengiriman
-                                        </InputLabel>
-                                        <Select
-                                            labelId="delivery-service-label"
-                                            id="delivery-service"
-                                            value={selectedDelivery}
-                                            label="Metode Pengiriman"
-                                            onChange={handleDeliveryChange}
-                                        >
-                                            {deliveryServices.map((service) => (
-                                                <MenuItem
-                                                    key={service.id}
-                                                    value={service.id.toString()}
-                                                >
-                                                    {service.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    {showWAButton && !shippingCostConfirmed && (
+                            {showAddressSelection && (
+                                <SectionCard
+                                    title="Alamat Pengiriman"
+                                    icon={LocalShippingIcon}
+                                    action={
                                         <Button
-                                            variant="outlined"
-                                            fullWidth
-                                            startIcon={<WhatsAppIcon />}
-                                            href={`https://wa.me/6285782004645?text=${encodeURIComponent(
-                                                "Halo Sagansa, saya ingin konfirmasi pesanan saya dan menanyakan biaya pengiriman."
-                                            )}`}
-                                            target="_blank"
+                                            startIcon={<LocationOnIcon />}
+                                            onClick={
+                                                handleOpenAddressManagerModal
+                                            }
+                                            size="small"
                                             sx={{
-                                                mt: 2,
-                                                mb: 1,
-                                                py: 1,
-                                                borderRadius: 2,
-                                                fontWeight: "bold",
-                                                borderColor: "#25D366",
-                                                color: "#25D366",
-                                                "&:hover": {
-                                                    borderColor: "#128C7E",
-                                                    bgcolor:
-                                                        "rgba(37, 211, 102, 0.05)",
-                                                },
+                                                color: "#8f7949",
+                                                fontWeight: 600,
                                             }}
                                         >
-                                            Chat WA Admin
+                                            {selectedAddress
+                                                ? "Ubah Alamat"
+                                                : "Pilih Alamat"}
                                         </Button>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                    }
+                                >
+                                    <DeliveryAddressDisplay
+                                        selectedAddressObject={
+                                            selectedAddressObject
+                                        }
+                                    />
+                                </SectionCard>
+                            )}
 
-                            {/* Tampilkan input nominal ongkir jika sudah dikonfirmasi (tidak self-pickup) */}
+                            <SectionCard
+                                title="Metode Pengiriman"
+                                icon={LocalShippingIcon}
+                            >
+                                <FormControl fullWidth>
+                                    <InputLabel id="delivery-service-label">
+                                        Metode Pengiriman
+                                    </InputLabel>
+                                    <Select
+                                        labelId="delivery-service-label"
+                                        id="delivery-service"
+                                        value={selectedDelivery}
+                                        label="Metode Pengiriman"
+                                        onChange={handleDeliveryChange}
+                                        sx={{ borderRadius: 2 }}
+                                    >
+                                        {deliveryServices.map((service) => (
+                                            <MenuItem
+                                                key={service.id}
+                                                value={service.id.toString()}
+                                            >
+                                                {service.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {showWAButton && !shippingCostConfirmed && (
+                                    <Button
+                                        variant="outlined"
+                                        fullWidth
+                                        startIcon={<WhatsAppIcon />}
+                                        href={`https://wa.me/6285782004645?text=${encodeURIComponent(
+                                            "Halo Sagansa, saya ingin konfirmasi pesanan saya dan menanyakan biaya pengiriman."
+                                        )}`}
+                                        target="_blank"
+                                        sx={{
+                                            mt: 2,
+                                            py: 1,
+                                            borderRadius: 2,
+                                            fontWeight: "bold",
+                                            borderColor: "#25D366",
+                                            color: "#25D366",
+                                            "&:hover": {
+                                                borderColor: "#128C7E",
+                                                bgcolor:
+                                                    "rgba(37, 211, 102, 0.05)",
+                                            },
+                                        }}
+                                    >
+                                        Chat WA Admin
+                                    </Button>
+                                )}
+                            </SectionCard>
+
+                            {/* Input nominal ongkir setelah konfirmasi (bukan self-pickup) */}
                             {selectedDelivery &&
                                 selectedDelivery !== "33" &&
                                 shippingCostConfirmed && (
@@ -865,7 +767,41 @@ export default function Cart({
                                     />
                                 )}
 
-                            {/* Card Metode Pembayaran */}
+                            <SectionCard
+                                title="Tanggal Pengiriman"
+                                icon={EventIcon}
+                            >
+                                <TextField
+                                    label="Tanggal Pengiriman"
+                                    type="date"
+                                    fullWidth
+                                    value={deliveryDate}
+                                    onChange={(e) =>
+                                        setDeliveryDate(e.target.value)
+                                    }
+                                    sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                            borderRadius: 2,
+                                        },
+                                    }}
+                                    InputProps={{
+                                        inputProps: {
+                                            min: dayjs().format("YYYY-MM-DD"),
+                                        },
+                                    }}
+                                />
+                            </SectionCard>
+                        </Stack>
+
+                        {/* KOLOM KANAN — pembayaran + ringkasan */}
+                        <Box
+                            sx={{
+                                position: { md: "sticky" },
+                                top: { md: 24 },
+                                display: "grid",
+                                gap: 3,
+                            }}
+                        >
                             <PaymentMethodSelector
                                 selectedPaymentMethod={selectedPaymentMethod}
                                 setSelectedPaymentMethod={
@@ -877,10 +813,12 @@ export default function Cart({
                             />
 
                             {selectedPaymentMethod === "credit_card" && (
-                                <CreditCardForm ref={creditCardFormRef} disabled={isProcessing} />
+                                <CreditCardForm
+                                    ref={creditCardFormRef}
+                                    disabled={isProcessing}
+                                />
                             )}
 
-                            {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
                             {selectedPaymentMethod === "manual_transfer" && (
                                 <ManualTransferDetails
                                     selectedTransferAccount={
@@ -894,35 +832,6 @@ export default function Cart({
                                     handleFileChange={handleFileChange}
                                 />
                             )}
-
-                            <Card
-                                elevation={0}
-                                sx={{
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <CardContent>
-                                    <TextField
-                                        label="Tanggal Pengiriman"
-                                        type="date"
-                                        fullWidth
-                                        value={deliveryDate}
-                                        onChange={(e) =>
-                                            setDeliveryDate(e.target.value)
-                                        }
-                                        InputProps={{
-                                            inputProps: {
-                                                min: dayjs().format(
-                                                    "YYYY-MM-DD"
-                                                ),
-                                            },
-                                        }}
-                                    />
-                                </CardContent>
-                            </Card>
 
                             <OrderSummaryCard
                                 subtotal={subtotal}
@@ -943,458 +852,23 @@ export default function Cart({
                                 deliveryServices={deliveryServices}
                                 midtransMethods={midtransMethods}
                             />
-                        </Stack>
-                    </Stack>
-                ) : (
-                    <Grid container spacing={3} flexWrap="nowrap">
-                        <Grid size={8}>
-                            {showAddressSelection && (
-                                <Card
-                                    elevation={0}
-                                    sx={{
-                                        mb: 3,
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        borderRadius: 4,
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    <CardHeader
-                                        title={
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                alignItems="center"
-                                                justifyContent="space-between"
-                                            >
-                                                <Stack
-                                                    direction="row"
-                                                    spacing={1}
-                                                    alignItems="center"
-                                                >
-                                                    <LocalShippingIcon />
-                                                    <Typography variant="h6">
-                                                        Alamat Pengiriman
-                                                    </Typography>
-                                                </Stack>
-                                                <Button
-                                                    startIcon={
-                                                        <LocationOnIcon />
-                                                    }
-                                                    onClick={
-                                                        handleOpenAddressManagerModal
-                                                    }
-                                                    size="small"
-                                                >
-                                                    {selectedAddress
-                                                        ? "Ubah Alamat"
-                                                        : "Pilih Alamat"}
-                                                </Button>
-                                            </Stack>
-                                        }
-                                    />
-                                    <CardContent>
-                                        <DeliveryAddressDisplay
-                                            selectedAddressObject={deliveryAddresses.find(
-                                                (address) =>
-                                                    address.id.toString() ===
-                                                    selectedAddress
-                                            )}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            )}
-                            <Card
-                                elevation={0}
-                                sx={{
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <CardHeader
-                                    title={
-                                        <Stack
-                                            direction="row"
-                                            spacing={2}
-                                            alignItems="center"
-                                        >
-                                            <Typography
-                                                variant="h5"
-                                                component="h1"
-                                            >
-                                                Daftar Produk (
-                                                {cartItems?.length || 0} item)
-                                            </Typography>
-                                            <Tooltip title="Harga akan menurun sesuai dengan jumlah pembelian">
-                                                <IconButton size="small">
-                                                    <InfoIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Stack>
-                                    }
-                                />
-                                <CardContent>
-                                    <TableContainer
-                                        component={Paper}
-                                        sx={{ overflowX: "auto" }}
-                                    >
-                                        <Table>
-                                            <TableBody>
-                                                {cartItems?.map((item) => (
-                                                    <TableRow key={item.id}>
-                                                        <TableCell>
-                                                            <CartItemCard
-                                                                item={item}
-                                                                quantities={
-                                                                    quantities
-                                                                }
-                                                                handleQuantityChange={
-                                                                    handleQuantityChange
-                                                                }
-                                                                handleQuantityInput={
-                                                                    handleQuantityInput
-                                                                }
-                                                                handleDeleteItem={
-                                                                    handleDeleteItem
-                                                                }
-                                                                isMobile={
-                                                                    isMobile
-                                                                }
-                                                            />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-
-                        <Grid size={4}>
-                            <Stack spacing={3}>
-                                <Card
-                                    elevation={0}
-                                    sx={{
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        borderRadius: 4,
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    <CardContent>
-                                        <FormControl fullWidth>
-                                            <InputLabel id="delivery-service-label">
-                                                Metode Pengiriman
-                                            </InputLabel>
-                                            <Select
-                                                labelId="delivery-service-label"
-                                                id="delivery-service"
-                                                value={selectedDelivery}
-                                                label="Metode Pengiriman"
-                                                onChange={handleDeliveryChange}
-                                            >
-                                                {deliveryServices.map(
-                                                    (service) => (
-                                                        <MenuItem
-                                                            key={service.id}
-                                                            value={service.id.toString()}
-                                                        >
-                                                            {service.name}
-                                                        </MenuItem>
-                                                    )
-                                                )}
-                                            </Select>
-                                        </FormControl>
-                                        {showWAButton && !shippingCostConfirmed && (
-                                            <Button
-                                                variant="outlined"
-                                                fullWidth
-                                                startIcon={<WhatsAppIcon />}
-                                                href={`https://wa.me/6285782004645?text=${encodeURIComponent(
-                                                    "Halo Sagansa, saya ingin konfirmasi pesanan saya dan menanyakan biaya pengiriman."
-                                                )}`}
-                                                target="_blank"
-                                                sx={{
-                                                    mt: 2,
-                                                    mb: 1,
-                                                    py: 1,
-                                                    borderRadius: 2,
-                                                    fontWeight: "bold",
-                                                    borderColor: "#25D366",
-                                                    color: "#25D366",
-                                                    "&:hover": {
-                                                        borderColor: "#128C7E",
-                                                        bgcolor:
-                                                            "rgba(37, 211, 102, 0.05)",
-                                                    },
-                                                }}
-                                            >
-                                                Chat WA Admin
-                                            </Button>
-                                        )}
-                                    </CardContent>
-                                </Card>
-
-                                {/* Tampilkan input nominal ongkir jika sudah dikonfirmasi (tidak self-pickup) */}
-                                {selectedDelivery &&
-                                    selectedDelivery !== "33" &&
-                                    shippingCostConfirmed && (
-                                        <ShippingPaymentMethodSelector
-                                            shippingPaymentMethod={
-                                                shippingPaymentMethod
-                                            }
-                                            setShippingPaymentMethod={
-                                                setShippingPaymentMethod
-                                            }
-                                            shippingCostAmount={
-                                                shippingCostAmount
-                                            }
-                                            setShippingCostAmount={
-                                                setShippingCostAmount
-                                            }
-                                        />
-                                    )}
-
-                                {/* Card Metode Pembayaran */}
-                                <PaymentMethodSelector
-                                    selectedPaymentMethod={
-                                        selectedPaymentMethod
-                                    }
-                                    setSelectedPaymentMethod={
-                                        setSelectedPaymentMethod
-                                    }
-                                    midtransMethods={midtransMethods}
-                                    subtotal={subtotal}
-                                    shippingCostAmount={shippingCostAmount}
-                                />
-
-                                {selectedPaymentMethod === "credit_card" && (
-                                    <CreditCardForm ref={creditCardFormRef} disabled={isProcessing} />
-                                )}
-
-                                {/* Card Pilih Rekening Tujuan Transfer (Hanya jika Transfer Manual dipilih DAN (Ambil Sendiri ATAU Pengiriman + Ongkir Konfirmasi)) */}
-                                {selectedPaymentMethod ===
-                                    "manual_transfer" && (
-                                    <ManualTransferDetails
-                                        selectedTransferAccount={
-                                            selectedTransferAccount
-                                        }
-                                        setSelectedTransferAccount={
-                                            setSelectedTransferAccount
-                                        }
-                                        transferToAccounts={transferToAccounts}
-                                        handleFileChange={handleFileChange}
-                                        transferProof={transferProof}
-                                    />
-                                )}
-
-                                <Card
-                                    elevation={0}
-                                    sx={{
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        borderRadius: 4,
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    <CardContent>
-                                        <TextField
-                                            label="Tanggal Pengiriman"
-                                            type="date"
-                                            fullWidth
-                                            value={deliveryDate}
-                                            onChange={(e) =>
-                                                setDeliveryDate(e.target.value)
-                                            }
-                                            InputProps={{
-                                                inputProps: {
-                                                    min: dayjs().format(
-                                                        "YYYY-MM-DD"
-                                                    ),
-                                                },
-                                            }}
-                                        />
-                                    </CardContent>
-                                </Card>
-
-                                <OrderSummaryCard
-                                    subtotal={subtotal}
-                                    selectedDelivery={selectedDelivery}
-                                    shippingCostConfirmed={
-                                        shippingCostConfirmed
-                                    }
-                                    shippingPaymentMethod={
-                                        shippingPaymentMethod
-                                    }
-                                    shippingCostAmount={shippingCostAmount}
-                                    total={total}
-                                    handleCheckout={handleCheckout}
-                                    isProcessing={isProcessing}
-                                    selectedPaymentMethod={
-                                        selectedPaymentMethod
-                                    }
-                                    selectedTransferAccount={
-                                        selectedTransferAccount
-                                    }
-                                    transferProof={transferProof}
-                                    showAddressSelection={showAddressSelection}
-                                    selectedAddress={selectedAddress}
-                                    deliveryServices={deliveryServices}
-                                    midtransMethods={midtransMethods}
-                                />
-                            </Stack>
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 )}
             </Box>
 
-            {/* Address Dialog */}
-            <Dialog
-                open={openAddressDialog}
-                onClose={handleCloseAddressDialog}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>
-                    {editingAddress ? "Edit Alamat" : "Tambah Alamat Baru"}
-                </DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{ mt: 2 }}>
-                        <TextField
-                            id="address-name"
-                            label="Nama Alamat"
-                            fullWidth
-                            defaultValue={editingAddress?.name}
-                        />
-                        <TextField
-                            id="recipient-name"
-                            label="Nama Penerima"
-                            fullWidth
-                            defaultValue={editingAddress?.recipient_name}
-                        />
-                        <TextField
-                            id="recipient-telp"
-                            label="Nomor Telepon"
-                            fullWidth
-                            defaultValue={editingAddress?.recipient_telp_no}
-                        />
-                        <FormControl fullWidth>
-                            <InputLabel>Provinsi</InputLabel>
-                            <Select
-                                value={selectedProvince}
-                                label="Provinsi"
-                                onChange={handleProvinceChange}
-                            >
-                                {provinces.map((province) => (
-                                    <MenuItem
-                                        key={province.id}
-                                        value={province.id}
-                                    >
-                                        {province.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel>Kota/Kabupaten</InputLabel>
-                            <Select
-                                value={selectedCity}
-                                label="Kota/Kabupaten"
-                                onChange={handleCityChange}
-                                disabled={!selectedProvince}
-                            >
-                                {cities.map((city) => (
-                                    <MenuItem key={city.id} value={city.id}>
-                                        {city.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel>Kecamatan</InputLabel>
-                            <Select
-                                value={selectedDistrict}
-                                label="Kecamatan"
-                                onChange={handleDistrictChange}
-                                disabled={!selectedCity}
-                            >
-                                {districts.map((district) => (
-                                    <MenuItem
-                                        key={district.id}
-                                        value={district.id}
-                                    >
-                                        {district.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel>Kelurahan/Desa</InputLabel>
-                            <Select
-                                value={selectedSubdistrict}
-                                label="Kelurahan/Desa"
-                                onChange={handleSubdistrictChange}
-                                disabled={!selectedDistrict}
-                            >
-                                {subdistricts.map((subdistrict) => (
-                                    <MenuItem
-                                        key={subdistrict.id}
-                                        value={subdistrict.id}
-                                    >
-                                        {subdistrict.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <TextField
-                            label="Kode Pos"
-                            fullWidth
-                            value={postalCodeValue}
-                            inputProps={{ maxLength: 5 }}
-                            disabled={true}
-                        />
-                        <TextField
-                            id="address-detail"
-                            label="Alamat Lengkap"
-                            fullWidth
-                            multiline
-                            rows={3}
-                            defaultValue={editingAddress?.address}
-                        />
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseAddressDialog}>Batal</Button>
-                    <Button
-                        onClick={handleSaveAddress}
-                        variant="contained"
-                        disabled={
-                            !selectedProvince ||
-                            !selectedCity ||
-                            !selectedDistrict ||
-                            !selectedSubdistrict
-                        }
-                    >
-                        Simpan
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Shipping Cost Confirmation Modal */}
+            {/* Modal Konfirmasi Biaya Pengiriman */}
             <Dialog
                 open={openShippingCostConfirmationModal}
-                onClose={handleCancelShippingCost} // Close modal if cancelled
+                onClose={handleCancelShippingCost}
                 maxWidth="sm"
                 fullWidth
             >
                 <DialogTitle>Konfirmasi Biaya Pengiriman</DialogTitle>
                 <DialogContent>
                     <Typography variant="body1">
-                        Apakah Anda sudah mengkonfirmasi biaya pengiriman dengan
-                        admin?
+                        Apakah Anda sudah mengkonfirmasi biaya pengiriman
+                        dengan admin?
                     </Typography>
                     <Typography
                         variant="body2"
@@ -1419,6 +893,7 @@ export default function Cart({
                 </DialogActions>
             </Dialog>
 
+            {/* Modal pilih/kelola alamat — dialog tambah/edit ada di dalamnya */}
             <DeliveryAddressManagerModal
                 open={openAddressManagerModal}
                 onClose={handleCloseAddressManagerModal}
